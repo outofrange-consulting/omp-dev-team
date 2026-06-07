@@ -17,8 +17,13 @@
 # http://127.0.0.1:11434, so `ollama/<tag>` resolves with no models.yml once
 # you've pulled the model (see scripts/setup-local-models.sh).
 modelRoles:
-  # Small tier -> LOCAL coder model on the GPU (5070 Ti 16GB sweet spot).
-  smol: ollama/qwen2.5-coder:14b
+  # Small tier -> LOCAL coder model. Default: Qwen3-Coder-30B-A3B (MoE, ~3.3B
+  # active) which OMP auto-discovers from Ollama. On a 9950X + 64GB it offloads
+  # experts to RAM and keeps attention on the 5070 Ti — better judgment than any
+  # 14B dense, still fast. For max throughput swap to ollama/qwen2.5-coder:14b
+  # (fits fully in 16GB VRAM); for max speed on the 30B use the llama.cpp
+  # provider with --n-cpu-moe (see models.yml.example).
+  smol: ollama/qwen3-coder:30b
   # Deep-reasoning tier alias (used by a few commands/agents via pi/slow).
   slow: claude-opus-4-8
   # `default` is intentionally left to the user's interactive choice (--model).

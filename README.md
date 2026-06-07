@@ -62,23 +62,30 @@ cp -r omp-dev-team/.omp /chemin/vers/ton-projet/
 cd /chemin/vers/ton-projet && omp
 ```
 
-### Modèles locaux (RTX 5070 Ti 16 Go)
+### Modèles locaux (9950X + 64 Go + RTX 5070 Ti 16 Go)
 
 ```sh
 # 1. Ollama (auto-découvert par OMP sur 127.0.0.1:11434)
 curl -fsSL https://ollama.com/install.sh | sh
 
-# 2. Récupérer le modèle du petit palier (+ option débit)
-scripts/setup-local-models.sh --fast
+# 2. Récupérer le modèle du petit palier (par défaut Qwen3-Coder-30B-A3B)
+scripts/setup-local-models.sh          # + --fast pour aussi pull le 14B/7B
 
-# 3. (option) contexte plus large / autres backends
+# 3. (option) contexte plus large / llama.cpp / LM Studio
 cp models.yml.example ~/.omp/agent/models.yml
 ```
 
-`qwen2.5-coder:14b` (Q4_K_M, ~9 Go) est le compromis qualité/perf sur 16 Go, avec
-de la marge pour un grand contexte. `qwen2.5-coder:7b` maximise le débit pour le
-fan-out de revue. Pour le maximum de performance, voir le bloc **llama.cpp** dans
-`models.yml.example` (`-ngl 99`).
+**Défaut : `qwen3-coder:30b` (Qwen3-Coder-30B-A3B)** — MoE 30,5 B total / ~3,3 B
+actifs. Il ne tient pas entièrement dans 16 Go, mais en MoE Ollama décharge les
+experts vers tes 64 Go de RAM et garde l'attention sur le GPU : plus malin qu'un
+14B dense, et toujours rapide (~20–40 tok/s).
+
+Variantes :
+- **`qwen2.5-coder:14b`** (Q4, ~9 Go) — tient **entièrement** en VRAM, débit max
+  pour le fan-out de revue parallèle. `scripts/setup-local-models.sh --fast`.
+- **Perf max sur le 30B** : llama.cpp avec offload des experts —
+  `scripts/setup-local-models.sh --flash` imprime la commande
+  (`llama-server … --n-cpu-moe 28`), puis `modelRoles.smol: llama.cpp/qwen3-coder-30b-a3b`.
 
 ---
 
@@ -90,7 +97,7 @@ vérité est `.omp/knowledge/model-routing.json` ; le câblage est natif via
 
 | Palier | Frontmatter | Résout vers | Agents |
 |---|---|---|---|
-| petit | `pi/smol` | **local** (`modelRoles.smol`) | naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian |
+| petit | `pi/smol` | **local** `ollama/qwen3-coder:30b` (`modelRoles.smol`) | naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian |
 | équilibré | `claude-sonnet-4-6` | Sonnet (cloud) | orchestrator + la plupart des agents/revues |
 | profond | `claude-opus-4-8` | Opus (cloud) | security-review, domain-review, arch-review, architect, security-engineer, codebase-recon |
 
@@ -98,8 +105,10 @@ vérité est `.omp/knowledge/model-routing.json` ; le câblage est natif via
 
 ```yaml
 modelRoles:
-  smol: ollama/qwen2.5-coder:14b   # local (défaut)
-  # smol: claude-haiku-4-5         # repasser ce palier en cloud
+  smol: ollama/qwen3-coder:30b           # local 30B-A3B (défaut, MoE)
+  # smol: ollama/qwen2.5-coder:14b       # local, full-VRAM, débit max
+  # smol: llama.cpp/qwen3-coder-30b-a3b  # 30B perf max (--n-cpu-moe)
+  # smol: claude-haiku-4-5               # repasser ce palier en cloud
 ```
 
 L'extension `model-routing` :

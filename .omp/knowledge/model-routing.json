@@ -20,12 +20,13 @@
   },
   "local": {
     "backend": "ollama",
-    "model": "ollama/qwen2.5-coder:14b",
+    "model": "ollama/qwen3-coder:30b",
+    "rationale": "Qwen3-Coder-30B-A3B (a.k.a. Qwen3-Coder-Flash): 30.5B total / ~3.3B active MoE. On a 9950X + 64GB RAM + 5070 Ti 16GB it does not fully fit VRAM, but as an MoE it offloads expert FFNs to CPU/RAM and keeps attention + KV on the GPU, so it stays fast (~20-40 tok/s) while being clearly smarter than a 14B dense model. Ollama auto-offloads and is auto-discovered by OMP. For the best throughput on the 30B, run it under llama.cpp with --n-cpu-moe (see alternatives).",
     "alternatives": [
+      "llama.cpp/qwen3-coder-30b-a3b",
+      "ollama/qwen2.5-coder:14b",
       "ollama/qwen2.5-coder:7b",
-      "ollama/qwen2.5-coder:32b-instruct-q3_K_M",
-      "ollama/devstral:24b",
-      "llama.cpp/qwen2.5-coder-14b-instruct-q4_k_m"
+      "ollama/devstral:24b"
     ],
     "probe": {
       "ollama": "http://127.0.0.1:11434/api/tags",
@@ -33,6 +34,6 @@
       "lm-studio": "http://127.0.0.1:1234/v1/models"
     },
     "fallback": "claude-haiku-4-5",
-    "notes": "On a 5070 Ti 16GB, qwen2.5-coder:14b (Q4_K_M, ~9GB) is the performance/quality sweet spot with room for a large context window. 7b is faster for throughput; 32b at q3 is the ceiling that still fits. If the local backend is unreachable, the `model-routing` extension blocks small-tier dispatches with an actionable message; flip modelRoles.smol to `claude-haiku-4-5` (the fallback) to run fully on cloud."
+    "notes": "Tier sizing for 16GB VRAM + 64GB RAM: (1) ollama/qwen3-coder:30b = best quality, MoE expert offload, recommended. (2) ollama/qwen2.5-coder:14b Q4 (~9GB) = fully in VRAM, max throughput for parallel review fan-out. (3) llama.cpp/qwen3-coder-30b-a3b with `--n-cpu-moe N` or `-ot '.ffn_.*_exps.=CPU'` = max speed on the 30B. If the local backend is unreachable, the `model-routing` extension blocks small-tier dispatches; set modelRoles.smol: claude-haiku-4-5 to run fully on cloud."
   }
 }
