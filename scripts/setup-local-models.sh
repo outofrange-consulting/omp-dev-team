@@ -3,61 +3,86 @@
 #
 # Target: AMD 9950X + 64GB RAM + RTX 5070 Ti 16GB. The small tier (model:
 # pi/smol) routes here; the Sonnet/Opus tiers stay on cloud. Default backend is
-# Ollama (auto-discovered by OMP); --flash prints the llama.cpp max-perf path.
+# Ollama (auto-discovered by OMP). The flags below expose stronger options.
 #
 # Usage:
-#   scripts/setup-local-models.sh             # pull Qwen3-Coder-30B-A3B (default)
+#   scripts/setup-local-models.sh             # DEFAULT: Qwen3-Coder-30B-A3B (Ollama)
 #   scripts/setup-local-models.sh --fast      # also pull 14B + 7B (throughput)
-#   scripts/setup-local-models.sh --ctx 49152 # bake a larger context window
-#   scripts/setup-local-models.sh --flash     # print the llama.cpp 30B setup
+#   scripts/setup-local-models.sh --devstral  # also pull Devstral Small 2 (full-VRAM)
+#   scripts/setup-local-models.sh --next       # print Qwen3-Coder-Next (llama.cpp) setup
+#   scripts/setup-local-models.sh --flash      # print Qwen3-Coder-30B (llama.cpp) setup
+#   scripts/setup-local-models.sh --ctx 49152  # bake a larger context window
+#
+# Quality ladder for 16GB VRAM + 64GB RAM:
+#   * ollama/qwen3-coder:30b      30B-A3B MoE  ~18GB  — DEFAULT (offloads to RAM)
+#   * llama.cpp/qwen3-coder-next  80B-A3B MoE  ~40GB  — best quality, fits 64GB
+#   * ollama/devstral             24B dense    ~14GB  — full-VRAM, max throughput
+#   * ollama/qwen2.5-coder:14b    14B dense    ~9GB   — full-VRAM, lighter
 
 set -euo pipefail
 
 PRIMARY="qwen3-coder:30b"        # 30B-A3B MoE (~3.3B active); offloads to 64GB RAM
 FAST="qwen2.5-coder:14b"         # dense, fits fully in 16GB VRAM — max throughput
 TINY="qwen2.5-coder:7b"          # smallest, highest tok/s
+DEVSTRAL="devstral"              # Devstral Small 2 (Mistral, 24B dense, SWE-tuned)
 NUM_CTX="32768"
 PULL_FAST=0
-FLASH=0
+PULL_DEVSTRAL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --fast)  PULL_FAST=1; shift ;;
-    --ctx)   NUM_CTX="$2"; shift 2 ;;
-    --flash) FLASH=1; shift ;;
+    --fast)     PULL_FAST=1; shift ;;
+    --devstral) PULL_DEVSTRAL=1; shift ;;
+    --ctx)      NUM_CTX="$2"; shift 2 ;;
+    --next)     SHOW="next"; shift ;;
+    --flash)    SHOW="flash"; shift ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
-if [[ "$FLASH" == "1" ]]; then
+# ---- llama.cpp guidance modes (print-only) --------------------------------
+if [[ "${SHOW:-}" == "next" ]]; then
   cat <<EOF
-==> llama.cpp (max performance on Qwen3-Coder-30B-A3B)
+==> Qwen3-Coder-Next (80B-A3B MoE) via llama.cpp — best quality that fits 64GB
 
-Install llama.cpp (with CUDA), then run a single-model server with MoE expert
-offload to CPU/RAM — attention + KV stay on the 5070 Ti:
+~40GB at Q4 (80B total / ~3B active, hybrid Gated DeltaNet + attention, 256K ctx).
+Needs a RECENT llama.cpp build (DeltaNet support). Keep attention + KV on the
+5070 Ti, push all experts to CPU/RAM:
 
-  llama-server -hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q4_K_XL \\
-    -ngl 99 --n-cpu-moe 28 -c ${NUM_CTX} --host 127.0.0.1 --port 8080
+  llama-server -hf unsloth/Qwen3-Coder-Next-GGUF:Q4_K_XL \\
+    -ngl 99 -ot ".ffn_.*_exps.=CPU" -c ${NUM_CTX} --host 127.0.0.1 --port 8080
 
-Tuning:
-  * Lower --n-cpu-moe until VRAM is ~full (more experts on GPU = faster).
-  * Or pin all experts to CPU:  -ot ".ffn_.*_exps.=CPU"
-
-Then point the small tier at it in .omp/config.yml:
-  modelRoles:
-    smol: llama.cpp/qwen3-coder-30b-a3b
-
-(uncomment the llama.cpp provider in models.yml.example -> ~/.omp/agent/models.yml)
+Notes:
+  * ~40GB lives in RAM — fine on 64GB, but a very large -c eats into that.
+  * Then point the small tier at it in .omp/config.yml:
+        modelRoles:
+          smol: llama.cpp/qwen3-coder-next
+  * Uncomment the llama.cpp provider in models.yml.example -> ~/.omp/agent/models.yml
 EOF
   exit 0
 fi
 
+if [[ "${SHOW:-}" == "flash" ]]; then
+  cat <<EOF
+==> Qwen3-Coder-30B-A3B via llama.cpp — max speed on the 30B
+
+  llama-server -hf unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q4_K_XL \\
+    -ngl 99 --n-cpu-moe 28 -c ${NUM_CTX} --host 127.0.0.1 --port 8080
+
+Tuning: lower --n-cpu-moe until VRAM is ~full (more experts on GPU = faster),
+or pin all experts to CPU with: -ot ".ffn_.*_exps.=CPU"
+Then: modelRoles.smol: llama.cpp/qwen3-coder-30b-a3b
+EOF
+  exit 0
+fi
+
+# ---- Ollama pulls ---------------------------------------------------------
 if ! command -v ollama >/dev/null 2>&1; then
   cat >&2 <<'EOF'
 ollama not found. Install it first:
   curl -fsSL https://ollama.com/install.sh | sh
-Then re-run. (For max performance on the 30B, use --flash for the llama.cpp path,
-or see models.yml.example for LM Studio.)
+Then re-run. (For the llama.cpp paths use --next or --flash; for LM Studio see
+models.yml.example.)
 EOF
   exit 1
 fi
@@ -68,6 +93,11 @@ ollama pull "$PRIMARY"
 if [[ "$PULL_FAST" == "1" ]]; then
   echo "==> Pulling $FAST (full-VRAM throughput option)…"; ollama pull "$FAST"
   echo "==> Pulling $TINY (max throughput)…";              ollama pull "$TINY"
+fi
+
+if [[ "$PULL_DEVSTRAL" == "1" ]]; then
+  echo "==> Pulling $DEVSTRAL (Devstral Small 2, 24B dense — full-VRAM, SWE-tuned)…"
+  ollama pull "$DEVSTRAL"
 fi
 
 # Bake a larger context window into a derived model so review of bigger diffs
@@ -85,8 +115,10 @@ Done. Verify OMP sees the model:
   omp --list-models | grep -i ollama
 
 The small tier points at 'ollama/${PRIMARY}' in .omp/config.yml (modelRoles.smol).
-For the larger-context build:        modelRoles.smol: ollama/${DERIVED}
-For max throughput (full-VRAM):      modelRoles.smol: ollama/${FAST}    (needs --fast)
-For max speed on the 30B:            scripts/setup-local-models.sh --flash
-To go fully cloud:                   modelRoles.smol: claude-haiku-4-5
+Swap modelRoles.smol to pick another rung:
+  ollama/${DERIVED}              larger-context build of the default
+  llama.cpp/qwen3-coder-next     best quality (run: setup-local-models.sh --next)
+  ollama/${DEVSTRAL}             Devstral Small 2, full-VRAM (needs --devstral)
+  ollama/${FAST}                 14B dense, full-VRAM (needs --fast)
+  claude-haiku-4-5               go fully cloud
 EOF

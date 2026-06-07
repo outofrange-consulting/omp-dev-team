@@ -47,6 +47,15 @@ providers:
         contextWindow: 32768
         maxTokens: 8192
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+      # Devstral Small 2 (Mistral, 24B dense, SWE-tuned) — ~14GB Q4, full-VRAM.
+      # `ollama pull devstral` (or scripts/setup-local-models.sh --devstral)
+      - id: devstral
+        name: Devstral Small 2 24B (local / full-VRAM, SWE-tuned)
+        reasoning: false
+        input: [text]
+        contextWindow: 32768
+        maxTokens: 8192
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
 
   # -------------------------------------------------------------------------
   # LLAMA.CPP (max performance on the 30B-A3B)
@@ -71,6 +80,17 @@ providers:
         reasoning: false
         input: [text]
         contextWindow: 32768
+        maxTokens: 8192
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+      # Qwen3-Coder-Next: 80B total / ~3B active MoE, hybrid DeltaNet+attention,
+      # ~40GB Q4 (fits 64GB RAM). Best quality. Needs a recent llama.cpp build.
+      # Serve: llama-server -hf unsloth/Qwen3-Coder-Next-GGUF:Q4_K_XL \
+      #          -ngl 99 -ot ".ffn_.*_exps.=CPU" -c 32768 --port 8080
+      - id: qwen3-coder-next
+        name: Qwen3-Coder-Next 80B-A3B (llama.cpp, expert-offload)
+        reasoning: false
+        input: [text]
+        contextWindow: 65536
         maxTokens: 8192
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
 

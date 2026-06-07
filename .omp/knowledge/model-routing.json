@@ -23,11 +23,16 @@
     "model": "ollama/qwen3-coder:30b",
     "rationale": "Qwen3-Coder-30B-A3B (a.k.a. Qwen3-Coder-Flash): 30.5B total / ~3.3B active MoE. On a 9950X + 64GB RAM + 5070 Ti 16GB it does not fully fit VRAM, but as an MoE it offloads expert FFNs to CPU/RAM and keeps attention + KV on the GPU, so it stays fast (~20-40 tok/s) while being clearly smarter than a 14B dense model. Ollama auto-offloads and is auto-discovered by OMP. For the best throughput on the 30B, run it under llama.cpp with --n-cpu-moe (see alternatives).",
     "alternatives": [
+      "llama.cpp/qwen3-coder-next",
       "llama.cpp/qwen3-coder-30b-a3b",
+      "ollama/devstral",
       "ollama/qwen2.5-coder:14b",
-      "ollama/qwen2.5-coder:7b",
-      "ollama/devstral:24b"
+      "ollama/qwen2.5-coder:7b"
     ],
+    "alternatives_notes": {
+      "llama.cpp/qwen3-coder-next": "80B total / ~3B active MoE (hybrid Gated DeltaNet + attention, 256K ctx), SWE-bench Verified ~70.6%. ~40GB Q4 -> fits 64GB RAM. Best quality. Needs a recent llama.cpp build. Run: scripts/setup-local-models.sh --next",
+      "ollama/devstral": "Devstral Small 2 (Mistral, 24B dense), SWE-bench ~72% but narrowly SWE-tuned. ~14GB Q4 -> full-VRAM, best throughput. Run: scripts/setup-local-models.sh --devstral"
+    },
     "probe": {
       "ollama": "http://127.0.0.1:11434/api/tags",
       "llama.cpp": "http://127.0.0.1:8080/v1/models",
