@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+  "mcpServers": {
+    "codegraph": {
+      "command": "codegraph",
+      "args": ["mcp", "stdio"],
+      "enabled": false,
+      "env": {
+        "CODEGRAPH_PROJECT": "${PWD}"
+      }
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "enabled": false,
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_TOKEN}"
+      }
+    }
+  }
+}

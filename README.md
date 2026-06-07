@@ -1,0 +1,170 @@
+# omp-dev-team
+
+Portage pour **[Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi)** du harness
+**[agentic-dev-team](https://github.com/bdfinst/agentic-dev-team)** de Bryan Finster :
+une équipe de développement pilotée par des agents-personas, avec orchestration
+trois phases, redirection entre agents, extensions de blocage, usage MCP — et la
+possibilité de **rediriger le « petit » palier de modèles vers un modèle local**
+qui tourne bien sur une **RTX 5070 Ti 16 Go**.
+
+> L'intention de routage : les modèles locaux remplacent les **petits modèles**
+> (agents de revue par motif, à fort volume), **pas** Sonnet/Opus qui restent en
+> cloud pour le raisonnement.
+
+---
+
+## Ce que c'est
+
+Un workspace OMP complet sous `.omp/` :
+
+| Brique | Emplacement | Rôle |
+|---|---|---|
+| **Agents** (32) | `.omp/agents/*.md` | personas + agents de revue, lancés via l'outil `task` |
+| **Skills** (78) | `.omp/skills/*/SKILL.md` | savoir-faire chargé à la demande (`/skill:<nom>` ou `read skill://<nom>`) |
+| **Commands** | `.omp/commands/*.md` | points d'entrée du pipeline (`/specs` `/plan` `/build` `/pr` …) |
+| **Extensions** (8) | `.omp/extensions/*.ts` | les « scripts de blocage » (gardes + routage), en TypeScript natif OMP |
+| **Rules** | `.omp/rules/*.md` | garde-fous toujours/scopés (discipline de sortie, TDD, authoring) |
+| **Knowledge** | `.omp/knowledge/` | registres, rubriques, motifs de détection, `model-routing.json` |
+| **MCP** | `.omp/mcp.json` | serveurs MCP (CodeGraph, GitHub) |
+| **Manuel d'équipe** | `.omp/APPEND_SYSTEM.md` | contexte toujours chargé (orchestration, routage, flux) |
+
+### Correspondance Claude Code → OMP
+
+| agentic-dev-team (Claude Code) | → | omp-dev-team (OMP) |
+|---|---|---|
+| `agents/*.md` (`tools`, `model: haiku/sonnet/opus`) | → | `.omp/agents/*.md` (`tools` minuscules, `spawns`, `model:` concret/role) |
+| `skills/*/SKILL.md` | → | `.omp/skills/*/SKILL.md` |
+| skills *user-invocable* (slash) | → | `.omp/commands/*.md` + `/skill:<nom>` |
+| hooks shell (`destructive-guard`, `tdd-guard`, gate `pre-commit-review`, secrets) | → | extensions TS (`tool_call` bloquant) |
+| `agent-model-resolve.sh` + `model-routing.json` (réécriture du modèle au dispatch) | → | `modelRoles` + extension `model-routing` (gate de dispo + log) |
+| usage MCP (`mcp__codegraph__*`) | → | `.omp/mcp.json` |
+| paliers de modèles | → | **palier petit = local**, Sonnet/Opus = cloud |
+
+---
+
+## Installation
+
+### Option A — workspace direct (le plus simple)
+
+Clone le repo et lance OMP dedans : `.omp/` est découvert automatiquement.
+
+```sh
+git clone <ce-repo> omp-dev-team && cd omp-dev-team
+omp
+```
+
+### Option B — déposer dans un projet existant
+
+Copie le dossier `.omp/` à la racine de ton projet :
+
+```sh
+cp -r omp-dev-team/.omp /chemin/vers/ton-projet/
+cd /chemin/vers/ton-projet && omp
+```
+
+### Modèles locaux (RTX 5070 Ti 16 Go)
+
+```sh
+# 1. Ollama (auto-découvert par OMP sur 127.0.0.1:11434)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Récupérer le modèle du petit palier (+ option débit)
+scripts/setup-local-models.sh --fast
+
+# 3. (option) contexte plus large / autres backends
+cp models.yml.example ~/.omp/agent/models.yml
+```
+
+`qwen2.5-coder:14b` (Q4_K_M, ~9 Go) est le compromis qualité/perf sur 16 Go, avec
+de la marge pour un grand contexte. `qwen2.5-coder:7b` maximise le débit pour le
+fan-out de revue. Pour le maximum de performance, voir le bloc **llama.cpp** dans
+`models.yml.example` (`-ngl 99`).
+
+---
+
+## Routage des modèles (le cœur)
+
+Chaque agent déclare son palier dans son frontmatter `model:`. La source de
+vérité est `.omp/knowledge/model-routing.json` ; le câblage est natif via
+`.omp/config.yml` → `modelRoles`.
+
+| Palier | Frontmatter | Résout vers | Agents |
+|---|---|---|---|
+| petit | `pi/smol` | **local** (`modelRoles.smol`) | naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian |
+| équilibré | `claude-sonnet-4-6` | Sonnet (cloud) | orchestrator + la plupart des agents/revues |
+| profond | `claude-opus-4-8` | Opus (cloud) | security-review, domain-review, arch-review, architect, security-engineer, codebase-recon |
+
+**Basculer un palier** = une ligne dans `.omp/config.yml` :
+
+```yaml
+modelRoles:
+  smol: ollama/qwen2.5-coder:14b   # local (défaut)
+  # smol: claude-haiku-4-5         # repasser ce palier en cloud
+```
+
+L'extension `model-routing` :
+- **sonde** le backend local au démarrage de session ;
+- **bloque** un dispatch de palier petit si le backend local est injoignable,
+  avec un message d'action (réplique du `deny` du hook d'origine) ;
+- **journalise** chaque dispatch dans `.omp/state/model-routing.log`.
+
+Diagnostic : `/routing` (rapide) ou `/model-routing-check` (carte complète).
+
+---
+
+## Garde-fous (extensions = « scripts de blocage »)
+
+| Extension | Commande(s) | Comportement |
+|---|---|---|
+| `model-routing` | `/routing` | gate de dispo du modèle local + log de dispatch |
+| `path-guard` | — | **bloque** l'écriture de secrets/identifiants (`.env`, `*.pem`, `*secret*`…) |
+| `destructive-guard` | — | avertit (ou **bloque** en mode careful) sur `rm -rf`, force-push, `DROP TABLE`… |
+| `careful-mode` | `/careful on\|off\|status` | active le blocage destructif |
+| `freeze-guard` | `/freeze <glob>` `/unfreeze` | verrouille des chemins contre l'édition |
+| `tdd-guard` | — | rappel non bloquant RED-GREEN-REFACTOR |
+| `review-gate` | `/review-approve` | **bloque `git commit`** tant que le set indexé n'est pas approuvé |
+| `telemetry` | `/cost-report` | compteur de friction (tours, outils, contexte) par session |
+
+Les extensions interceptent `tool_call` et renvoient `{ block, reason }` — c'est
+le mécanisme de blocage natif d'OMP (cf. `docs/extensions.md` d'OMP).
+
+---
+
+## Pipeline (commandes)
+
+```
+/specs  →  /plan  →  /build  →  /pr
+```
+
+- `/specs` — intention, architecture, critères d'acceptation (gate de cohérence).
+- `/plan` — découpe en tranches verticales + scénarios Gherkin ; 4 personas de
+  revue de plan en parallèle avant le gate humain.
+- `/build` — exécute le plan en TDD, revue inline 3 étapes, preuves de
+  vérification ; `/code-review` puis `/review-approve` avant commit.
+- `/pr` — gates qualité + ouverture de PR.
+
+Autres : `/code-review` (`/review`), `/review-agent`, `/continue`, `/triage`,
+`/design-doc`, `/issues-from-plan`, `/model-routing-check`, `/help`. Toute skill
+portée est aussi disponible en `/skill:<nom>`.
+
+---
+
+## Personnalisation
+
+- **Routage** : `.omp/config.yml` (`modelRoles`) + `.omp/knowledge/model-routing.json`.
+- **Modèles locaux** : `models.yml.example` → `~/.omp/agent/models.yml`.
+- **Garde-fous** : éditer les listes de motifs en tête de chaque extension.
+- **MCP** : `.omp/mcp.json` (activer `codegraph`/`github`, mettre `enabled: true`).
+- **Prompt système** : `.omp/APPEND_SYSTEM.md` (ajouté au prompt par défaut).
+
+---
+
+## État du portage
+
+Portage du **cœur dev-team** : 32 agents, 78 skills, orchestration 3 phases,
+routage local, 8 extensions de blocage, commandes du pipeline, base de
+connaissances, MCP. Le plugin compagnon **security-assessment** (red-team ML,
+SARIF, mapping conformité) n'est pas inclus dans cette vague.
+
+Crédits : harness d'origine [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team)
+(MIT, Bryan Finster) ; cible [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

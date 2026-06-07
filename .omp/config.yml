@@ -1,0 +1,66 @@
+# omp-dev-team — project configuration for Oh-My-Pi
+# Docs: https://github.com/can1357/oh-my-pi/blob/main/docs/config-usage.md
+#
+# This file is discovered by OMP at <cwd>/.omp/config.yml. It wires the
+# persona team's model routing, skills, and subagent graph.
+
+# ---------------------------------------------------------------------------
+# MODEL ROUTING (the heart of the local-model redirection)
+# ---------------------------------------------------------------------------
+# Agents declare a tier in their `model:` frontmatter:
+#   small/pattern agents -> `pi/smol`  (resolved here, LOCAL by default)
+#   balanced agents      -> `claude-sonnet-4-6`
+#   deep-reasoning agents-> `claude-opus-4-8`
+#
+# Only the small tier runs locally. Flip `smol` to `claude-haiku-4-5` to go
+# fully cloud, or point it at any local model id. OMP auto-discovers Ollama on
+# http://127.0.0.1:11434, so `ollama/<tag>` resolves with no models.yml once
+# you've pulled the model (see scripts/setup-local-models.sh).
+modelRoles:
+  # Small tier -> LOCAL coder model on the GPU (5070 Ti 16GB sweet spot).
+  smol: ollama/qwen2.5-coder:14b
+  # Deep-reasoning tier alias (used by a few commands/agents via pi/slow).
+  slow: claude-opus-4-8
+  # `default` is intentionally left to the user's interactive choice (--model).
+  # Subagent default for agents that don't pin a model:
+  task: claude-sonnet-4-6
+
+# Global canonical-provider precedence when a canonical id maps to several
+# concrete providers. Keep Anthropic first for the cloud tiers.
+modelProviderOrder:
+  - anthropic
+  - ollama
+
+# ---------------------------------------------------------------------------
+# SKILLS
+# ---------------------------------------------------------------------------
+# All ported dev-team skills live under .omp/skills/<name>/SKILL.md. Enabling
+# skill commands exposes every skill as `/skill:<name>` in addition to being
+# readable by agents via skill://<name>.
+skills:
+  enabled: true
+  enableSkillCommands: true
+
+# ---------------------------------------------------------------------------
+# EXTENSIONS (the "blocking scripts" — ported from the Claude Code shell hooks)
+# ---------------------------------------------------------------------------
+# Native discovery auto-loads every module under .omp/extensions/, so listing
+# them here is optional. They are listed for documentation / explicit ordering.
+extensions:
+  - ./.omp/extensions/model-routing.ts # local-model availability gate + dispatch log
+  - ./.omp/extensions/path-guard.ts # blocks writes to secrets/credentials
+  - ./.omp/extensions/destructive-guard.ts # warns/blocks destructive bash (careful mode)
+  - ./.omp/extensions/careful-mode.ts # /careful on|off toggle + state
+  - ./.omp/extensions/freeze-guard.ts # /freeze path lock
+  - ./.omp/extensions/tdd-guard.ts # nudges RED-GREEN-REFACTOR on source edits
+  - ./.omp/extensions/review-gate.ts # blocks `git commit` until /code-review passes
+  - ./.omp/extensions/telemetry.ts # per-session cost/turn meter + /cost-report
+
+# ---------------------------------------------------------------------------
+# TASK / SUBAGENT GRAPH
+# ---------------------------------------------------------------------------
+task:
+  # Allow deep enough nesting for orchestrator -> implementer -> explore.
+  maxRecursionDepth: 4
+  # Let custom task calls pass schemas through to structured-output agents.
+  simple: false

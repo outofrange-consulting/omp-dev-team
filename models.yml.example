@@ -1,0 +1,63 @@
+# omp-dev-team — local model providers for Oh-My-Pi
+# Copy to ~/.omp/agent/models.yml  (or merge into your existing one).
+# Docs: https://github.com/can1357/oh-my-pi/blob/main/docs/models.md
+#
+# NOTE: OMP already AUTO-DISCOVERS a local Ollama server on
+# http://127.0.0.1:11434, so `ollama/qwen2.5-coder:14b` resolves with NO config
+# once you've run `ollama pull qwen2.5-coder:14b`. You only need this file to
+# (a) pin a larger context window, (b) use llama.cpp / LM Studio, or (c) tune
+# request compat. Pick the block matching your backend.
+
+providers:
+  # -------------------------------------------------------------------------
+  # OLLAMA (default backend — recommended)
+  # 5070 Ti 16GB: qwen2.5-coder:14b Q4_K_M (~9GB) leaves room for a big ctx.
+  # -------------------------------------------------------------------------
+  ollama:
+    baseUrl: http://127.0.0.1:11434
+    api: openai-responses
+    auth: none
+    discovery:
+      type: ollama
+    models:
+      - id: qwen2.5-coder:14b
+        name: Qwen2.5-Coder 14B (local / small tier)
+        reasoning: false
+        input: [text]
+        # 32k is comfortable on 16GB; raise num_ctx in Ollama to match.
+        contextWindow: 32768
+        maxTokens: 8192
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+      # Faster, lighter alternative for high-throughput review fan-out:
+      - id: qwen2.5-coder:7b
+        name: Qwen2.5-Coder 7B (local / fast)
+        reasoning: false
+        input: [text]
+        contextWindow: 32768
+        maxTokens: 8192
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+
+  # -------------------------------------------------------------------------
+  # LLAMA.CPP (max performance — uncomment to use)
+  # Run:  llama-server -m qwen2.5-coder-14b-instruct-q4_k_m.gguf \
+  #         -ngl 99 -c 32768 --host 127.0.0.1 --port 8080
+  # Then set modelRoles.smol -> llama.cpp/qwen2.5-coder-14b-instruct-q4_k_m
+  # -------------------------------------------------------------------------
+  # llama.cpp:
+  #   baseUrl: http://127.0.0.1:8080
+  #   api: openai-responses
+  #   auth: none
+  #   discovery:
+  #     type: llama.cpp
+
+  # -------------------------------------------------------------------------
+  # LM STUDIO (GUI — uncomment to use)
+  # Load the model in LM Studio, start the server, then set
+  # modelRoles.smol -> lm-studio/<model-id-shown-in-LM-Studio>
+  # -------------------------------------------------------------------------
+  # lm-studio:
+  #   baseUrl: http://127.0.0.1:1234/v1
+  #   api: openai-completions
+  #   auth: none
+  #   discovery:
+  #     type: lm-studio

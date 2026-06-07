@@ -1,0 +1,9 @@
+{
+  "name": "omp-dev-team",
+  "version": "0.1.0",
+  "description": "Persona-driven AI development team for Oh-My-Pi — port of agentic-dev-team with local-model routing for the small tier.",
+  "license": "MIT",
+  "private": true,
+  "keywords": ["oh-my-pi", "omp", "agents", "orchestration", "local-models", "ollama"],
+  "comment": "This repo is an OMP workspace: OMP auto-discovers .omp/{agents,skills,commands,extensions,rules}. There is intentionally no omp.extensions manifest here — native .omp/extensions discovery loads them, and listing them again would double-load. Install by running `omp` in this dir or copying .omp/ into your project (see README)."
+}

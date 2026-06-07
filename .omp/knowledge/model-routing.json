@@ -1,0 +1,38 @@
+{
+  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension and the /model-routing-check command read this file. Agents declare a tier in their `model:` frontmatter: small-tier agents use `pi/smol` (resolved by .omp/config.yml modelRoles.smol, defaulting to a LOCAL model); reasoning-tier agents pin a concrete cloud model id. Only the small tier is local by design -- local models replace the cheap pattern-matching agents, not Sonnet/Opus.",
+  "tiers": {
+    "haiku": {
+      "role": "smol",
+      "frontmatter": "pi/smol",
+      "intent": "local",
+      "rationale": "Lexical/structural pattern matching, checklist-style verification (naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian). Cheap, high-volume, parallel. Routed to a local model on the GPU."
+    },
+    "sonnet": {
+      "frontmatter": "claude-sonnet-4-6",
+      "intent": "cloud",
+      "rationale": "Semantic analysis with balanced cost/quality (most team agents + most review agents + orchestrator)."
+    },
+    "opus": {
+      "frontmatter": "claude-opus-4-8",
+      "intent": "cloud",
+      "rationale": "Cross-file reasoning, high-stakes design synthesis, threat modeling, broad reconnaissance (security-review, domain-review, arch-review, architect, security-engineer, codebase-recon)."
+    }
+  },
+  "local": {
+    "backend": "ollama",
+    "model": "ollama/qwen2.5-coder:14b",
+    "alternatives": [
+      "ollama/qwen2.5-coder:7b",
+      "ollama/qwen2.5-coder:32b-instruct-q3_K_M",
+      "ollama/devstral:24b",
+      "llama.cpp/qwen2.5-coder-14b-instruct-q4_k_m"
+    ],
+    "probe": {
+      "ollama": "http://127.0.0.1:11434/api/tags",
+      "llama.cpp": "http://127.0.0.1:8080/v1/models",
+      "lm-studio": "http://127.0.0.1:1234/v1/models"
+    },
+    "fallback": "claude-haiku-4-5",
+    "notes": "On a 5070 Ti 16GB, qwen2.5-coder:14b (Q4_K_M, ~9GB) is the performance/quality sweet spot with room for a large context window. 7b is faster for throughput; 32b at q3 is the ceiling that still fits. If the local backend is unreachable, the `model-routing` extension blocks small-tier dispatches with an actionable message; flip modelRoles.smol to `claude-haiku-4-5` (the fallback) to run fully on cloud."
+  }
+}

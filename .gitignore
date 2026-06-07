@@ -1,0 +1,16 @@
+# Runtime state written by extensions (careful/freeze/review-gate/telemetry/routing)
+.omp/state/
+
+# Phase progress + decision log written by the orchestrator
+memory/
+plans/
+.triage/
+
+# User-local model overrides
+.omp/model-overrides.json
+models.yml
+
+# OS / editor
+.DS_Store
+*.swp
+node_modules/

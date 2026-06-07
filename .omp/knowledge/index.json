@@ -1,0 +1,4242 @@
+{
+  "plugins/dev-team/knowledge/accepted-risks-schema.md": {
+    "Purpose": {
+      "summary": "A project-local `ACCEPTED-RISKS.md` at the repo root declares findings the team has explicitly accepted as known risks.",
+      "anchor": "purpose"
+    },
+    "File location and format": {
+      "summary": "Location: repo root, filename `ACCEPTED-RISKS.md` (exact case, singular)",
+      "anchor": "file-location-and-format"
+    },
+    "Rule schema": {
+      "summary": "**`id`**: kebab-case, unique within the file.",
+      "anchor": "rule-schema"
+    },
+    "Field semantics": {
+      "summary": "**`id`**: kebab-case, unique within the file.",
+      "anchor": "field-semantics"
+    },
+    "Matching algorithm": {
+      "summary": "For each finding F in the unified finding envelope:",
+      "anchor": "matching-algorithm"
+    },
+    "Report output": {
+      "summary": "After a review run:",
+      "anchor": "report-output"
+    },
+    "Authoring policy": {
+      "summary": "Rules are **additive**, never removed silently.",
+      "anchor": "authoring-policy"
+    },
+    "Initialization": {
+      "summary": "When `/code-review` runs in a repo without `ACCEPTED-RISKS.md`, the agent does NOT create one automatically.",
+      "anchor": "initialization"
+    },
+    "Out of scope": {
+      "summary": "**This schema does NOT cover severity-threshold suppression.** Lowering severity is a review-agent configuration concern, not a project policy concern.",
+      "anchor": "out-of-scope"
+    }
+  },
+  "plugins/dev-team/knowledge/adr-decision-criteria.md": {
+    "Core Definition": {
+      "summary": "An ADR documents **a decision on a matter where \"why?\" would not be obvious** — especially for decisions that are **hard to change later**.",
+      "anchor": "core-definition"
+    },
+    "Signals That Warrant an ADR": {
+      "summary": "| Signal | Why it qualifies |",
+      "anchor": "signals-that-warrant-an-adr"
+    },
+    "Signals That Do NOT Warrant an ADR": {
+      "summary": "| Signal | Why it does not qualify |",
+      "anchor": "signals-that-do-not-warrant-an-adr"
+    },
+    "Proactive Suggestion Triggers": {
+      "summary": "Suggest an ADR when you observe any of the following during review or implementation:",
+      "anchor": "proactive-suggestion-triggers"
+    },
+    "Relationship to Other Documents": {
+      "summary": "**Design doc** — explores options before a decision is made.",
+      "anchor": "relationship-to-other-documents"
+    }
+  },
+  "plugins/dev-team/knowledge/adversarial-review-protocol.md": {
+    "The Loop": {
+      "summary": "After the initial review pass, re-examine findings with the following questions.",
+      "anchor": "the-loop"
+    },
+    "Challenge Questions by Agent": {
+      "summary": "Did you check EVERY source file, not just files with suspicious names?",
+      "anchor": "challenge-questions-by-agent"
+    },
+    "security-review": {
+      "summary": "Did you check EVERY source file, not just files with suspicious names?",
+      "anchor": "security-review"
+    },
+    "test-review": {
+      "summary": "For every class below 90% effective coverage, did you identify the SPECIFIC uncovered behavior?",
+      "anchor": "test-review"
+    },
+    "test-smell-review": {
+      "summary": "For every smell flagged, did you name the specific xUnit smell (not just \"this test is bad\")?",
+      "anchor": "test-smell-review"
+    },
+    "structure-review": {
+      "summary": "Did you check every module/class for SRP violations, including small ones?",
+      "anchor": "structure-review"
+    },
+    "complexity-review": {
+      "summary": "Did you check ALL methods and functions, not just the visibly large ones?",
+      "anchor": "complexity-review"
+    },
+    "arch-review": {
+      "summary": "Did you read the ADRs before reviewing?",
+      "anchor": "arch-review"
+    },
+    "domain-review": {
+      "summary": "Did you check every entity/aggregate for anemic domain model patterns (data bags with all behavior in services)?",
+      "anchor": "domain-review"
+    },
+    "Output": {
+      "summary": "After the challenger pass, append to the `summary` field in your JSON output:",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/knowledge/agent-registry.md": {
+    "Team Agents": {
+      "summary": "| Agent | File | ~Tokens | Primary Focus |",
+      "anchor": "team-agents"
+    },
+    "Review Agents": {
+      "summary": "Spawned by the orchestrator during Phase 3 inline checkpoints and full `/code-review` runs.",
+      "anchor": "review-agents"
+    },
+    "Skills Registry": {
+      "summary": "Skills are reusable knowledge modules in `.claude/skills/` that agents reference.",
+      "anchor": "skills-registry"
+    },
+    "Subagent Prompt Templates": {
+      "summary": "Concrete prompt templates in `prompts/` that the orchestrator and `/code-review` use when dispatching subagents, making behavior reproducible.",
+      "anchor": "subagent-prompt-templates"
+    },
+    "Knowledge Files": {
+      "summary": "Knowledge files in `knowledge/` provide progressive disclosure — agents read them on demand during analysis rather than carrying all detection patterns inline.",
+      "anchor": "knowledge-files"
+    },
+    "Agent Templates": {
+      "summary": "Language-specific review agents in `templates/agents/`.",
+      "anchor": "agent-templates"
+    }
+  },
+  "plugins/dev-team/knowledge/architecture-assessment.md": {
+    "Exploration Patterns": {
+      "summary": "Map the architectural landscape before detecting issues.",
+      "anchor": "exploration-patterns"
+    },
+    "Discovery sequence": {
+      "summary": "1.",
+      "anchor": "discovery-sequence"
+    },
+    "ADR Compliance Checks": {
+      "summary": "| Check | How to detect |",
+      "anchor": "adr-compliance-checks"
+    },
+    "Layer Boundary Rules": {
+      "summary": "Standard layered architecture enforces dependency direction:",
+      "anchor": "layer-boundary-rules"
+    },
+    "Dependency Direction Checks": {
+      "summary": "| Check | Signal |",
+      "anchor": "dependency-direction-checks"
+    },
+    "Pattern Consistency Checks": {
+      "summary": "Flag when new code diverges from established patterns for the same concern:",
+      "anchor": "pattern-consistency-checks"
+    },
+    "Prohibited Practice Detection": {
+      "summary": "Grep for patterns that architecture docs explicitly ban:",
+      "anchor": "prohibited-practice-detection"
+    },
+    "MCP-Enhanced Analysis": {
+      "summary": "If a code knowledge graph MCP is available (e.g., GitNexus):",
+      "anchor": "mcp-enhanced-analysis"
+    }
+  },
+  "plugins/dev-team/knowledge/cd-test-architecture.md": {
+    "The Six Test Types": {
+      "summary": "| Type | Verifies | Dependencies | Deterministic?",
+      "anchor": "the-six-test-types"
+    },
+    "The Pre-Merge Gate Rule": {
+      "summary": "Pre-merge (the gate that blocks a merge) contains **only**: static analysis, unit, component, and contract tests.",
+      "anchor": "the-pre-merge-gate-rule"
+    },
+    "Tests Must Live With the Code (out-of-repo testing is an anti-pattern)": {
+      "summary": "A component's tests belong **in the component's repository and pipeline**.",
+      "anchor": "tests-must-live-with-the-code-out-of-repo-testing-is-an-anti-pattern"
+    },
+    "How Component Tests Run Without Configuring Dependencies": {
+      "summary": "The component test is the workhorse of a CD gate.",
+      "anchor": "how-component-tests-run-without-configuring-dependencies"
+    },
+    "The Adapter Rule (own your boundaries)": {
+      "summary": "Wrap every third-party client (SDK, HTTP client, broker client, DB driver) in **a thin adapter the team owns**, then double the *adapter* in component tests — never mock the third-party SDK directly.",
+      "anchor": "the-adapter-rule-own-your-boundaries"
+    },
+    "Outside-In First: Baseline Before Refactor": {
+      "summary": "You rarely start from a clean slate.",
+      "anchor": "outside-in-first-baseline-before-refactor"
+    },
+    "Double Validation (keeping doubles honest)": {
+      "summary": "A double that drifts from reality gives false confidence — the central risk of double-based isolation.",
+      "anchor": "double-validation-keeping-doubles-honest"
+    },
+    "Do not depend on provider cooperation": {
+      "summary": "Consumer-driven contract verification — where the *provider* runs your contract in *their* pipeline and is blocked from deploying a breaking change — only works when teams collaborate closely and use tooling that enforces it.",
+      "anchor": "do-not-depend-on-provider-cooperation"
+    },
+    "The defense you own": {
+      "summary": "1.",
+      "anchor": "the-defense-you-own"
+    },
+    "Determinism Techniques (minimal tooling)": {
+      "summary": "**Inject the clock.** Replace system time with a fixed clock in every time-dependent test (`Clock.fixed(...)`).",
+      "anchor": "determinism-techniques-minimal-tooling"
+    },
+    "Terminology Reconciliation (read this if you also use the Fowler files)": {
+      "summary": "This file uses **MinimumCD vocabulary**, which differs from the Fowler-based `test-pyramid.md` and `microservice-testing.md`:",
+      "anchor": "terminology-reconciliation-read-this-if-you-also-use-the-fowler-files"
+    },
+    "Boundaries": {
+      "summary": "\"Minimal tooling\" means prefer in-memory doubles + a real browser + testcontainers for adapter checks — not a sprawl of test frameworks.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/knowledge/component-test-patterns.md": {
+    "Identify the Component's Pattern": {
+      "summary": "| If the component… | Pattern | Group |",
+      "anchor": "identify-the-components-pattern"
+    },
+    "UI": {
+      "summary": "Renders data and accepts interaction against backend APIs.",
+      "anchor": "ui"
+    },
+    "User Interface": {
+      "summary": "Renders data and accepts interaction against backend APIs.",
+      "anchor": "user-interface"
+    },
+    "Services": {
+      "summary": "Exposes endpoints, owns its data store, no outbound internal calls.",
+      "anchor": "services"
+    },
+    "API Provider": {
+      "summary": "Exposes endpoints, owns its data store, no outbound internal calls.",
+      "anchor": "api-provider"
+    },
+    "API Consumer": {
+      "summary": "Exposes endpoints **and** calls upstream services.",
+      "anchor": "api-consumer"
+    },
+    "Event Consumer": {
+      "summary": "Consumes messages from a broker (Kafka/SQS/RabbitMQ/PubSub).",
+      "anchor": "event-consumer"
+    },
+    "Event Producer": {
+      "summary": "Publishes messages to a broker (often paired with a consumer in the same service).",
+      "anchor": "event-producer"
+    },
+    "Stateful Service": {
+      "summary": "Long-lived in-memory state: caches, aggregates, coordinators, websocket gateways, real-time engines.",
+      "anchor": "stateful-service"
+    },
+    "CLI / Library": {
+      "summary": "Binary or package consumed via CLI or an exported API.",
+      "anchor": "cli-library"
+    },
+    "Batch": {
+      "summary": "Triggered by cron/queue/scheduler to process data and write output/state.",
+      "anchor": "batch"
+    },
+    "Scheduled Job": {
+      "summary": "Triggered by cron/queue/scheduler to process data and write output/state.",
+      "anchor": "scheduled-job"
+    },
+    "Quick Reference: Isolation Strategy by Pattern": {
+      "summary": "| Pattern | Double to run pre-merge without config | Validated by |",
+      "anchor": "quick-reference-isolation-strategy-by-pattern"
+    }
+  },
+  "plugins/dev-team/knowledge/design-smells.md": {
+    "Design Smells → Pattern Mapping": {
+      "summary": "| Smell | Signature in code | Remediation pattern |",
+      "anchor": "design-smells-pattern-mapping"
+    },
+    "What NOT to Flag": {
+      "summary": "A `switch` over a closed enumeration where adding a case is rare (e.g., `DayOfWeek`, `HttpMethod`) — polymorphism adds ceremony without benefit",
+      "anchor": "what-not-to-flag"
+    },
+    "Finding Format": {
+      "summary": "When surfacing a design smell as a finding:",
+      "anchor": "finding-format"
+    },
+    "Naming Offender Catalog": {
+      "summary": "| Offender | Fix | Notes |",
+      "anchor": "naming-offender-catalog"
+    },
+    "Abbreviations that obscure intent": {
+      "summary": "| Offender | Fix | Notes |",
+      "anchor": "abbreviations-that-obscure-intent"
+    },
+    "Generic verbs that hide intent": {
+      "summary": "| Offender | Fix | Reason |",
+      "anchor": "generic-verbs-that-hide-intent"
+    },
+    "Misleading names": {
+      "summary": "| Offender | Why it misleads | Fix |",
+      "anchor": "misleading-names"
+    },
+    "Type-encoded names": {
+      "summary": "| Offender | Fix |",
+      "anchor": "type-encoded-names"
+    },
+    "What NOT to flag": {
+      "summary": "Loop counters: `i`, `j`, `k` are conventional",
+      "anchor": "what-not-to-flag-1"
+    }
+  },
+  "plugins/dev-team/knowledge/domain-modeling.md": {
+    "Exploration Patterns": {
+      "summary": "Map the project structure before detecting issues.",
+      "anchor": "exploration-patterns"
+    },
+    "Entity / Model discovery": {
+      "summary": "| Glob pattern | What it finds |",
+      "anchor": "entity-model-discovery"
+    },
+    "ORM marker detection": {
+      "summary": "| Language | Grep patterns |",
+      "anchor": "orm-marker-detection"
+    },
+    "Boundary entry point detection": {
+      "summary": "| Language | Grep patterns |",
+      "anchor": "boundary-entry-point-detection"
+    },
+    "Application service detection": {
+      "summary": "| Language | Grep patterns |",
+      "anchor": "application-service-detection"
+    },
+    "Anti-Pattern Recognition": {
+      "summary": "Logic belongs in the domain layer.",
+      "anchor": "anti-pattern-recognition"
+    },
+    "Business Logic Misplacement": {
+      "summary": "Logic belongs in the domain layer.",
+      "anchor": "business-logic-misplacement"
+    },
+    "Anemic Domain Model": {
+      "summary": "Entities that are pure data holders (only getters/setters) while services",
+      "anchor": "anemic-domain-model"
+    },
+    "Abstraction Leaks": {
+      "summary": "| Leak type | Signal |",
+      "anchor": "abstraction-leaks"
+    },
+    "Boundary Violations": {
+      "summary": "| Violation | Signal |",
+      "anchor": "boundary-violations"
+    },
+    "Ubiquitous Language Drift": {
+      "summary": "Flag only internal inconsistency observable in code:",
+      "anchor": "ubiquitous-language-drift"
+    }
+  },
+  "plugins/dev-team/knowledge/exploratory-testing-field-guide.md": {
+    "1. Charter Quality (§2.3–2.4)": {
+      "summary": "**Format**: `Explore [target] with [approach] to discover [concern]`",
+      "anchor": "1-charter-quality-2324"
+    },
+    "2. Exploration Without a GUI (Ch. 10)": {
+      "summary": "All techniques apply to APIs, CLIs, batch programs, libraries — any interface.",
+      "anchor": "2-exploration-without-a-gui-ch-10"
+    },
+    "3. State Modeling (Ch. 8)": {
+      "summary": "**State detection — Jorgensen's 3 questions** (ask after each probe):",
+      "anchor": "3-state-modeling-ch-8"
+    },
+    "4. Iterative Probe-Learn-Probe": {
+      "summary": "1.",
+      "anchor": "4-iterative-probe-learn-probe"
+    },
+    "5. Implicit Expectations": {
+      "summary": "Stakeholders never state these because they assume they're obvious — highest-value adversarial targets:",
+      "anchor": "5-implicit-expectations"
+    }
+  },
+  "plugins/dev-team/knowledge/fixture-construction.md": {
+    "1. Construction patterns (how the fixture object is built)": {
+      "summary": "| Pattern | What it is | Use when | Cost / risk |",
+      "anchor": "1-construction-patterns-how-the-fixture-object-is-built"
+    },
+    "2. Setup location (where construction runs)": {
+      "summary": "| Location | What it is | Trade-off vs Fresh Fixture isolation |",
+      "anchor": "2-setup-location-where-construction-runs"
+    },
+    "3. Teardown (releasing what the test created)": {
+      "summary": "| Pattern | What it is | Use when |",
+      "anchor": "3-teardown-releasing-what-the-test-created"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-strategy.md`** — *which* fixture (lifecycle/design); this file is *how* it's constructed.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/knowledge/microservice-testing.md": {
+    "The Layers (per service)": {
+      "summary": "| Layer | Scope | What it verifies | Doubles |",
+      "anchor": "the-layers-per-service"
+    },
+    "Consumer-Driven Contracts (CDC)": {
+      "summary": "The mechanism that lets services deploy independently:",
+      "anchor": "consumer-driven-contracts-cdc"
+    },
+    "What to test where (microservice heuristics)": {
+      "summary": "**Business logic** → unit, in the owning service.",
+      "anchor": "what-to-test-where-microservice-heuristics"
+    },
+    "Smells specific to distributed testing (flag these)": {
+      "summary": "| Smell | Signal | Fix |",
+      "anchor": "smells-specific-to-distributed-testing-flag-these"
+    },
+    "Boundaries": {
+      "summary": "Not every codebase is microservices.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/knowledge/object-calisthenics.md": {
+    "The Rules": {
+      "summary": "If a method has nested `if`/`for`/`while`, extract the inner block into a named method.",
+      "anchor": "the-rules"
+    },
+    "1. One Level of Indentation Per Method": {
+      "summary": "If a method has nested `if`/`for`/`while`, extract the inner block into a named method.",
+      "anchor": "1-one-level-of-indentation-per-method"
+    },
+    "2. Don't Use the ELSE Keyword": {
+      "summary": "Replace `if/else` with guard clauses (early returns) or polymorphism.",
+      "anchor": "2-dont-use-the-else-keyword"
+    },
+    "3. Wrap All Primitives and Strings": {
+      "summary": "Domain-meaningful primitives become value objects with validation.",
+      "anchor": "3-wrap-all-primitives-and-strings"
+    },
+    "4. First-Class Collections": {
+      "summary": "Any class with a collection field should contain no other fields.",
+      "anchor": "4-first-class-collections"
+    },
+    "5. One Dot Per Line (Law of Demeter)": {
+      "summary": "Don't chain through object graphs.",
+      "anchor": "5-one-dot-per-line-law-of-demeter"
+    },
+    "6. Don't Abbreviate": {
+      "summary": "Names should be intention-revealing.",
+      "anchor": "6-dont-abbreviate"
+    },
+    "7. Keep All Entities Small": {
+      "summary": "Classes: under 200 lines",
+      "anchor": "7-keep-all-entities-small"
+    },
+    "8. No Classes with More Than Two Instance Variables": {
+      "summary": "The spirit: classes should be small and focused.",
+      "anchor": "8-no-classes-with-more-than-two-instance-variables"
+    },
+    "9. No Getters/Setters/Properties (Tell, Don't Ask)": {
+      "summary": "Move behavior into the object that owns the data instead of exposing data for others to operate on.",
+      "anchor": "9-no-getterssettersproperties-tell-dont-ask"
+    },
+    "Applying Pragmatically": {
+      "summary": "These are training exercises, not absolute laws.",
+      "anchor": "applying-pragmatically"
+    }
+  },
+  "plugins/dev-team/knowledge/owasp-detection.md": {
+    "A01: Broken Access Control": {
+      "summary": "| Pattern | Language | Grep Signal | Category |",
+      "anchor": "a01-broken-access-control"
+    },
+    "A02: Cryptographic Failures": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a02-cryptographic-failures"
+    },
+    "A03: Injection": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a03-injection"
+    },
+    "A04: Insecure Design": {
+      "summary": "| Pattern | Language | Grep Signal | Category |",
+      "anchor": "a04-insecure-design"
+    },
+    "A05: Security Misconfiguration": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a05-security-misconfiguration"
+    },
+    "A06: Vulnerable Components": {
+      "summary": "| Detection method | Language |",
+      "anchor": "a06-vulnerable-components"
+    },
+    "A07: Authentication Failures": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a07-authentication-failures"
+    },
+    "A08: Data Integrity Failures": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a08-data-integrity-failures"
+    },
+    "A09: Logging & Monitoring Failures": {
+      "summary": "| Pattern | Language | Grep Signal | Category |",
+      "anchor": "a09-logging-monitoring-failures"
+    },
+    "A10: SSRF": {
+      "summary": "| Pattern | Language | Grep Signal |",
+      "anchor": "a10-ssrf"
+    }
+  },
+  "plugins/dev-team/knowledge/result-verification.md": {
+    "Verification style: state vs behavior": {
+      "summary": "| Style | What it checks | Use when |",
+      "anchor": "verification-style-state-vs-behavior"
+    },
+    "Assertion patterns": {
+      "summary": "| Pattern | What it is | Use when | Fixes |",
+      "anchor": "assertion-patterns"
+    },
+    "Rules": {
+      "summary": "**One logical condition per test.** Several unrelated assertions in one method is an Eager Test — split it (`test-organization.md` / `test-refactoring.md`).",
+      "anchor": "rules"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-smells.md`** — the smells these fix: Assertion Roulette, Obscure Test, Fragile/Overspecified Test, Hard-Coded Values.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/knowledge/review-rubric.md": {
+    "Health Score Calculation": {
+      "summary": "Collect the status from each agent: `pass`, `warn`, `fail`, `skip`.",
+      "anchor": "health-score-calculation"
+    },
+    "Category Weights": {
+      "summary": "Not all agent failures carry equal weight.",
+      "anchor": "category-weights"
+    },
+    "Issue Severity Mapping": {
+      "summary": "Agent issues map to the report as follows:",
+      "anchor": "issue-severity-mapping"
+    },
+    "Confidence and Actionability": {
+      "summary": "| Confidence | Meaning | Auto-fixable |",
+      "anchor": "confidence-and-actionability"
+    }
+  },
+  "plugins/dev-team/knowledge/review-template.md": {
+    "Report Structure": {
+      "summary": "Use these consistently:",
+      "anchor": "report-structure"
+    },
+    "Severity Icons": {
+      "summary": "Use these consistently:",
+      "anchor": "severity-icons"
+    },
+    "Health Score Icons": {
+      "summary": "| Health | Icon |",
+      "anchor": "health-score-icons"
+    }
+  },
+  "plugins/dev-team/knowledge/security-primitives-contract.md": {
+    "Bypass path": {
+      "summary": "Edits to this file are guarded by `hooks/contract-version-guard.sh`.",
+      "anchor": "bypass-path"
+    },
+    "Registries": {
+      "summary": "Agents that produce or consume contract envelopes.",
+      "anchor": "registries"
+    },
+    "Agent IDs": {
+      "summary": "Agents that produce or consume contract envelopes.",
+      "anchor": "agent-ids"
+    },
+    "Skill IDs": {
+      "summary": "Skills that participate in the contract (operate on envelopes or define adapter behavior).",
+      "anchor": "skill-ids"
+    },
+    "Envelope 1 — RECON": {
+      "summary": "Normalized reconnaissance output from `codebase-recon`.",
+      "anchor": "envelope-1-recon"
+    },
+    "`file_inventory` (added in 1.2.0)": {
+      "summary": "An authoritative enumeration of every file the recon considered in-scope at recon time.",
+      "anchor": "fileinventory-added-in-120"
+    },
+    "Consumer error contract": {
+      "summary": "Consumers that depend on `file_inventory` (e.g., Gap 6's PreToolUse hook, or any audit that wants to prove a reviewer didn't silently read outside the recon surface) **must fail-open** when any of the three branches below fires.",
+      "anchor": "consumer-error-contract"
+    },
+    "Envelope 2 — Unified finding": {
+      "summary": "Narrow normalization over SARIF `result` objects.",
+      "anchor": "envelope-2-unified-finding"
+    },
+    "Envelope 3 — Disposition register": {
+      "summary": "Output of `fp-reduction` over unified findings.",
+      "anchor": "envelope-3-disposition-register"
+    },
+    "Envelope 4 — Accepted-risks log (added in v1.3.0)": {
+      "summary": "Per-target suppression log emitted by `scripts/apply-accepted-risks.sh` in the companion plugin.",
+      "anchor": "envelope-4-accepted-risks-log-added-in-v130"
+    },
+    "Envelope 5 — Severity-floors log (added in v1.3.0)": {
+      "summary": "Per-target floor-application log emitted by `scripts/apply-severity-floors.sh` in the companion plugin.",
+      "anchor": "envelope-5-severity-floors-log-added-in-v130"
+    },
+    "Severity mapping (added in v1.1.0)": {
+      "summary": "The unified finding envelope uses a lint-grade severity scale optimized for tool output (`error | warning | suggestion | info`).",
+      "anchor": "severity-mapping-added-in-v110"
+    },
+    "Downstream invariants": {
+      "summary": "The `exec-report-generator` enforces these invariants and rejects (with named errors) any finding that violates them from CRITICAL / HIGH sections.",
+      "anchor": "downstream-invariants"
+    },
+    "Out of contract": {
+      "summary": "Explicitly NOT part of this contract:",
+      "anchor": "out-of-contract"
+    },
+    "Conformance": {
+      "summary": "Schemas live at `plugins/dev-team/knowledge/schemas/{recon-envelope,unified-finding,disposition-register}-v1.json` and must validate using any Draft 2020-12 JSON Schema validator.",
+      "anchor": "conformance"
+    },
+    "Versioning lifecycle": {
+      "summary": "Clarifications and typos → open a PR with `version: 1.0.X` (PATCH).",
+      "anchor": "versioning-lifecycle"
+    },
+    "Changelog": {
+      "summary": "Additive schema release.",
+      "anchor": "changelog"
+    },
+    "1.3.0 (2026-04-24)": {
+      "summary": "Additive schema release.",
+      "anchor": "130-2026-04-24"
+    },
+    "1.2.0 (2026-04-24)": {
+      "summary": "Additive schema release.",
+      "anchor": "120-2026-04-24"
+    },
+    "1.1.0 (2026-04-21)": {
+      "summary": "Additive guidance release.",
+      "anchor": "110-2026-04-21"
+    },
+    "1.0.0 (2026-04-21)": {
+      "summary": "Initial contract.",
+      "anchor": "100-2026-04-21"
+    }
+  },
+  "plugins/dev-team/knowledge/test-automation-maturity.md": {
+    "Maturity scale (diagnose from evidence, lowest rung first)": {
+      "summary": "| Rung | Signal in the suite | Risk |",
+      "anchor": "maturity-scale-diagnose-from-evidence-lowest-rung-first"
+    },
+    "Single-Point-of-Change test": {
+      "summary": "Pick one volatile detail (a CSS selector, an endpoint path, a field name).",
+      "anchor": "single-point-of-change-test"
+    },
+    "Abstraction patterns": {
+      "summary": "**Page Object / API client / DSL** — a façade exposing domain actions (`loginAs(user)`, `placeOrder(...)`), hiding selectors/HTTP.",
+      "anchor": "abstraction-patterns"
+    },
+    "Smell: UI-based setup": {
+      "summary": "Driving the **UI** to establish preconditions (clicking through signup just to test checkout) is slow and flaky.",
+      "anchor": "smell-ui-based-setup"
+    },
+    "Graduated disclosure (don't over-build)": {
+      "summary": "Scale abstraction to suite size, not aspiration:",
+      "anchor": "graduated-disclosure-dont-over-build"
+    },
+    "Boundaries": {
+      "summary": "Maturity is about **maintainability under change**, not coverage or correctness — those are `test-design-reviewer` and `test-review`.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/knowledge/test-doubles.md": {
+    "The Five Doubles": {
+      "summary": "| Double | What it does | Verification style | Use when |",
+      "anchor": "the-five-doubles"
+    },
+    "State Verification vs. Behavior Verification": {
+      "summary": "| | State verification | Behavior verification |",
+      "anchor": "state-verification-vs-behavior-verification"
+    },
+    "Choosing a Double (decision flow)": {
+      "summary": "---",
+      "anchor": "choosing-a-double-decision-flow"
+    },
+    "Common Misuses (flag these)": {
+      "summary": "| Misuse | Why it's wrong | Fix |",
+      "anchor": "common-misuses-flag-these"
+    },
+    "Relationship to testability": {
+      "summary": "If a collaborator can't be substituted at all (new-ed up internally, static singleton, hidden global), that's a **production-code** problem, not a test problem — introduce a seam per `testability-patterns.md` (constructor injection, interface extraction) before choosing a double.",
+      "anchor": "relationship-to-testability"
+    },
+    "Boundaries": {
+      "summary": "Don't flag a Fake (in-memory repo/DB) as \"not testing the real thing\" — at unit/integration level a Fake is a legitimate, often *better*, choice than a heavily-stubbed real dependency.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/knowledge/test-layer-gates.md": {
+    "The gates (before pyramid placement)": {
+      "summary": "**Gate A — user-facing dynamic.** The user acts and must *see* a rendered result.",
+      "anchor": "the-gates-before-pyramid-placement"
+    },
+    "Redundancy check (business-critical only, after placement)": {
+      "summary": "A business-critical behavior at only one layer → flag it, name a second layer with a **different failure mode**, and give a concrete recommendation.",
+      "anchor": "redundancy-check-business-critical-only-after-placement"
+    }
+  },
+  "plugins/dev-team/knowledge/test-organization.md": {
+    "The Four-Phase Test (the anchor)": {
+      "summary": "Every test follows four phases, visibly separated:",
+      "anchor": "the-four-phase-test-the-anchor"
+    },
+    "Testcase Class grouping": {
+      "summary": "| Grouping | One class per… | Use when | Trade-off |",
+      "anchor": "testcase-class-grouping"
+    },
+    "Sharing logic: composition over inheritance": {
+      "summary": "| Mechanism | What it is | Use when |",
+      "anchor": "sharing-logic-composition-over-inheritance"
+    },
+    "Parameterized Test": {
+      "summary": "When several test methods differ only by input/expected **data**, collapse them into a **Parameterized Test** — one test logic over many data rows.",
+      "anchor": "parameterized-test"
+    },
+    "Test Discovery / Enumeration / Selection + naming": {
+      "summary": "The runner finds tests by **Test Discovery** (convention/annotation), builds a **Test Enumeration**, and runs a selected subset.",
+      "anchor": "test-discovery-enumeration-selection-naming"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`fixture-construction.md`** — the Setup/Teardown phases.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/knowledge/test-pyramid.md": {
+    "The Layers": {
+      "summary": "| Layer | Scope | Speed | Doubles | What it proves |",
+      "anchor": "the-layers"
+    },
+    "Layer-Selection Heuristics": {
+      "summary": "Ask, for each thing you want to verify:",
+      "anchor": "layer-selection-heuristics"
+    },
+    "Anti-Patterns": {
+      "summary": "| Anti-pattern | Shape | Symptom | Fix |",
+      "anchor": "anti-patterns"
+    },
+    "Other shapes (a strategy lens)": {
+      "summary": "The pyramid is the default, but the *right silhouette follows the architecture*.",
+      "anchor": "other-shapes-a-strategy-lens"
+    },
+    "Shape ↔ architecture fit": {
+      "summary": "| If the codebase is… | Expected shape | A different shape signals |",
+      "anchor": "shape-architecture-fit"
+    },
+    "How to use this during review": {
+      "summary": "A unit-level test doing **real I/O** (DB, network, disk, sleep) is mis-layered → flag as **Slow Tests** smell; move the I/O to an integration test and double the boundary at unit level.",
+      "anchor": "how-to-use-this-during-review"
+    },
+    "Boundaries": {
+      "summary": "The pyramid is a heuristic, not a quota.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/knowledge/test-refactoring.md": {
+    "1. Goals & Principles (the criteria a refactoring moves toward)": {
+      "summary": "**Goals — a good automated test is:**",
+      "anchor": "1-goals-principles-the-criteria-a-refactoring-moves-toward"
+    },
+    "2. Test Refactoring catalog (the behavior-preserving moves)": {
+      "summary": "Each move removes a named smell (`test-smells.md`) and targets a pattern in a sibling file:",
+      "anchor": "2-test-refactoring-catalog-the-behavior-preserving-moves"
+    },
+    "Decision flow": {
+      "summary": "1.",
+      "anchor": "decision-flow"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-smells.md`** — the smells each refactoring removes.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/knowledge/test-smells.md": {
+    "Smell Categories": {
+      "summary": "xUnit Test Patterns groups smells into three levels.",
+      "anchor": "smell-categories"
+    },
+    "Code Smells (single test, readable now)": {
+      "summary": "| Smell | Detection signal | Why it hurts | Fix |",
+      "anchor": "code-smells-single-test-readable-now"
+    },
+    "Behavior Smells (only visible when tests run)": {
+      "summary": "| Smell | Detection signal | Why it hurts | Fix |",
+      "anchor": "behavior-smells-only-visible-when-tests-run"
+    },
+    "Project Smells (visible across the suite over time)": {
+      "summary": "| Smell | Detection signal | Why it hurts | Fix |",
+      "anchor": "project-smells-visible-across-the-suite-over-time"
+    },
+    "Detection Workflow": {
+      "summary": "1.",
+      "anchor": "detection-workflow"
+    },
+    "Boundaries": {
+      "summary": "A single behavior asserted with several related assertions on one object is **not** Eager Test or Assertion Roulette — that's normal.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/knowledge/test-strategy.md": {
+    "1. Test Fixture Strategy": {
+      "summary": "The fixture is everything the test needs in place before it acts.",
+      "anchor": "1-test-fixture-strategy"
+    },
+    "2. Test Automation Strategy": {
+      "summary": "How the test is written and driven.",
+      "anchor": "2-test-automation-strategy"
+    },
+    "3. SUT Interaction Strategy": {
+      "summary": "How the test reaches the system under test.",
+      "anchor": "3-sut-interaction-strategy"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-doubles.md`** — once Layer Test or Back Door Manipulation needs a collaborator stand-in, choose the double there.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/knowledge/testability-patterns.md": {
+    "\"I Can't Test This Class\" Decision Flow": {
+      "summary": "---",
+      "anchor": "i-cant-test-this-class-decision-flow"
+    },
+    "Pattern 1: Constructor Injection (Replace Static Factories / Singletons)": {
+      "summary": "**Problem**: A class creates its own dependencies internally — `new ConcreteService()`, `ServiceLocator.get(T)`, static calls.",
+      "anchor": "pattern-1-constructor-injection-replace-static-factories-singletons"
+    },
+    "Pattern 2: Test Data Builder": {
+      "summary": "**Problem**: Domain objects with many properties are painful to construct in every test.",
+      "anchor": "pattern-2-test-data-builder"
+    },
+    "Pattern 3: Interface Extraction for Large Contexts": {
+      "summary": "**Problem**: Classes depend on a large context object with many properties.",
+      "anchor": "pattern-3-interface-extraction-for-large-contexts"
+    },
+    "Pattern 4: Fake Data Generators (Test Data with Variation)": {
+      "summary": "**Problem**: Tests need realistic but controlled test data across many scenarios.",
+      "anchor": "pattern-4-fake-data-generators-test-data-with-variation"
+    },
+    "Anti-Patterns Table": {
+      "summary": "| Anti-Pattern | Why It's Wrong | Correct Alternative |",
+      "anchor": "anti-patterns-table"
+    },
+    "References": {
+      "summary": "Michael Feathers, *Working Effectively with Legacy Code* — seam insertion, Parameterize Constructor, Extract Interface",
+      "anchor": "references"
+    }
+  },
+  "plugins/dev-team/knowledge/testing-quadrants.md": {
+    "The Four Quadrants": {
+      "summary": "| Q | Facing × Stance | Tests | Mode |",
+      "anchor": "the-four-quadrants"
+    },
+    "Reading coverage against the quadrants": {
+      "summary": "For each quadrant, classify the suite as **strong / thin / empty**, then name the business impact of a gap:",
+      "anchor": "reading-coverage-against-the-quadrants"
+    },
+    "Anti-pattern: \"Q3 as the gate\"": {
+      "summary": "Leaning on manual exploratory/UAT (Q3) as the *primary* safety net — instead of Q1/Q2 automation — is the quadrant form of the ice-cream cone (`test-pyramid.md`).",
+      "anchor": "anti-pattern-q3-as-the-gate"
+    },
+    "Boundaries": {
+      "summary": "A suite need not fill every quadrant equally — weight by risk.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/add-plugin/SKILL.md": {
+    "Implementation constraints": {
+      "summary": "1.",
+      "anchor": "implementation-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Extract:",
+      "anchor": "steps"
+    },
+    "1. Parse arguments": {
+      "summary": "Extract:",
+      "anchor": "1-parse-arguments"
+    },
+    "2. Check for existing registration": {
+      "summary": "Read `.claude/settings.json`.",
+      "anchor": "2-check-for-existing-registration"
+    },
+    "3. Register marketplace (if --repo provided)": {
+      "summary": "If `REPO` is non-empty, run:",
+      "anchor": "3-register-marketplace-if-repo-provided"
+    },
+    "4. Install the plugin": {
+      "summary": "Run:",
+      "anchor": "4-install-the-plugin"
+    },
+    "5. Add to settings.json": {
+      "summary": "Add to the `enabledPlugins` object in `.claude/settings.json`:",
+      "anchor": "5-add-to-settingsjson"
+    },
+    "6. Report": {
+      "summary": "",
+      "anchor": "6-report"
+    }
+  },
+  "plugins/dev-team/skills/adr-tools/SKILL.md": {
+    "Pre-flight": {
+      "summary": "Project convention is `docs/adr/`.",
+      "anchor": "pre-flight"
+    },
+    "Editor caveat — the most common failure": {
+      "summary": "`adr new` opens `$VISUAL` or `$EDITOR` (defaulting to `vi`).",
+      "anchor": "editor-caveat-the-most-common-failure"
+    },
+    "Workflows": {
+      "summary": "Then Edit the generated file to fill in:",
+      "anchor": "workflows"
+    },
+    "Create a new ADR": {
+      "summary": "Then Edit the generated file to fill in:",
+      "anchor": "create-a-new-adr"
+    },
+    "Supersede an earlier ADR": {
+      "summary": "`adr-tools` automatically:",
+      "anchor": "supersede-an-earlier-adr"
+    },
+    "Link two ADRs without superseding": {
+      "summary": "Example: `adr link 12 \"Amends\" 10 \"Amended by\"`.",
+      "anchor": "link-two-adrs-without-superseding"
+    },
+    "List all ADRs": {
+      "summary": "Returns sorted file paths.",
+      "anchor": "list-all-adrs"
+    },
+    "Generate the table of contents": {
+      "summary": "Run this after creating or superseding any ADR, then commit the regenerated TOC alongside the ADR change.",
+      "anchor": "generate-the-table-of-contents"
+    },
+    "Generate the dependency graph": {
+      "summary": "Optional but useful when supersede/link chains get deep.",
+      "anchor": "generate-the-dependency-graph"
+    },
+    "Anti-patterns to refuse": {
+      "summary": "**Don't renumber ADRs.** `adr-tools` assigns sequential numbers; references in commits, PRs, and other ADRs depend on them being stable.",
+      "anchor": "anti-patterns-to-refuse"
+    },
+    "When to defer to adr-author": {
+      "summary": "This skill handles the CLI mechanics.",
+      "anchor": "when-to-defer-to-adr-author"
+    }
+  },
+  "plugins/dev-team/skills/agent-add/SKILL.md": {
+    "Implementation constraints": {
+      "summary": "1.",
+      "anchor": "implementation-constraints"
+    },
+    "Steps": {
+      "summary": "Capture the agent name/spec or URL from `$ARGUMENTS`.",
+      "anchor": "steps"
+    },
+    "1. Parse arguments": {
+      "summary": "Capture the agent name/spec or URL from `$ARGUMENTS`.",
+      "anchor": "1-parse-arguments"
+    },
+    "2. Delegate": {
+      "summary": "Invoke the agent-create skill with the arguments.",
+      "anchor": "2-delegate"
+    },
+    "3. Report": {
+      "summary": "Output the created file path.",
+      "anchor": "3-report"
+    }
+  },
+  "plugins/dev-team/skills/agent-audit/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Steps": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "steps"
+    },
+    "1. Parse arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "1-parse-arguments"
+    },
+    "2. Audit agents": {
+      "summary": "Read each file in `.claude/agents/*.md` that declares `Model tier:` (these are",
+      "anchor": "2-audit-agents"
+    },
+    "2b. Audit agent tool declarations (all agents)": {
+      "summary": "Read every file in `.claude/agents/*.md` (team agents and review agents).",
+      "anchor": "2b-audit-agent-tool-declarations-all-agents"
+    },
+    "3. Audit skills": {
+      "summary": "Read each file in `.claude/skills/*.md` and `.claude/skills/*/SKILL.md` and check:",
+      "anchor": "3-audit-skills"
+    },
+    "4. Audit hooks": {
+      "summary": "Read each file in `.claude/hooks/*.sh` and check:",
+      "anchor": "4-audit-hooks"
+    },
+    "5. Generate report": {
+      "summary": "If `--fix` was NOT passed, list action items and stop.",
+      "anchor": "5-generate-report"
+    },
+    "6. Apply fixes (when `--fix` is passed)": {
+      "summary": "If `--fix` was NOT passed, list action items and stop.",
+      "anchor": "6-apply-fixes-when-fix-is-passed"
+    },
+    "7. Fix summary": {
+      "summary": "If `--fix` was used, append a fix summary after the audit report:",
+      "anchor": "7-fix-summary"
+    }
+  },
+  "plugins/dev-team/skills/agent-create/SKILL.md": {
+    "Constraints": {
+      "summary": "Do not write any file until validation passes and the user confirms the draft",
+      "anchor": "constraints"
+    },
+    "Step 1 — Parse Arguments": {
+      "summary": "Accept these inputs (from arguments or interactive prompts):",
+      "anchor": "step-1-parse-arguments"
+    },
+    "Step 2 — Validate Name (hard gate)": {
+      "summary": "The name must match `^[a-z][a-z0-9-]*$` exactly.",
+      "anchor": "step-2-validate-name-hard-gate"
+    },
+    "Step 3 — Detect Agent Type": {
+      "summary": "If `type` was not provided:",
+      "anchor": "step-3-detect-agent-type"
+    },
+    "Step 4 — Prompt for Missing Tools": {
+      "summary": "If `tools` was not provided, emit exactly:",
+      "anchor": "step-4-prompt-for-missing-tools"
+    },
+    "Step 5 — Apply Defaults": {
+      "summary": "| Setting | Review default | Team default |",
+      "anchor": "step-5-apply-defaults"
+    },
+    "Step 6 — Check for Existing File": {
+      "summary": "Glob `plugins/dev-team/agents/<name>.md`.",
+      "anchor": "step-6-check-for-existing-file"
+    },
+    "Step 7 — Check Scope Overlap (Review Agents Only)": {
+      "summary": "For review agents, scan existing agents for topical overlap:",
+      "anchor": "step-7-check-scope-overlap-review-agents-only"
+    },
+    "Step 8 — Handle Plugin-Unsupported Fields": {
+      "summary": "If the user has requested `hooks`, `mcpServers`, or `permissionMode`, emit:",
+      "anchor": "step-8-handle-plugin-unsupported-fields"
+    },
+    "Step 9 — Generate Frontmatter": {
+      "summary": "Emit only official fields with non-empty values.",
+      "anchor": "step-9-generate-frontmatter"
+    },
+    "Step 10 — Generate Body": {
+      "summary": "If `--context` was provided, use it for the `Context needs:` field.",
+      "anchor": "step-10-generate-body"
+    },
+    "Review Agent Body Structure (required order)": {
+      "summary": "If `--context` was provided, use it for the `Context needs:` field.",
+      "anchor": "review-agent-body-structure-required-order"
+    },
+    "Team Agent Body Structure (required order)": {
+      "summary": "Apply these rules when generating the body:",
+      "anchor": "team-agent-body-structure-required-order"
+    },
+    "Token-Efficiency Rules (both types)": {
+      "summary": "Apply these rules when generating the body:",
+      "anchor": "token-efficiency-rules-both-types"
+    },
+    "Line Budget Gate": {
+      "summary": "After generating the body, count all lines (including blank lines).",
+      "anchor": "line-budget-gate"
+    },
+    "Step 11 — Run /agent-audit Validation Gate": {
+      "summary": "`/agent-audit` (structural compliance of the generated agent file) is the",
+      "anchor": "step-11-run-agent-audit-validation-gate"
+    },
+    "Step 12 — Present Draft and Confirm Write": {
+      "summary": "Ask: `Write this file to plugins/dev-team/agents/<name>.md?",
+      "anchor": "step-12-present-draft-and-confirm-write"
+    },
+    "Step 13 — Update Agent Registry": {
+      "summary": "Locate the table in `knowledge/agent-registry.md` whose heading contains",
+      "anchor": "step-13-update-agent-registry"
+    },
+    "Step 14 — Update CLAUDE.md": {
+      "summary": "CLAUDE.md carries a **prose Quick Reference list**, not a table — the",
+      "anchor": "step-14-update-claudemd"
+    },
+    "Completion Report": {
+      "summary": "",
+      "anchor": "completion-report"
+    }
+  },
+  "plugins/dev-team/skills/agent-eval/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Verify `.claude/evals/fixtures/` exists.",
+      "anchor": "steps"
+    },
+    "1. Resolve eval corpus": {
+      "summary": "Verify `.claude/evals/fixtures/` exists.",
+      "anchor": "1-resolve-eval-corpus"
+    },
+    "2. Load fixtures and expected results": {
+      "summary": "Read all files from `.claude/evals/fixtures/` and corresponding JSON from",
+      "anchor": "2-load-fixtures-and-expected-results"
+    },
+    "3. Run agents against fixtures": {
+      "summary": "For each fixture/agent pair (agent fixtures):",
+      "anchor": "3-run-agents-against-fixtures"
+    },
+    "4. Grade each result": {
+      "summary": "Compare agent output against expected JSON:",
+      "anchor": "4-grade-each-result"
+    },
+    "5. Compute pass@k (multi-trial)": {
+      "summary": "If `--trials` > 1:",
+      "anchor": "5-compute-passk-multi-trial"
+    },
+    "6. Detect eval saturation": {
+      "summary": "Track the last 3 runs in `.claude/evals/transcripts/`.",
+      "anchor": "6-detect-eval-saturation"
+    },
+    "7. Save transcript": {
+      "summary": "Create `.claude/evals/transcripts/<timestamp>-<agent>.json`:",
+      "anchor": "7-save-transcript"
+    },
+    "8. Generate report": {
+      "summary": "Save to `.claude/evals/reports/<timestamp>-report.md` and display:",
+      "anchor": "8-generate-report"
+    },
+    "9. Progress tracking": {
+      "summary": "Copy and update this checklist:",
+      "anchor": "9-progress-tracking"
+    }
+  },
+  "plugins/dev-team/skills/agent-readiness/SKILL.md": {
+    "Scope (MVP — issue #117)": {
+      "summary": "This MVP uses **file-presence/heuristic analyzers only** — no CI-platform APIs.",
+      "anchor": "scope-mvp-issue-117"
+    },
+    "Run": {
+      "summary": "`REPO_PATH` defaults to the current directory.",
+      "anchor": "run"
+    },
+    "Steps": {
+      "summary": "1.",
+      "anchor": "steps"
+    }
+  },
+  "plugins/dev-team/skills/agent-remove/SKILL.md": {
+    "Implementation constraints": {
+      "summary": "1.",
+      "anchor": "implementation-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Verify `.claude/agents/<name>.md` exists.",
+      "anchor": "steps"
+    },
+    "1. Locate agent file": {
+      "summary": "Verify `.claude/agents/<name>.md` exists.",
+      "anchor": "1-locate-agent-file"
+    },
+    "2. Detect agent type": {
+      "summary": "Read `.claude/agents/<name>.md`:",
+      "anchor": "2-detect-agent-type"
+    },
+    "3. Show removal plan": {
+      "summary": "Display a confirmation prompt listing every action that will be taken:",
+      "anchor": "3-show-removal-plan"
+    },
+    "4. Remove agent file": {
+      "summary": "If not in a git repository, use `rm`.",
+      "anchor": "4-remove-agent-file"
+    },
+    "5. Clean up eval artifacts (review agents only)": {
+      "summary": "Search for and remove matching eval fixtures and expected files:",
+      "anchor": "5-clean-up-eval-artifacts-review-agents-only"
+    },
+    "6. Update .claude/CLAUDE.md": {
+      "summary": "Remove the agent's row from the appropriate table (Team Agents or",
+      "anchor": "6-update-claudeclaudemd"
+    },
+    "7. Update .claude/agents/orchestrator.md (team agents only)": {
+      "summary": "Remove the agent name from the \"Tier guidance (informational)\"",
+      "anchor": "7-update-claudeagentsorchestratormd-team-agents-only"
+    },
+    "8. Update cross-references in other agent files": {
+      "summary": "Search for references to the removed agent:",
+      "anchor": "8-update-cross-references-in-other-agent-files"
+    },
+    "9. Update docs/agent_info.md": {
+      "summary": "Remove the agent's row from the Team Agents or Review Agents table",
+      "anchor": "9-update-docsagentinfomd"
+    },
+    "10. Update docs/team-structure.md (team agents only)": {
+      "summary": "Remove the agent node and all its edges from both Mermaid diagrams.",
+      "anchor": "10-update-docsteam-structuremd-team-agents-only"
+    },
+    "11. Tech-writer review": {
+      "summary": "Invoke the tech-writer persona to review all modified documentation files",
+      "anchor": "11-tech-writer-review"
+    },
+    "12. Report": {
+      "summary": "",
+      "anchor": "12-report"
+    }
+  },
+  "plugins/dev-team/skills/agent-skill-authoring/SKILL.md": {
+    "Overview": {
+      "summary": "This skill defines the philosophy of the agent-vs-skill split and the conventions for writing skills.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Skills must be agent-agnostic; no persona or behavioral logic in skill files",
+      "anchor": "constraints"
+    },
+    "Core Pattern": {
+      "summary": "**Agents** define the *role*: persona, behavior, collaboration style, and *when/why* to use each skill",
+      "anchor": "core-pattern"
+    },
+    "Creating an Agent": {
+      "summary": "Run `/agent-add` — it invokes the `agent-create` skill, which is the canonical procedure: name validation, type detection, scope-overlap check, body generation within token-efficiency budgets, `/agent-audit` validation gate, and registry/CLAUDE.md updates.",
+      "anchor": "creating-an-agent"
+    },
+    "Creating a Skill": {
+      "summary": "Place skill files at `plugins/dev-team/skills/{skill-name}/SKILL.md`.",
+      "anchor": "creating-a-skill"
+    },
+    "Meta-Patterns for Skill Writing": {
+      "summary": "Before writing a new skill, read 2-3 existing skills in `skills/` to absorb the project's voice and structure.",
+      "anchor": "meta-patterns-for-skill-writing"
+    },
+    "Registration": {
+      "summary": "After creating an agent or skill, follow the registration checklist in [`references/templates.md`](references/templates.md#registration-checklist).",
+      "anchor": "registration"
+    },
+    "Documentation Sync Policy": {
+      "summary": "Every change must be reflected in documentation.",
+      "anchor": "documentation-sync-policy"
+    },
+    "Output": {
+      "summary": "New or updated `plugins/dev-team/skills/*/SKILL.md` file(s) with all registry tables and docs updated.",
+      "anchor": "output"
+    },
+    "Anti-Patterns": {
+      "summary": "| Anti-Pattern | Problem | Fix |",
+      "anchor": "anti-patterns"
+    }
+  },
+  "plugins/dev-team/skills/api-design/SKILL.md": {
+    "Overview": {
+      "summary": "Contract-first API design patterns for defining stable, evolvable interfaces between system components.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Define the contract before implementing it; implementation conforms to the contract",
+      "anchor": "constraints"
+    },
+    "Core Concepts": {
+      "summary": "Define the interface before implementing it.",
+      "anchor": "core-concepts"
+    },
+    "Contract-First Design": {
+      "summary": "Define the interface before implementing it.",
+      "anchor": "contract-first-design"
+    },
+    "Resource Modeling": {
+      "summary": "**Entities** — individual resources with identity (e.g., `/orders/{id}`)",
+      "anchor": "resource-modeling"
+    },
+    "Versioning Strategies": {
+      "summary": "| Strategy | Mechanism | Trade-offs |",
+      "anchor": "versioning-strategies"
+    },
+    "Error Contracts": {
+      "summary": "Every API defines structured error responses:",
+      "anchor": "error-contracts"
+    },
+    "Patterns": {
+      "summary": "1.",
+      "anchor": "patterns"
+    },
+    "API Design Procedure": {
+      "summary": "1.",
+      "anchor": "api-design-procedure"
+    },
+    "Backward Compatibility Checklist": {
+      "summary": "| Change Type | Impact | Action |",
+      "anchor": "backward-compatibility-checklist"
+    },
+    "Contract Validation": {
+      "summary": "Before implementation begins, verify the API contract against:",
+      "anchor": "contract-validation"
+    },
+    "When to Apply": {
+      "summary": "| Scenario | Apply?",
+      "anchor": "when-to-apply"
+    },
+    "Guidelines": {
+      "summary": "1.",
+      "anchor": "guidelines"
+    },
+    "Output": {
+      "summary": "API contract document covering resources, operations, error cases, versioning strategy, and the backward compatibility checklist results.",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "**Agent-Assisted Specification** — API contracts emerge during the Architecture Specification stage; validate them as part of the consistency gate",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/apply-fixes/SKILL.md": {
+    "Implementation constraints": {
+      "summary": "1.",
+      "anchor": "implementation-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Detect and read rules from the target repository:",
+      "anchor": "steps"
+    },
+    "1. Load repository rules": {
+      "summary": "Detect and read rules from the target repository:",
+      "anchor": "1-load-repository-rules"
+    },
+    "2. Load correction prompts": {
+      "summary": "Read all `.json` files from the specified directory, sorted",
+      "anchor": "2-load-correction-prompts"
+    },
+    "3. Apply each fix by confidence tier": {
+      "summary": "Copy this checklist and track progress:",
+      "anchor": "3-apply-each-fix-by-confidence-tier"
+    },
+    "4. Validate after each fix": {
+      "summary": "Unless skipped, run after each fix:",
+      "anchor": "4-validate-after-each-fix"
+    },
+    "5. Track and report": {
+      "summary": "After completing all fixes, display a summary:",
+      "anchor": "5-track-and-report"
+    },
+    "6. Suggest alternatives": {
+      "summary": "For structural issues (long functions, duplication, deep nesting,",
+      "anchor": "6-suggest-alternatives"
+    }
+  },
+  "plugins/dev-team/skills/benchmark/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Prerequisites Check": {
+      "summary": "1.",
+      "anchor": "prerequisites-check"
+    },
+    "Steps": {
+      "summary": "Read `skills/performance-benchmark/SKILL.md` for the full metric definitions, output format, and collection methodology.",
+      "anchor": "steps"
+    },
+    "1. Load the skill": {
+      "summary": "Read `skills/performance-benchmark/SKILL.md` for the full metric definitions, output format, and collection methodology.",
+      "anchor": "1-load-the-skill"
+    },
+    "2. Generate and run the benchmark script": {
+      "summary": "Generate a Node.js script based on the template that:",
+      "anchor": "2-generate-and-run-the-benchmark-script"
+    },
+    "3. Compare against baseline (unless --baseline)": {
+      "summary": "If `--baseline` is set:",
+      "anchor": "3-compare-against-baseline-unless-baseline"
+    },
+    "4. Check performance budgets (if --budget or budget file exists)": {
+      "summary": "Read `performance-budget.json` from the project root.",
+      "anchor": "4-check-performance-budgets-if-budget-or-budget-file-exists"
+    },
+    "5. Append to trend history": {
+      "summary": "Append the current metrics to `benchmarks/<page-slug>/history.jsonl` (one JSON object per line, with timestamp).",
+      "anchor": "5-append-to-trend-history"
+    },
+    "6. Generate report": {
+      "summary": "Write a markdown report to `benchmarks/<page-slug>/report.md` using the report format from the skill file.",
+      "anchor": "6-generate-report"
+    },
+    "Integration": {
+      "summary": "Complements the `performance-review` agent (static code analysis) with runtime measurement",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/branch-workflow/SKILL.md": {
+    "Overview": {
+      "summary": "The three-phase workflow ends at the Phase 3 human gate.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Do not push to main/master directly — always use a PR",
+      "anchor": "constraints"
+    },
+    "Workflow": {
+      "summary": "Before creating the PR, verify:",
+      "anchor": "workflow"
+    },
+    "1. Pre-PR Checklist": {
+      "summary": "Before creating the PR, verify:",
+      "anchor": "1-pre-pr-checklist"
+    },
+    "2. Create the PR": {
+      "summary": "Title: concise, under 70 characters, describes the change",
+      "anchor": "2-create-the-pr"
+    },
+    "3. Present Options": {
+      "summary": "After confirming the base branch, present exactly four choices:",
+      "anchor": "3-present-options"
+    },
+    "4. Merge Strategy (for options 1 and 2)": {
+      "summary": "| Situation | Strategy | Why |",
+      "anchor": "4-merge-strategy-for-options-1-and-2"
+    },
+    "5. Post-Merge Verification & Cleanup": {
+      "summary": "Run tests on the merged result — **do not skip this**.",
+      "anchor": "5-post-merge-verification-cleanup"
+    },
+    "Integration": {
+      "summary": "Triggered after Phase 3 human gate approval",
+      "anchor": "integration"
+    },
+    "Output": {
+      "summary": "A merged PR with clean branch history, closed issues, and deleted feature branch.",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/skills/browse/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Run:",
+      "anchor": "steps"
+    },
+    "1. Check Playwright availability": {
+      "summary": "Run:",
+      "anchor": "1-check-playwright-availability"
+    },
+    "2. Ensure screenshot directory exists": {
+      "summary": "Write a temporary Node.js script and execute it with `node`.",
+      "anchor": "2-ensure-screenshot-directory-exists"
+    },
+    "3. Execute browser action": {
+      "summary": "Write a temporary Node.js script and execute it with `node`.",
+      "anchor": "3-execute-browser-action"
+    },
+    "4. Read and describe the screenshot": {
+      "summary": "Use the Read tool to view the screenshot image.",
+      "anchor": "4-read-and-describe-the-screenshot"
+    },
+    "5. Report results": {
+      "summary": "Provide a summary:",
+      "anchor": "5-report-results"
+    },
+    "Error Handling": {
+      "summary": "**Navigation timeout**: Report the URL that failed and suggest checking if the server is running",
+      "anchor": "error-handling"
+    },
+    "Automated Smoke Test Mode": {
+      "summary": "When invoked non-interactively by the inline review pipeline (Stage 3 browser verification), the caller provides:",
+      "anchor": "automated-smoke-test-mode"
+    },
+    "Multi-Step Interactions": {
+      "summary": "For complex flows (login → navigate → fill form → submit), chain actions in a single script rather than multiple `/browse` invocations.",
+      "anchor": "multi-step-interactions"
+    }
+  },
+  "plugins/dev-team/skills/browser-testing/SKILL.md": {
+    "Overview": {
+      "summary": "This skill provides reusable patterns for browser-based testing and visual verification using Playwright.",
+      "anchor": "overview"
+    },
+    "Prerequisites": {
+      "summary": "Playwright must be installed with at least the Chromium browser:",
+      "anchor": "prerequisites"
+    },
+    "Playwright Patterns": {
+      "summary": "| Category | Description |",
+      "anchor": "playwright-patterns"
+    },
+    "Visual Verification Guidelines": {
+      "summary": "When interpreting screenshots, describe:",
+      "anchor": "visual-verification-guidelines"
+    }
+  },
+  "plugins/dev-team/skills/build/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "If `--plan` was provided, read that file.",
+      "anchor": "steps"
+    },
+    "1. Find the plan": {
+      "summary": "If `--plan` was provided, read that file.",
+      "anchor": "1-find-the-plan"
+    },
+    "2. Verify plan status": {
+      "summary": "Read the plan file.",
+      "anchor": "2-verify-plan-status"
+    },
+    "3. Verify acceptance criteria (gate)": {
+      "summary": "Before implementation begins, dispatch a spec-compliance-review subagent in **criteria verification mode** (see `${CLAUDE_PLUGIN_ROOT}/prompts/spec-reviewer.md` § Pre-build criteria verification mode).",
+      "anchor": "3-verify-acceptance-criteria-gate"
+    },
+    "4. Implement each step": {
+      "summary": "Work the plan slice by slice, in order.",
+      "anchor": "4-implement-each-step"
+    },
+    "5. Run full test suite": {
+      "summary": "After all steps are complete, run the full test suite.",
+      "anchor": "5-run-full-test-suite"
+    },
+    "6. Run code review": {
+      "summary": "Run `/code-review` against all files modified during the build.",
+      "anchor": "6-run-code-review"
+    },
+    "7. Update plan status": {
+      "summary": "Use the Edit tool to change `**Status**: in-progress` to `**Status**: implemented` in the plan file.",
+      "anchor": "7-update-plan-status"
+    },
+    "Escalation": {
+      "summary": "Stop and ask the user when:",
+      "anchor": "escalation"
+    },
+    "Integration": {
+      "summary": "`/specs` produces the intent, architecture, and acceptance-criteria artifacts that inform the plan",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/careful/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "1.",
+      "anchor": "steps"
+    },
+    "Enable (no arguments or any argument except \"off\")": {
+      "summary": "1.",
+      "anchor": "enable-no-arguments-or-any-argument-except-off"
+    },
+    "Disable (`off`)": {
+      "summary": "1.",
+      "anchor": "disable-off"
+    },
+    "Notes": {
+      "summary": "The `destructive-guard.sh` hook reads `hooks/careful-state.json`.",
+      "anchor": "notes"
+    }
+  },
+  "plugins/dev-team/skills/cd-test-architecture/SKILL.md": {
+    "Overview": {
+      "summary": "An **advisory, application-level** skill: it assesses how an existing application is tested, classifies that against a CD-aligned test taxonomy, finds the tests that can't run in a clean CI gate, and recommends a target architecture plus a migration path.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Advisory only.",
+      "anchor": "constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: a target application/repo path or description.",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Map the deployable/testable surfaces and assign each its pattern from `component-test-patterns.md` (User Interface; API Provider / API Consumer / Event Consumer / Event Producer / Stateful Service / CLI-Library; Scheduled Job).",
+      "anchor": "steps"
+    },
+    "1. Inventory the application's components": {
+      "summary": "Map the deployable/testable surfaces and assign each its pattern from `component-test-patterns.md` (User Interface; API Provider / API Consumer / Event Consumer / Event Producer / Stateful Service / CLI-Library; Scheduled Job).",
+      "anchor": "1-inventory-the-applications-components"
+    },
+    "2. Inventory the existing tests and classify them": {
+      "summary": "Find the test suites **in the repo** and classify each against the six types in `cd-test-architecture.md`.",
+      "anchor": "2-inventory-the-existing-tests-and-classify-them"
+    },
+    "2b. Locate and harvest out-of-repo tests": {
+      "summary": "When `--external-tests` is given (or in-repo tests are sparse and the user points you to external coverage), treat the external location as the **current specification of intended behavior** and harvest it:",
+      "anchor": "2b-locate-and-harvest-out-of-repo-tests"
+    },
+    "3. Diagnose CD-fitness gaps": {
+      "summary": "Flag, with evidence:",
+      "anchor": "3-diagnose-cd-fitness-gaps"
+    },
+    "3b. Find testable seams and the achievable outside-in baseline": {
+      "summary": "For each under-tested or untested component, identify the **testable seams** — places where behavior can be observed or substituted without editing the code (HTTP handler, CLI entrypoint, message handler, exported function, existing injection points; object seams via interfaces/polymorphism, link seams via DI/module substitution).",
+      "anchor": "3b-find-testable-seams-and-the-achievable-outside-in-baseline"
+    },
+    "4. Recommend the target architecture": {
+      "summary": "Per component, using its pattern: which test types cover which layers, **what to double to run pre-merge without configuration**, the success scenarios and failure modes to cover, the double-validation loop, and the pipeline stage for each (pre-merge gate vs Stage 1/2 vs out-of-band vs post-deploy).",
+      "anchor": "4-recommend-the-target-architecture"
+    },
+    "5. Produce a migration path": {
+      "summary": "Order the moves from current → target, lowest-risk first.",
+      "anchor": "5-produce-a-migration-path"
+    },
+    "6. Report": {
+      "summary": "Write the assessment (see Output).",
+      "anchor": "6-report"
+    },
+    "Output": {
+      "summary": "Write to `reports/cd-test-architecture-<app>.md` (or chat for a single component):",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "Pairs with `test-design-advisor` (unit/module design) and the `test-smell-review` / `test-review` agents (per-file findings).",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/ci-debugging/SKILL.md": {
+    "Overview": {
+      "summary": "CI failures are diagnosed systematically, not by guessing.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Never suggest \"retry the build\" as a first action",
+      "anchor": "constraints"
+    },
+    "Process": {
+      "summary": "Read the full CI log output.",
+      "anchor": "process"
+    },
+    "1. Read the failure": {
+      "summary": "Read the full CI log output.",
+      "anchor": "1-read-the-failure"
+    },
+    "2. Form a hypothesis": {
+      "summary": "Before touching any code, state a hypothesis: \"I believe X is failing because Y, and I can verify by Z.\"",
+      "anchor": "2-form-a-hypothesis"
+    },
+    "3. Environment delta analysis": {
+      "summary": "Compare local vs CI environments using this checklist:",
+      "anchor": "3-environment-delta-analysis"
+    },
+    "4. Reproduce locally": {
+      "summary": "Before fixing, reproduce the failure locally:",
+      "anchor": "4-reproduce-locally"
+    },
+    "5. Fix and verify": {
+      "summary": "Fix the root cause.",
+      "anchor": "5-fix-and-verify"
+    },
+    "Anti-Patterns": {
+      "summary": "| Anti-pattern | Why it's wrong | What to do instead |",
+      "anchor": "anti-patterns"
+    },
+    "Integration": {
+      "summary": "**Platform Engineer agent**: Collaborates on infrastructure-level CI issues",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/code-review/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Progress tracking": {
+      "summary": "Priority order:",
+      "anchor": "progress-tracking"
+    },
+    "Steps": {
+      "summary": "Priority order:",
+      "anchor": "steps"
+    },
+    "1. Determine target files": {
+      "summary": "Priority order:",
+      "anchor": "1-determine-target-files"
+    },
+    "1b. Check for institutional context": {
+      "summary": "If `REVIEW-CONTEXT.md` exists at the repo root, read it and pass its contents to every agent in step 4, prefixed with: \"Institutional context provided for this review:\".",
+      "anchor": "1b-check-for-institutional-context"
+    },
+    "1c. Probe for optional MCP tools": {
+      "summary": "| Tool | Check | Use |",
+      "anchor": "1c-probe-for-optional-mcp-tools"
+    },
+    "2. Pre-flight gates": {
+      "summary": "Skip entirely if `--background`.",
+      "anchor": "2-pre-flight-gates"
+    },
+    "2b. Static analysis pre-pass": {
+      "summary": "Skip if `--no-static-analysis` or `--background`.",
+      "anchor": "2b-static-analysis-pre-pass"
+    },
+    "3. Determine enabled agents": {
+      "summary": "If `--background`: run only `doc-review`, `arch-review`, `naming-review`, `structure-review`.",
+      "anchor": "3-determine-enabled-agents"
+    },
+    "4. Run each enabled agent": {
+      "summary": "Spawn agents as parallel subagents in a single message using the Agent tool.",
+      "anchor": "4-run-each-enabled-agent"
+    },
+    "5. Aggregate results": {
+      "summary": "If zero actionable issues, skip to step 7.",
+      "anchor": "5-aggregate-results"
+    },
+    "6. Present findings and ask for direction": {
+      "summary": "If zero actionable issues, skip to step 7.",
+      "anchor": "6-present-findings-and-ask-for-direction"
+    },
+    "6a. Review-fix loop": {
+      "summary": "**Exit conditions**:",
+      "anchor": "6a-review-fix-loop"
+    },
+    "7. Generate report": {
+      "summary": "Read `knowledge/review-template.md` for the structure.",
+      "anchor": "7-generate-report"
+    },
+    "8. Save correction prompts for remaining issues": {
+      "summary": "For issues NOT auto-fixed (confidence: none, auto-fix failed, or suggestions), generate one correction prompt per issue using the Correction prompt schema in [`output-format.md`](code-review/output-format.md#correction-prompt-json).",
+      "anchor": "8-save-correction-prompts-for-remaining-issues"
+    },
+    "9. Write pre-commit gate file": {
+      "summary": "If the review was auto-scoped to uncommitted changes and the overall status is `pass` or `warn`, write `.review-passed` so the pre-commit hook allows the next commit.",
+      "anchor": "9-write-pre-commit-gate-file"
+    }
+  },
+  "plugins/dev-team/skills/competitive-analysis/SKILL.md": {
+    "Overview": {
+      "summary": "Systematic comparison of the dev-team plugin against another plugin, tool, feature set, or idea.",
+      "anchor": "overview"
+    },
+    "Input Sources": {
+      "summary": "The comparison target can come in several forms.",
+      "anchor": "input-sources"
+    },
+    "Analysis Framework": {
+      "summary": "Read `knowledge/agent-registry.md` for the full inventory.",
+      "anchor": "analysis-framework"
+    },
+    "Step 1: Catalog dev-team": {
+      "summary": "Read `knowledge/agent-registry.md` for the full inventory.",
+      "anchor": "step-1-catalog-dev-team"
+    },
+    "Step 2: Catalog the comparison target": {
+      "summary": "Map the other plugin's capabilities into the same layers where possible.",
+      "anchor": "step-2-catalog-the-comparison-target"
+    },
+    "Step 3: Gap analysis": {
+      "summary": "Compare layer by layer.",
+      "anchor": "step-3-gap-analysis"
+    },
+    "Step 4: Rough specs for gaps": {
+      "summary": "For each **Missing** or **Weaker** gap, produce a rough spec:",
+      "anchor": "step-4-rough-specs-for-gaps"
+    },
+    "Step 5: Prioritization": {
+      "summary": "After listing all gaps, rank the top 5 by impact.",
+      "anchor": "step-5-prioritization"
+    },
+    "Output Format": {
+      "summary": "Write the report to `reports/competitive-analysis-<date>.md` using this structure:",
+      "anchor": "output-format"
+    },
+    "Presenting Results": {
+      "summary": "After writing the report, display in chat:",
+      "anchor": "presenting-results"
+    }
+  },
+  "plugins/dev-team/skills/context-loading-protocol/SKILL.md": {
+    "Constraints": {
+      "summary": "Never load all agents upfront; load only the primary agent for each phase.",
+      "anchor": "constraints"
+    },
+    "Loading Decision Procedure": {
+      "summary": "| Profile | Description | Example |",
+      "anchor": "loading-decision-procedure"
+    },
+    "Step 1: Classify the task": {
+      "summary": "| Profile | Description | Example |",
+      "anchor": "step-1-classify-the-task"
+    },
+    "Step 2: Select agents": {
+      "summary": "Load the **minimum set**:",
+      "anchor": "step-2-select-agents"
+    },
+    "Step 3: Select skills": {
+      "summary": "For each loaded agent, check its `## Skills` section:",
+      "anchor": "step-3-select-skills"
+    },
+    "Step 4: Calculate token budget": {
+      "summary": "**Target: total < 40% of the model's context window.** For Claude with a 200K window, that's < 80K tokens.",
+      "anchor": "step-4-calculate-token-budget"
+    },
+    "Step 5: Load via tool-based file reads": {
+      "summary": "Do NOT copy file contents into the system prompt or conversation.",
+      "anchor": "step-5-load-via-tool-based-file-reads"
+    },
+    "Loading Profiles": {
+      "summary": "Pre-computed loading sets for common task types.",
+      "anchor": "loading-profiles"
+    },
+    "Code Implementation": {
+      "summary": "**Load**: Software Engineer + relevant skill(s)",
+      "anchor": "code-implementation"
+    },
+    "Architecture Design": {
+      "summary": "**Load**: Architect + relevant architecture skill(s)",
+      "anchor": "architecture-design"
+    },
+    "Bug Fix": {
+      "summary": "**Load**: Software Engineer only",
+      "anchor": "bug-fix"
+    },
+    "New Feature (full lifecycle)": {
+      "summary": "Three phases, each in a fresh context window with a human review gate between.",
+      "anchor": "new-feature-full-lifecycle"
+    },
+    "Unloading": {
+      "summary": "Since tokens can't be literally removed from context:",
+      "anchor": "unloading"
+    },
+    "Anti-patterns": {
+      "summary": "Loading all agents upfront — wastes tokens before any work begins.",
+      "anchor": "anti-patterns"
+    },
+    "Output": {
+      "summary": "Loading plan as one table: selected agents + skills, token costs, estimated total, and utilization percentage against the 40% ceiling.",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/skills/context-summarization/SKILL.md": {
+    "Constraints": {
+      "summary": "Summaries replace conversation history; never reload prior turns",
+      "anchor": "constraints"
+    },
+    "When to Summarize": {
+      "summary": "| Utilization | Action |",
+      "anchor": "when-to-summarize"
+    },
+    "The Three Gates": {
+      "summary": "Apply in order to all context older than the last 3-5 turns:",
+      "anchor": "the-three-gates"
+    },
+    "1. Forget Gate -- Discard": {
+      "summary": "Exploratory dead ends and rejected approaches",
+      "anchor": "1-forget-gate-discard"
+    },
+    "2. Input Gate -- Preserve": {
+      "summary": "Current task definition and acceptance criteria",
+      "anchor": "2-input-gate-preserve"
+    },
+    "3. Output Gate -- Keep Verbatim": {
+      "summary": "Last 3-5 conversation turns",
+      "anchor": "3-output-gate-keep-verbatim"
+    },
+    "Writing Summaries": {
+      "summary": "Write the summary to `memory/{date}-{task-slug}.md` using the Task Summary template in `references/summary-templates.md`.",
+      "anchor": "writing-summaries"
+    },
+    "Phase Progress Files": {
+      "summary": "Each phase produces a progress file that onboards the next phase's agent without replaying history.",
+      "anchor": "phase-progress-files"
+    },
+    "Using Summaries in New Conversations": {
+      "summary": "1.",
+      "anchor": "using-summaries-in-new-conversations"
+    },
+    "Cleanup": {
+      "summary": "1.",
+      "anchor": "cleanup"
+    }
+  },
+  "plugins/dev-team/skills/continue/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Steps": {
+      "summary": "Read all files in `memory/` looking for phase progress files.",
+      "anchor": "steps"
+    },
+    "1. Scan for in-progress work": {
+      "summary": "Read all files in `memory/` looking for phase progress files.",
+      "anchor": "1-scan-for-in-progress-work"
+    },
+    "2. Check git state": {
+      "summary": "Run `git status` and `git log --oneline -5` to understand:",
+      "anchor": "2-check-git-state"
+    },
+    "3. Summarize current state": {
+      "summary": "Present a structured summary:",
+      "anchor": "3-summarize-current-state"
+    },
+    "4. Ask for confirmation": {
+      "summary": "Present the recommended next action and ask: \"Resume from here, or would you like to do something else?\"",
+      "anchor": "4-ask-for-confirmation"
+    },
+    "5. Load phase context": {
+      "summary": "Based on the identified phase:",
+      "anchor": "5-load-phase-context"
+    }
+  },
+  "plugins/dev-team/skills/cost-report/SKILL.md": {
+    "Steps": {
+      "summary": "1.",
+      "anchor": "steps"
+    },
+    "Attribution dimensions (#102, #170)": {
+      "summary": "`report` breaks spend down by **model** and by **thread** (main-loop vs",
+      "anchor": "attribution-dimensions-102-170"
+    },
+    "Privacy boundary": {
+      "summary": "The meter persists **only** token counts, dollar amounts, model identifiers, and",
+      "anchor": "privacy-boundary"
+    },
+    "Notes": {
+      "summary": "Disable the meter with `DEV_TEAM_COST_METER=off`.",
+      "anchor": "notes"
+    }
+  },
+  "plugins/dev-team/skills/design-doc/SKILL.md": {
+    "Overview": {
+      "summary": "The Research phase explores what exists.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Do not begin Phase 2 (Plan) without an approved design doc for non-trivial features",
+      "anchor": "constraints"
+    },
+    "Rationalization Prevention": {
+      "summary": "| Excuse | Reality |",
+      "anchor": "rationalization-prevention"
+    },
+    "When to Produce a Design Doc": {
+      "summary": "| Task Type | Design Doc Required?",
+      "anchor": "when-to-produce-a-design-doc"
+    },
+    "Document Structure": {
+      "summary": "Save to `docs/specs/{feature-name}.md`:",
+      "anchor": "document-structure"
+    },
+    "Process": {
+      "summary": "1.",
+      "anchor": "process"
+    },
+    "Integration with Phases": {
+      "summary": "**Phase 1 output**: Research progress file + approved design doc",
+      "anchor": "integration-with-phases"
+    },
+    "Output": {
+      "summary": "A design document at `docs/specs/{feature-name}.md` reviewed and approved by the human before the Plan phase begins.",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/skills/design-interrogation/SKILL.md": {
+    "Overview": {
+      "summary": "Walk every branch of a decision tree until all decisions are resolved.",
+      "anchor": "overview"
+    },
+    "When to Use": {
+      "summary": "Before committing to a plan (Research phase, before `/plan`)",
+      "anchor": "when-to-use"
+    },
+    "How It Works": {
+      "summary": "Read the plan, design doc, spec, or description.",
+      "anchor": "how-it-works"
+    },
+    "1. Identify the Decision Surface": {
+      "summary": "Read the plan, design doc, spec, or description.",
+      "anchor": "1-identify-the-decision-surface"
+    },
+    "2. Walk the Decision Tree": {
+      "summary": "Ask questions **one at a time**.",
+      "anchor": "2-walk-the-decision-tree"
+    },
+    "3. Go Deep, Not Wide": {
+      "summary": "Don't ask surface-level questions.",
+      "anchor": "3-go-deep-not-wide"
+    },
+    "4. Know When to Stop": {
+      "summary": "Stop when:",
+      "anchor": "4-know-when-to-stop"
+    },
+    "5. Summarize": {
+      "summary": "After the interrogation, provide a brief summary:",
+      "anchor": "5-summarize"
+    },
+    "Tone": {
+      "summary": "Be direct and constructive, not adversarial.",
+      "anchor": "tone"
+    },
+    "Anti-Patterns": {
+      "summary": "Don't ask questions you could answer by reading the codebase",
+      "anchor": "anti-patterns"
+    }
+  },
+  "plugins/dev-team/skills/design-it-twice/SKILL.md": {
+    "Overview": {
+      "summary": "Your first design idea is rarely your best.",
+      "anchor": "overview"
+    },
+    "When to Use": {
+      "summary": "Designing a new module, service, or API boundary",
+      "anchor": "when-to-use"
+    },
+    "Process": {
+      "summary": "Before designing, understand the constraints:",
+      "anchor": "process"
+    },
+    "1. Gather Requirements": {
+      "summary": "Before designing, understand the constraints:",
+      "anchor": "1-gather-requirements"
+    },
+    "2. Generate Designs (Parallel Sub-Agents)": {
+      "summary": "Spawn 3+ sub-agents simultaneously using the Agent tool.",
+      "anchor": "2-generate-designs-parallel-sub-agents"
+    },
+    "3. Present Designs": {
+      "summary": "Show each design sequentially so the user can absorb one before seeing the next.",
+      "anchor": "3-present-designs"
+    },
+    "4. Compare": {
+      "summary": "After presenting all designs, compare them on these dimensions:",
+      "anchor": "4-compare"
+    },
+    "5. Synthesize": {
+      "summary": "Ask the user:",
+      "anchor": "5-synthesize"
+    },
+    "Anti-Patterns": {
+      "summary": "Don't let sub-agents produce similar designs — enforce radical difference via constraints",
+      "anchor": "anti-patterns"
+    }
+  },
+  "plugins/dev-team/skills/docker-image-audit/SKILL.md": {
+    "Prerequisites": {
+      "summary": "| Tool | Quick install (macOS) | Purpose |",
+      "anchor": "prerequisites"
+    },
+    "Workflow": {
+      "summary": "**Dockerfile only** — hadolint + structural analysis (no built image needed)",
+      "anchor": "workflow"
+    },
+    "Step 1: Identify the Target": {
+      "summary": "**Dockerfile only** — hadolint + structural analysis (no built image needed)",
+      "anchor": "step-1-identify-the-target"
+    },
+    "Step 2: Hadolint": {
+      "summary": "Catches base image issues (`:latest` tag, unpinned versions), security anti-patterns (`ADD` vs `COPY`, running as root), efficiency problems (missing `--no-cache`, uncleaned apt cache), and shell issues in `RUN` instructions via integrated ShellCheck.",
+      "anchor": "step-2-hadolint"
+    },
+    "Step 2b: Structural Analysis": {
+      "summary": "Hadolint catches per-instruction issues but misses architectural problems.",
+      "anchor": "step-2b-structural-analysis"
+    },
+    "Step 3: Trivy": {
+      "summary": "Run if a built image or project filesystem is available:",
+      "anchor": "step-3-trivy"
+    },
+    "Step 4: Grype": {
+      "summary": "Cross-validates against Anchore's vulnerability database.",
+      "anchor": "step-4-grype"
+    },
+    "Step 5: Image Size & Layers": {
+      "summary": "Flag layers over 100MB, build artifacts in the final image (compilers, dev headers), package manager caches, and opportunities to switch to distroless/slim bases.",
+      "anchor": "step-5-image-size-layers"
+    },
+    "Step 6: Write the Report": {
+      "summary": "Write findings to `docker-audit-report.md` in the project root (not chat).",
+      "anchor": "step-6-write-the-report"
+    },
+    "Severity Classification": {
+      "summary": "| Severity | Criteria |",
+      "anchor": "severity-classification"
+    },
+    "Quick Audit Mode": {
+      "summary": "For fast passes (e.g., \"quick check on this Dockerfile\"), run Step 2 (hadolint) + Step 2b (structural analysis) and report findings conversationally — no report file.",
+      "anchor": "quick-audit-mode"
+    }
+  },
+  "plugins/dev-team/skills/docker-image-create/SKILL.md": {
+    "Workflow": {
+      "summary": "Scan the project root to identify:",
+      "anchor": "workflow"
+    },
+    "Step 1: Detect the project": {
+      "summary": "Scan the project root to identify:",
+      "anchor": "step-1-detect-the-project"
+    },
+    "Step 2: Ask about registry and build tools": {
+      "summary": "Ask:",
+      "anchor": "step-2-ask-about-registry-and-build-tools"
+    },
+    "Step 3: Generate the Dockerfile": {
+      "summary": "**Layer order** (least-changed → most-changed) for cache efficiency: base image → system deps → dependency manifest + install → source code → build → final stage with only the runtime artifact.",
+      "anchor": "step-3-generate-the-dockerfile"
+    },
+    "Step 4: Generate .dockerignore": {
+      "summary": "If absent or sparse, write one tailored to the detected language.",
+      "anchor": "step-4-generate-dockerignore"
+    },
+    "Step 5: Generate docker-compose.yml (if requested)": {
+      "summary": "Development-focused: volume mounts for live reload, port mappings, env-file references, dependent services (database, cache) if detected.",
+      "anchor": "step-5-generate-docker-composeyml-if-requested"
+    },
+    "Step 6: Provide build and run instructions": {
+      "summary": "Include framework-specific notes (e.g., Next.js standalone mode requires `output: 'standalone'` in `next.config.js`).",
+      "anchor": "step-6-provide-build-and-run-instructions"
+    },
+    "Language-specific patterns": {
+      "summary": "`--frozen-lockfile` for reproducible installs",
+      "anchor": "language-specific-patterns"
+    },
+    "Node.js / Next.js (standalone)": {
+      "summary": "`--frozen-lockfile` for reproducible installs",
+      "anchor": "nodejs-nextjs-standalone"
+    },
+    "Go": {
+      "summary": "`CGO_ENABLED=0` for fully static binaries (works with distroless/static)",
+      "anchor": "go"
+    },
+    "Python": {
+      "summary": "`--no-cache-dir` with pip (don't bake wheels into the image)",
+      "anchor": "python"
+    },
+    "C# / .NET": {
+      "summary": "Build stage `mcr.microsoft.com/dotnet/sdk:<version>`; runtime `mcr.microsoft.com/dotnet/aspnet:<version>-alpine`",
+      "anchor": "c-net"
+    },
+    "Java (Spring Boot)": {
+      "summary": "Layered jars: `java -Djarmode=layertools -jar app.jar extract`; copy dependencies, spring-boot-loader, snapshot-dependencies, application as separate layers",
+      "anchor": "java-spring-boot"
+    }
+  },
+  "plugins/dev-team/skills/domain-analysis/SKILL.md": {
+    "Overview": {
+      "summary": "Assess the domain health of an existing multi-component system.",
+      "anchor": "overview"
+    },
+    "Scope": {
+      "summary": "Before starting, determine scope from the user's request:",
+      "anchor": "scope"
+    },
+    "Evidence requirement": {
+      "summary": "Every finding must be grounded in something you actually read.",
+      "anchor": "evidence-requirement"
+    },
+    "Analysis Framework": {
+      "summary": "Start here — structure reveals intent without reading implementation.",
+      "anchor": "analysis-framework"
+    },
+    "1. Bounded Context Identification": {
+      "summary": "Start here — structure reveals intent without reading implementation.",
+      "anchor": "1-bounded-context-identification"
+    },
+    "2. Context Mapping": {
+      "summary": "For each inter-context relationship, classify the integration pattern.",
+      "anchor": "2-context-mapping"
+    },
+    "3. Behavioral Event Storm": {
+      "summary": "Domain events are the seams that let contexts evolve independently.",
+      "anchor": "3-behavioral-event-storm"
+    },
+    "4. Value Stream Flow": {
+      "summary": "Trace a single unit of value through the system.",
+      "anchor": "4-value-stream-flow"
+    },
+    "5. Coupling Trap Detection": {
+      "summary": "Identify feedback loops and cascading-change risks — the architectural patterns that make every deploy a coordination exercise.",
+      "anchor": "5-coupling-trap-detection"
+    },
+    "Steps": {
+      "summary": "1.",
+      "anchor": "steps"
+    },
+    "Output": {
+      "summary": "Table: context name, owning file/package, primary aggregate or concern, upstream/downstream relationships.",
+      "anchor": "output"
+    },
+    "Bounded Contexts": {
+      "summary": "Table: context name, owning file/package, primary aggregate or concern, upstream/downstream relationships.",
+      "anchor": "bounded-contexts"
+    },
+    "God Objects": {
+      "summary": "List each: type name, contexts it appears in, diverging semantics, evidence (`file:line`).",
+      "anchor": "god-objects"
+    },
+    "Context Map": {
+      "summary": "Table of context relationships and their integration patterns.",
+      "anchor": "context-map"
+    },
+    "Domain Event Inventory": {
+      "summary": "Table: event name, emitting context, consuming contexts, sync/async.",
+      "anchor": "domain-event-inventory"
+    },
+    "Value Stream": {
+      "summary": "State the entrypoint (file and function/command).",
+      "anchor": "value-stream"
+    },
+    "Friction Report": {
+      "summary": "Each item: category tag, specific files/components involved, confidence tier, and a concrete fix direction.",
+      "anchor": "friction-report"
+    },
+    "Constraints": {
+      "summary": "Do not redesign.",
+      "anchor": "constraints"
+    },
+    "Guidelines": {
+      "summary": "Start with folder/package structure before reading any code — structure reveals intended boundaries",
+      "anchor": "guidelines"
+    }
+  },
+  "plugins/dev-team/skills/domain-driven-design/SKILL.md": {
+    "Overview": {
+      "summary": "Model software around the business domain.",
+      "anchor": "overview"
+    },
+    "Strategic Patterns": {
+      "summary": "Code, documentation, and communication all use the same domain terminology",
+      "anchor": "strategic-patterns"
+    },
+    "Ubiquitous Language": {
+      "summary": "Code, documentation, and communication all use the same domain terminology",
+      "anchor": "ubiquitous-language"
+    },
+    "Bounded Contexts": {
+      "summary": "Each context owns its own domain model with clear boundaries",
+      "anchor": "bounded-contexts"
+    },
+    "Context Mapping": {
+      "summary": "Define explicit relationships between bounded contexts:",
+      "anchor": "context-mapping"
+    },
+    "Tactical Patterns": {
+      "summary": "Cluster of entities and value objects with a single **aggregate root**",
+      "anchor": "tactical-patterns"
+    },
+    "Aggregates": {
+      "summary": "Cluster of entities and value objects with a single **aggregate root**",
+      "anchor": "aggregates"
+    },
+    "Entities": {
+      "summary": "Defined by identity, not attributes",
+      "anchor": "entities"
+    },
+    "Value Objects": {
+      "summary": "Defined by attributes, not identity",
+      "anchor": "value-objects"
+    },
+    "Domain Events": {
+      "summary": "Record that something meaningful happened in the domain",
+      "anchor": "domain-events"
+    },
+    "Domain Services": {
+      "summary": "Operations that don't naturally belong to a single entity or value object",
+      "anchor": "domain-services"
+    },
+    "Repositories": {
+      "summary": "Domain-level abstraction for aggregate persistence",
+      "anchor": "repositories"
+    },
+    "When to Apply": {
+      "summary": "| Situation | Approach |",
+      "anchor": "when-to-apply"
+    },
+    "Steps": {
+      "summary": "Identify domain terms from requirements and stakeholder input",
+      "anchor": "steps"
+    },
+    "1. Establish Ubiquitous Language": {
+      "summary": "Identify domain terms from requirements and stakeholder input",
+      "anchor": "1-establish-ubiquitous-language"
+    },
+    "2. Define Bounded Contexts": {
+      "summary": "Map each distinct model to its own context with clear boundaries",
+      "anchor": "2-define-bounded-contexts"
+    },
+    "3. Select Tactical Patterns": {
+      "summary": "Determine whether the domain complexity warrants aggregates, entities, value objects, and domain events",
+      "anchor": "3-select-tactical-patterns"
+    },
+    "4. Validate Model": {
+      "summary": "Confirm aggregates enforce consistency boundaries (one transaction = one aggregate)",
+      "anchor": "4-validate-model"
+    },
+    "Output": {
+      "summary": "Report modeling decisions: bounded contexts identified, aggregate boundaries, context map relationships, and any violations of DDD constraints found in existing code.",
+      "anchor": "output"
+    },
+    "Constraints": {
+      "summary": "Do not share aggregate instances across bounded contexts; reference by ID only",
+      "anchor": "constraints"
+    },
+    "Guidelines": {
+      "summary": "Start with strategic DDD (contexts, language) before reaching for tactical patterns",
+      "anchor": "guidelines"
+    }
+  },
+  "plugins/dev-team/skills/exploratory-testing/SKILL.md": {
+    "Overview": {
+      "summary": "The QA Engineer in charter-driven **\"Chaos Specialist\"** mode.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "**Probe a running target.** This skill exercises live behavior — it does not read code to reason about bugs (that is `/triage`'s job once a defect is found).",
+      "anchor": "constraints"
+    },
+    "Parse Arguments": {
+      "summary": "`--charter '<goal>'` — **required.** Charter format: `Explore [target] with [approach] to discover [concern]`.",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Check the charter against the anti-patterns in the field guide (§1): too specific (a test case), too broad (infinite scope), missing `with` (no approach), missing `to discover` (no risk hypothesis).",
+      "anchor": "steps"
+    },
+    "1. Evaluate charter quality (before any probe)": {
+      "summary": "Check the charter against the anti-patterns in the field guide (§1): too specific (a test case), too broad (infinite scope), missing `with` (no approach), missing `to discover` (no risk hypothesis).",
+      "anchor": "1-evaluate-charter-quality-before-any-probe"
+    },
+    "2. Reachability pre-flight": {
+      "summary": "Confirm the target responds (a baseline request).",
+      "anchor": "2-reachability-pre-flight"
+    },
+    "3. Plan the probe set (variable identification)": {
+      "summary": "From the field guide (§2), identify what can vary for this target (parameters, values, types, sizes, character sets, combinations).",
+      "anchor": "3-plan-the-probe-set-variable-identification"
+    },
+    "4. Probe loop (until budget or `/stop`)": {
+      "summary": "Run heuristics, decrementing the budget per probe.",
+      "anchor": "4-probe-loop-until-budget-or-stop"
+    },
+    "5. Adversarial expansion (default on; `--no-adversarial` skips)": {
+      "summary": "After the heuristic probes, expand along **3 implicit-expectation lenses** (field guide §5) — pick the 3 most relevant of: authorization bypass, data integrity, timing/ordering, performance-at-scale, crash-resistance — generating **up to 6 angles** total (budget permitting).",
+      "anchor": "5-adversarial-expansion-default-on-no-adversarial-skips"
+    },
+    "6. Classify defects + auto-triage": {
+      "summary": "Classify each finding by severity.",
+      "anchor": "6-classify-defects-auto-triage"
+    },
+    "7. Session debrief": {
+      "summary": "When the budget is exhausted or `/stop` is received, stop and state the termination reason (budget reached / charter exhausted / stopped).",
+      "anchor": "7-session-debrief"
+    },
+    "Output": {
+      "summary": "Write incrementally to `reports/explore-<YYYYMMDDThhmmss>.md`:",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "Invoked by the `/explore` command; runs as the QA Engineer's Chaos Specialist mode.",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/explore/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "1.",
+      "anchor": "steps"
+    }
+  },
+  "plugins/dev-team/skills/feature-file-validation/SKILL.md": {
+    "When to Run": {
+      "summary": "During `/code-review` when `.feature` or step definition files are in the changeset",
+      "anchor": "when-to-run"
+    },
+    "Step 1: Find Feature Files": {
+      "summary": "Locate all `.feature` files in scope.",
+      "anchor": "step-1-find-feature-files"
+    },
+    "Step 2: Validate Feature File Structure": {
+      "summary": "For each feature file, check every category below.",
+      "anchor": "step-2-validate-feature-file-structure"
+    },
+    "Step 3: Verify Test Automation Coverage": {
+      "summary": "For each scenario, check whether test automation exists using two strategies.",
+      "anchor": "step-3-verify-test-automation-coverage"
+    },
+    "Step 4: Output": {
+      "summary": "Severity and confidence mappings are in `references/validation-rules.md`.",
+      "anchor": "step-4-output"
+    }
+  },
+  "plugins/dev-team/skills/feedback-learning/SKILL.md": {
+    "Trigger Keywords": {
+      "summary": "| Keyword | Intent | Example |",
+      "anchor": "trigger-keywords"
+    },
+    "Where Changes Are Written": {
+      "summary": "The plugin ships as a read-only cache — agent and skill files inside the plugin cannot be edited.",
+      "anchor": "where-changes-are-written"
+    },
+    "Resolution order": {
+      "summary": "When processing a feedback keyword, determine the right destination:",
+      "anchor": "resolution-order"
+    },
+    "What NOT to do": {
+      "summary": "Do not edit files inside the plugin cache (`~/.claude/plugins/cache/...`).",
+      "anchor": "what-not-to-do"
+    },
+    "Project CLAUDE.md structure for overrides": {
+      "summary": "When writing agent behavior overrides, add them under a dedicated section so they're easy to find and manage:",
+      "anchor": "project-claudemd-structure-for-overrides"
+    },
+    "Processing Flow": {
+      "summary": "1.",
+      "anchor": "processing-flow"
+    },
+    "Approval rules": {
+      "summary": "Preference and convention changes: apply after diff preview",
+      "anchor": "approval-rules"
+    },
+    "Audit Trail": {
+      "summary": "All changes are logged in `metrics/config-changelog.jsonl` (one JSON object per line, append-only).",
+      "anchor": "audit-trail"
+    },
+    "Rollback": {
+      "summary": "1.",
+      "anchor": "rollback"
+    },
+    "Learning Loop": {
+      "summary": "After task completion, the orchestrator captures learnings in two ways:",
+      "anchor": "learning-loop"
+    },
+    "Post-task reflection": {
+      "summary": "After completing a feature or fixing a complex bug, review the git diff and any review feedback and ask: \"What do I wish I'd known at the start?\" Classify each insight:",
+      "anchor": "post-task-reflection"
+    },
+    "Recurring correction detection": {
+      "summary": "The orchestrator also watches for patterns across tasks:",
+      "anchor": "recurring-correction-detection"
+    },
+    "Constraints": {
+      "summary": "Never edit plugin cache files — all changes go to project-local files",
+      "anchor": "constraints"
+    }
+  },
+  "plugins/dev-team/skills/freeze/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Write the following JSON to `hooks/freeze-state.json`:",
+      "anchor": "steps"
+    },
+    "1. Write freeze state": {
+      "summary": "Write the following JSON to `hooks/freeze-state.json`:",
+      "anchor": "1-write-freeze-state"
+    },
+    "2. Confirm": {
+      "summary": "Display:",
+      "anchor": "2-confirm"
+    },
+    "Notes": {
+      "summary": "The `pre-tool-guard.sh` hook reads `hooks/freeze-state.json` and blocks Write/Edit to files that do NOT match the allowed patterns.",
+      "anchor": "notes"
+    }
+  },
+  "plugins/dev-team/skills/governance-compliance/SKILL.md": {
+    "Overview": {
+      "summary": "Requirements and procedures for audit logging, multi-layer quality assurance, and ethical operation of the agent team.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "The audit changelog is append-only; never modify or delete existing entries",
+      "anchor": "constraints"
+    },
+    "Audit & Transparency": {
+      "summary": "| Event | Log Location | Retention |",
+      "anchor": "audit-transparency"
+    },
+    "What Must Be Logged": {
+      "summary": "| Event | Log Location | Retention |",
+      "anchor": "what-must-be-logged"
+    },
+    "Audit Trail Principles": {
+      "summary": "**Append-only**: Log entries are never modified or deleted",
+      "anchor": "audit-trail-principles"
+    },
+    "Compliance Queries": {
+      "summary": "To answer \"why did the system do X?\", trace through:",
+      "anchor": "compliance-queries"
+    },
+    "Quality Assurance": {
+      "summary": "Quality is enforced at four progressive layers:",
+      "anchor": "quality-assurance"
+    },
+    "Multi-Layer Validation": {
+      "summary": "Quality is enforced at four progressive layers:",
+      "anchor": "multi-layer-validation"
+    },
+    "Quality Gates": {
+      "summary": "No task output is delivered until it passes applicable quality gates:",
+      "anchor": "quality-gates"
+    },
+    "Ethics & Responsibility": {
+      "summary": "1.",
+      "anchor": "ethics-responsibility"
+    },
+    "Core Principles": {
+      "summary": "1.",
+      "anchor": "core-principles"
+    },
+    "Sensitive Data Handling": {
+      "summary": "| Data Type | Rule |",
+      "anchor": "sensitive-data-handling"
+    },
+    "When Ethical Concerns Arise": {
+      "summary": "1.",
+      "anchor": "when-ethical-concerns-arise"
+    },
+    "Output": {
+      "summary": "Compliance checklist results (pass/fail per item) and/or new audit log entries written to `metrics/`.",
+      "anchor": "output"
+    },
+    "Compliance Checklist": {
+      "summary": "For periodic review (monthly recommended):",
+      "anchor": "compliance-checklist"
+    }
+  },
+  "plugins/dev-team/skills/guard/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Write to `hooks/careful-state.json`:",
+      "anchor": "steps"
+    },
+    "1. Enable careful mode": {
+      "summary": "Write to `hooks/careful-state.json`:",
+      "anchor": "1-enable-careful-mode"
+    },
+    "2. Enable freeze mode": {
+      "summary": "Write to `hooks/freeze-state.json`:",
+      "anchor": "2-enable-freeze-mode"
+    },
+    "3. Confirm": {
+      "summary": "Display:",
+      "anchor": "3-confirm"
+    }
+  },
+  "plugins/dev-team/skills/harness-audit/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Read metrics JSONL files from `metrics/`.",
+      "anchor": "steps"
+    },
+    "1. Check for metrics data": {
+      "summary": "Read metrics JSONL files from `metrics/`.",
+      "anchor": "1-check-for-metrics-data"
+    },
+    "2. Analyze review agent effectiveness": {
+      "summary": "For each review agent in the registry (`knowledge/agent-registry.md`):",
+      "anchor": "2-analyze-review-agent-effectiveness"
+    },
+    "3. Analyze model routing": {
+      "summary": "For each agent listed in `knowledge/agent-registry.md` (with model tier from its `model:` frontmatter, resolved via the PreToolUse hook per `agents/orchestrator.md` → Resolution Procedure):",
+      "anchor": "3-analyze-model-routing"
+    },
+    "4. Analyze orchestration complexity": {
+      "summary": "Review the current pipeline for components that may be unnecessary overhead:",
+      "anchor": "4-analyze-orchestration-complexity"
+    },
+    "5. Produce report": {
+      "summary": "Write the report to the output path using this structure:",
+      "anchor": "5-produce-report"
+    },
+    "6. Present results": {
+      "summary": "Display a summary of the report and the file path.",
+      "anchor": "6-present-results"
+    },
+    "Error Handling": {
+      "summary": "Missing metrics files: Report what's missing, suggest how to generate data",
+      "anchor": "error-handling"
+    }
+  },
+  "plugins/dev-team/skills/help/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Steps": {
+      "summary": "Use Glob to find all `skills/*/SKILL.md` files.",
+      "anchor": "steps"
+    },
+    "1. Find all command files": {
+      "summary": "Use Glob to find all `skills/*/SKILL.md` files.",
+      "anchor": "1-find-all-command-files"
+    },
+    "2. Extract name and description from each": {
+      "summary": "Read each file's YAML frontmatter and extract the `name` and `description` fields.",
+      "anchor": "2-extract-name-and-description-from-each"
+    },
+    "3. Display as a formatted table": {
+      "summary": "Sort commands alphabetically by name and display:",
+      "anchor": "3-display-as-a-formatted-table"
+    }
+  },
+  "plugins/dev-team/skills/hexagonal-architecture/SKILL.md": {
+    "Overview": {
+      "summary": "Design systems with clear separation between business logic and infrastructure.",
+      "anchor": "overview"
+    },
+    "Core Concepts": {
+      "summary": "Interfaces that express application intent independent of technology",
+      "anchor": "core-concepts"
+    },
+    "Ports": {
+      "summary": "Interfaces that express application intent independent of technology",
+      "anchor": "ports"
+    },
+    "Adapters": {
+      "summary": "Concrete implementations that connect ports to external systems",
+      "anchor": "adapters"
+    },
+    "Dependency Rule": {
+      "summary": "All dependencies point inward toward the domain core",
+      "anchor": "dependency-rule"
+    },
+    "Project Structure": {
+      "summary": "Enumerate all external dependencies (databases, APIs, message brokers, file systems)",
+      "anchor": "project-structure"
+    },
+    "Steps": {
+      "summary": "Enumerate all external dependencies (databases, APIs, message brokers, file systems)",
+      "anchor": "steps"
+    },
+    "1. Identify Boundaries": {
+      "summary": "Enumerate all external dependencies (databases, APIs, message brokers, file systems)",
+      "anchor": "1-identify-boundaries"
+    },
+    "2. Define Ports": {
+      "summary": "Create an inbound port interface for each use case the application exposes",
+      "anchor": "2-define-ports"
+    },
+    "3. Implement Adapters": {
+      "summary": "Build an adapter for each port connecting to the concrete technology",
+      "anchor": "3-implement-adapters"
+    },
+    "4. Validate Structure": {
+      "summary": "Confirm domain layer has zero imports from infrastructure or adapter layers",
+      "anchor": "4-validate-structure"
+    },
+    "Output": {
+      "summary": "Report structural compliance as a list of violations (port without adapter, domain importing infrastructure, etc.) or confirm the structure passes all checks.",
+      "anchor": "output"
+    },
+    "Constraints": {
+      "summary": "Do not embed framework dependencies in the domain layer",
+      "anchor": "constraints"
+    },
+    "Guidelines": {
+      "summary": "Every external dependency gets its own adapter behind a port",
+      "anchor": "guidelines"
+    }
+  },
+  "plugins/dev-team/skills/human-oversight-protocol/SKILL.md": {
+    "Constraints": {
+      "summary": "Approval gates cannot be skipped; do not proceed past a gate without explicit human sign-off.",
+      "anchor": "constraints"
+    },
+    "Plan Review as Primary Quality Gate": {
+      "summary": "The implementation plan is the primary review artifact, not the code.",
+      "anchor": "plan-review-as-primary-quality-gate"
+    },
+    "Plan review checklist": {
+      "summary": "1.",
+      "anchor": "plan-review-checklist"
+    },
+    "When to still review code": {
+      "summary": "Security-sensitive paths (authentication, authorization, crypto)",
+      "anchor": "when-to-still-review-code"
+    },
+    "Approval Gates": {
+      "summary": "Every agent action falls into one of three categories:",
+      "anchor": "approval-gates"
+    },
+    "Gate classification": {
+      "summary": "Every agent action falls into one of three categories:",
+      "anchor": "gate-classification"
+    },
+    "Standard approval gates": {
+      "summary": "These actions always require human approval:",
+      "anchor": "standard-approval-gates"
+    },
+    "Agent-specific gates": {
+      "summary": "Each agent defines additional gates in its `## Behavioral Guidelines > Decision Making` section.",
+      "anchor": "agent-specific-gates"
+    },
+    "Intervention Mechanisms": {
+      "summary": "Does NOT stop the current task",
+      "anchor": "intervention-mechanisms"
+    },
+    "1. Feedback (real-time correction)": {
+      "summary": "Does NOT stop the current task",
+      "anchor": "1-feedback-real-time-correction"
+    },
+    "2. Override (decision reversal)": {
+      "summary": "Stops the current approach; agent adopts the human's decision without debate",
+      "anchor": "2-override-decision-reversal"
+    },
+    "3. Pause (temporary halt)": {
+      "summary": "Agent stops and presents current state",
+      "anchor": "3-pause-temporary-halt"
+    },
+    "4. Stop (emergency halt)": {
+      "summary": "All agents halt immediately",
+      "anchor": "4-stop-emergency-halt"
+    },
+    "Transparency Requirements": {
+      "summary": "| Log entry | Where | When |",
+      "anchor": "transparency-requirements"
+    },
+    "Decision logging": {
+      "summary": "| Log entry | Where | When |",
+      "anchor": "decision-logging"
+    },
+    "Decision visibility (Notify level)": {
+      "summary": "All oversight events logged to `metrics/config-changelog.jsonl` with:",
+      "anchor": "decision-visibility-notify-level"
+    },
+    "Audit trail": {
+      "summary": "All oversight events logged to `metrics/config-changelog.jsonl` with:",
+      "anchor": "audit-trail"
+    },
+    "Output": {
+      "summary": "Gate classification (autonomous / notify / approve) with rationale, or escalation summary with severity and recommended action.",
+      "anchor": "output"
+    },
+    "Escalation Paths": {
+      "summary": "1.",
+      "anchor": "escalation-paths"
+    }
+  },
+  "plugins/dev-team/skills/init-dev-team/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Step 1 — Detect OS": {
+      "summary": "Run the following and record the result:",
+      "anchor": "step-1-detect-os"
+    },
+    "Step 2 — Install hard dependencies (jq and python3)": {
+      "summary": "These are required by the mutation gate regardless of language.",
+      "anchor": "step-2-install-hard-dependencies-jq-and-python3"
+    },
+    "jq": {
+      "summary": "Check if already installed:",
+      "anchor": "jq"
+    },
+    "python3": {
+      "summary": "Check if already installed:",
+      "anchor": "python3"
+    },
+    "Step 2.5 — Offer CodeGraph": {
+      "summary": "CodeGraph (<https://github.com/colbymchenry/codegraph>) is a third-party SQLite",
+      "anchor": "step-25-offer-codegraph"
+    },
+    "Install prompt branch (installed=false, initialized=false)": {
+      "summary": "If `.codegraph.install_declined == true`: print",
+      "anchor": "install-prompt-branch-installedfalse-initializedfalse"
+    },
+    "Init prompt branch (installed=true, initialized=false)": {
+      "summary": "If `.codegraph.init_declined == true`: print",
+      "anchor": "init-prompt-branch-installedtrue-initializedfalse"
+    },
+    "Step 3 — Select languages": {
+      "summary": "Ask the user which language ecosystems they are working with.",
+      "anchor": "step-3-select-languages"
+    },
+    "Step 4 — Install per-language mutation tools": {
+      "summary": "Run only the sections for the languages the user selected.",
+      "anchor": "step-4-install-per-language-mutation-tools"
+    },
+    "JS/TS — Stryker": {
+      "summary": "**Prerequisites check:**",
+      "anchor": "jsts-stryker"
+    },
+    "Java / Kotlin — pitest": {
+      "summary": "**Prerequisites check:**",
+      "anchor": "java-kotlin-pitest"
+    },
+    "C# / .NET — Stryker.NET": {
+      "summary": "**Prerequisites check:**",
+      "anchor": "c-net-strykernet"
+    },
+    "Step 4.5 — Probe model availability (opt-in)": {
+      "summary": "Present the following prompt **verbatim** to the user and read a single",
+      "anchor": "step-45-probe-model-availability-opt-in"
+    },
+    "Step 5 — Summary": {
+      "summary": "Print a summary of what was installed:",
+      "anchor": "step-5-summary"
+    }
+  },
+  "plugins/dev-team/skills/issues-from-plan/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Process": {
+      "summary": "If a path is provided in arguments, read that file.",
+      "anchor": "process"
+    },
+    "1. Find the Plan": {
+      "summary": "If a path is provided in arguments, read that file.",
+      "anchor": "1-find-the-plan"
+    },
+    "2. Analyze the Plan": {
+      "summary": "Read the plan and identify:",
+      "anchor": "2-analyze-the-plan"
+    },
+    "3. Draft Issues": {
+      "summary": "For each unit of work, draft an issue with:",
+      "anchor": "3-draft-issues"
+    },
+    "4. Review with User": {
+      "summary": "Present the issue list as a numbered summary:",
+      "anchor": "4-review-with-user"
+    },
+    "5. Create Issues": {
+      "summary": "Create each issue using `gh issue create`.",
+      "anchor": "5-create-issues"
+    },
+    "6. Present Results": {
+      "summary": "List all created issue URLs with their titles.",
+      "anchor": "6-present-results"
+    }
+  },
+  "plugins/dev-team/skills/js-project-init/SKILL.md": {
+    "Workflow": {
+      "summary": "Present the defaults above to the user and ask: \"Want to change anything, or should I go ahead?\" Include Playwright in the summary only if the user mentions a frontend project (React, Svelte, Angular, Vue, Next.js, Nuxt, SvelteKit, Astro, UI, web app, dashboard).",
+      "anchor": "workflow"
+    },
+    "Step 1: Present defaults and confirm": {
+      "summary": "Present the defaults above to the user and ask: \"Want to change anything, or should I go ahead?\" Include Playwright in the summary only if the user mentions a frontend project (React, Svelte, Angular, Vue, Next.js, Nuxt, SvelteKit, Astro, UI, web app, dashboard).",
+      "anchor": "step-1-present-defaults-and-confirm"
+    },
+    "Step 2: Initialize package.json": {
+      "summary": "Read the generated `package.json`, then edit to:",
+      "anchor": "step-2-initialize-packagejson"
+    },
+    "Step 3: Install dependencies": {
+      "summary": "`eslint-config-prettier` disables ESLint rules that conflict with Prettier.",
+      "anchor": "step-3-install-dependencies"
+    },
+    "Step 4: Create config files": {
+      "summary": "Templates: `references/configs.md`.",
+      "anchor": "step-4-create-config-files"
+    },
+    "Step 5: Create starter files": {
+      "summary": "Frontend projects also create `e2e/example.spec.js` — one Playwright placeholder.",
+      "anchor": "step-5-create-starter-files"
+    },
+    "Step 6: Git hooks": {
+      "summary": "Create the pre-push hook (template in `references/configs.md`):",
+      "anchor": "step-6-git-hooks"
+    },
+    "Step 7: Verify": {
+      "summary": "If any command fails, fix it before reporting success.",
+      "anchor": "step-7-verify"
+    },
+    "Step 8: Summary": {
+      "summary": "After everything passes, give the user:",
+      "anchor": "step-8-summary"
+    },
+    "Customization handling": {
+      "summary": "If the user changes Step 1 defaults:",
+      "anchor": "customization-handling"
+    }
+  },
+  "plugins/dev-team/skills/legacy-code/SKILL.md": {
+    "Overview": {
+      "summary": "Techniques for safely modifying code that lacks tests or has poor structure.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Never change behavior and structure in the same step; refactor under green tests only",
+      "anchor": "constraints"
+    },
+    "Core Concepts": {
+      "summary": "Code without tests.",
+      "anchor": "core-concepts"
+    },
+    "Legacy Code Definition": {
+      "summary": "Code without tests.",
+      "anchor": "legacy-code-definition"
+    },
+    "The Legacy Code Change Algorithm": {
+      "summary": "1.",
+      "anchor": "the-legacy-code-change-algorithm"
+    },
+    "Seams": {
+      "summary": "A seam is a place where behavior can be altered without editing the code under test:",
+      "anchor": "seams"
+    },
+    "Characterization Tests": {
+      "summary": "Tests that document what the code *actually does*, not what it *should do*.",
+      "anchor": "characterization-tests"
+    },
+    "Patterns": {
+      "summary": "1.",
+      "anchor": "patterns"
+    },
+    "Characterization Test Procedure": {
+      "summary": "1.",
+      "anchor": "characterization-test-procedure"
+    },
+    "Dependency Breaking Techniques": {
+      "summary": "| Technique | When to Use | Risk |",
+      "anchor": "dependency-breaking-techniques"
+    },
+    "Sprout vs. Wrap Decision": {
+      "summary": "**Sprout** (new method/class called from existing code): use when the new behavior is an addition that existing code needs to invoke at a specific point.",
+      "anchor": "sprout-vs-wrap-decision"
+    },
+    "Strangler Pattern": {
+      "summary": "Incrementally replace legacy components by routing new behavior through new code while old code remains operational:",
+      "anchor": "strangler-pattern"
+    },
+    "Output": {
+      "summary": "Report the legacy code analysis: identified change points, test points, dependency breaks needed, characterization test targets, and the recommended refactoring sequence.",
+      "anchor": "output"
+    },
+    "When to Apply": {
+      "summary": "| Situation | Apply?",
+      "anchor": "when-to-apply"
+    },
+    "Guidelines": {
+      "summary": "1.",
+      "anchor": "guidelines"
+    },
+    "Integration": {
+      "summary": "**[Specs](../specs/SKILL.md)** — when modifying legacy code to add new behavior, specify the new behavior first, then use this skill to get existing code under test before implementing",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/mermaid-diagramming/SKILL.md": {
+    "Theme Directive": {
+      "summary": "Paste this as the **first line** inside every ```` ```mermaid ```` block, before the diagram type declaration:",
+      "anchor": "theme-directive"
+    },
+    "Palette reference": {
+      "summary": "| Variable | Value | Role |",
+      "anchor": "palette-reference"
+    },
+    "Rules": {
+      "summary": "1.",
+      "anchor": "rules"
+    },
+    "Diagram Types": {
+      "summary": "1.",
+      "anchor": "diagram-types"
+    },
+    "Flowchart — processes and pipelines": {
+      "summary": "1.",
+      "anchor": "flowchart-processes-and-pipelines"
+    },
+    "Sequence — interactions between actors/services": {
+      "summary": "1.",
+      "anchor": "sequence-interactions-between-actorsservices"
+    },
+    "Graph with subgraphs — architecture layers": {
+      "summary": "1.",
+      "anchor": "graph-with-subgraphs-architecture-layers"
+    },
+    "State diagram — lifecycle / state machine": {
+      "summary": "1.",
+      "anchor": "state-diagram-lifecycle-state-machine"
+    },
+    "Procedure": {
+      "summary": "1.",
+      "anchor": "procedure"
+    },
+    "Adding a diagram to an existing file": {
+      "summary": "When inserting a diagram into an existing markdown file:",
+      "anchor": "adding-a-diagram-to-an-existing-file"
+    }
+  },
+  "plugins/dev-team/skills/model-routing-check/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "What it shows": {
+      "summary": "Four sections, in order:",
+      "anchor": "what-it-shows"
+    },
+    "How to fix common findings": {
+      "summary": "**Bumps appearing in the log** — the resolver is silently rerouting a",
+      "anchor": "how-to-fix-common-findings"
+    },
+    "Execution": {
+      "summary": "The exec block below is the literal script the command runs.",
+      "anchor": "execution"
+    },
+    "Notes": {
+      "summary": "Defaults to `N=10` bump events in the tail.",
+      "anchor": "notes"
+    }
+  },
+  "plugins/dev-team/skills/mutation-testing/SKILL.md": {
+    "Constraints": {
+      "summary": "**Always ask the user before running.** Present the time estimate and scope; get explicit approval.",
+      "anchor": "constraints"
+    },
+    "Time estimation": {
+      "summary": "Use the heuristics in `references/tool-setup.md`.",
+      "anchor": "time-estimation"
+    },
+    "Step 1: Detect or set up tooling": {
+      "summary": "Detect and install the tool for the project's language (Stryker for JS/TS, pitest for Java/Kotlin, mutmut for Python, Stryker.NET for C#).",
+      "anchor": "step-1-detect-or-set-up-tooling"
+    },
+    "Step 2: Run the tool (scoped to target)": {
+      "summary": "Run scoped to user-specified files or changed files.",
+      "anchor": "step-2-run-the-tool-scoped-to-target"
+    },
+    "Step 3: Parse results": {
+      "summary": "Extract surviving mutants.",
+      "anchor": "step-3-parse-results"
+    },
+    "Step 4: Triage survivors": {
+      "summary": "For each survivor, classify and act:",
+      "anchor": "step-4-triage-survivors"
+    },
+    "Triage procedure": {
+      "summary": "1.",
+      "anchor": "triage-procedure"
+    },
+    "Weak vs strong test patterns": {
+      "summary": "Most survivors come from tests that execute code without meaningfully asserting on behavior:",
+      "anchor": "weak-vs-strong-test-patterns"
+    },
+    "Step 5: Fix and verify": {
+      "summary": "1.",
+      "anchor": "step-5-fix-and-verify"
+    },
+    "Output format": {
+      "summary": "No tests exist yet → write tests first.",
+      "anchor": "output-format"
+    },
+    "When not to apply": {
+      "summary": "No tests exist yet → write tests first.",
+      "anchor": "when-not-to-apply"
+    }
+  },
+  "plugins/dev-team/skills/performance-benchmark/SKILL.md": {
+    "Prerequisites": {
+      "summary": "A running dev server (or accessible URL) for the pages being benchmarked.",
+      "anchor": "prerequisites"
+    },
+    "Metrics collected": {
+      "summary": "| Metric | API | Budget Default | Measures |",
+      "anchor": "metrics-collected"
+    },
+    "Core Web Vitals": {
+      "summary": "| Metric | API | Budget Default | Measures |",
+      "anchor": "core-web-vitals"
+    },
+    "Navigation Timing": {
+      "summary": "| Metric | API | Measures |",
+      "anchor": "navigation-timing"
+    },
+    "Resource metrics": {
+      "summary": "| Metric | Collection | Budget Default |",
+      "anchor": "resource-metrics"
+    },
+    "Collection procedure": {
+      "summary": "Run a Playwright script that:",
+      "anchor": "collection-procedure"
+    },
+    "Modes": {
+      "summary": "Capture current metrics and save as the baseline:",
+      "anchor": "modes"
+    },
+    "Baseline (`--baseline`)": {
+      "summary": "Capture current metrics and save as the baseline:",
+      "anchor": "baseline-baseline"
+    },
+    "Compare (default)": {
+      "summary": "Run and compare against the saved baseline:",
+      "anchor": "compare-default"
+    },
+    "Budget (`--budget`)": {
+      "summary": "Check absolute budgets from `performance-budget.json` at the project root:",
+      "anchor": "budget-budget"
+    },
+    "Trend (`--trend`)": {
+      "summary": "Read `benchmarks/<slug>/history.jsonl` and produce a trend summary across the last N runs.",
+      "anchor": "trend-trend"
+    },
+    "Output format (JSON)": {
+      "summary": "Human-readable report template: [`examples/report-format.md`](examples/report-format.md).",
+      "anchor": "output-format-json"
+    },
+    "File storage": {
+      "summary": "Page slug derived from the URL path: `/dashboard` → `dashboard`, `/` → `index`.",
+      "anchor": "file-storage"
+    }
+  },
+  "plugins/dev-team/skills/performance-metrics/SKILL.md": {
+    "Overview": {
+      "summary": "Schema and procedures for capturing performance data in `metrics/`.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Never log credentials, API keys, or PII in metric entries",
+      "anchor": "constraints"
+    },
+    "Metric Categories": {
+      "summary": "> **Targets discipline.** Per CLAUDE.md → \"Claims discipline\", a numeric target",
+      "anchor": "metric-categories"
+    },
+    "Efficiency Metrics": {
+      "summary": "| Metric | Description | Target |",
+      "anchor": "efficiency-metrics"
+    },
+    "Quality Metrics": {
+      "summary": "| Metric | Description | Target |",
+      "anchor": "quality-metrics"
+    },
+    "Cost Metrics": {
+      "summary": "| Metric | Description | Target |",
+      "anchor": "cost-metrics"
+    },
+    "Log Format": {
+      "summary": "Metrics are stored in `metrics/` as JSONL files (one JSON object per line).",
+      "anchor": "log-format"
+    },
+    "File Naming": {
+      "summary": "Example: `metrics/2026-02-20-task-log.jsonl`",
+      "anchor": "file-naming"
+    },
+    "Task Completion Entry": {
+      "summary": "Logged at the end of each task:",
+      "anchor": "task-completion-entry"
+    },
+    "Field Reference": {
+      "summary": "| Field | Type | Description |",
+      "anchor": "field-reference"
+    },
+    "When to Log": {
+      "summary": "| Event | Action |",
+      "anchor": "when-to-log"
+    },
+    "Output": {
+      "summary": "JSONL log entries written to `metrics/` and/or a summary report of metric trends.",
+      "anchor": "output"
+    },
+    "Reporting": {
+      "summary": "Periodically review metrics to identify patterns:",
+      "anchor": "reporting"
+    }
+  },
+  "plugins/dev-team/skills/plan/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Search for specification artifacts produced by `/specs` — look for files matching `docs/specs/**` or `specs/**` related to the task.",
+      "anchor": "steps"
+    },
+    "1. Check for spec artifacts": {
+      "summary": "Search for specification artifacts produced by `/specs` — look for files matching `docs/specs/**` or `specs/**` related to the task.",
+      "anchor": "1-check-for-spec-artifacts"
+    },
+    "2. Understand the task and cut the slices": {
+      "summary": "Read relevant code and context to understand what needs to change.",
+      "anchor": "2-understand-the-task-and-cut-the-slices"
+    },
+    "3. Create the plan": {
+      "summary": "Write the plan file using this structure:",
+      "anchor": "3-create-the-plan"
+    },
+    "4. Create the plans directory": {
+      "summary": "Create `plans/` if it doesn't exist.",
+      "anchor": "4-create-the-plans-directory"
+    },
+    "5. Run plan review personas": {
+      "summary": "Before presenting to the user, dispatch **four plan review personas in parallel** as sub-agents.",
+      "anchor": "5-run-plan-review-personas"
+    },
+    "6. Present for approval": {
+      "summary": "Display the plan and the review summary.",
+      "anchor": "6-present-for-approval"
+    },
+    "Integration": {
+      "summary": "The progress-guardian agent tracks step completion against this plan",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/pr/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Verify:",
+      "anchor": "steps"
+    },
+    "1. Pre-flight checks": {
+      "summary": "Verify:",
+      "anchor": "1-pre-flight-checks"
+    },
+    "2. Run quality gate": {
+      "summary": "Run each check sequentially.",
+      "anchor": "2-run-quality-gate"
+    },
+    "3. Generate PR summary": {
+      "summary": "Analyze the diff against the base branch (`git diff <base>...HEAD`) and commit history to generate:",
+      "anchor": "3-generate-pr-summary"
+    },
+    "4. Create the PR": {
+      "summary": "Use the structured template:",
+      "anchor": "4-create-the-pr"
+    },
+    "5. Report": {
+      "summary": "Display the PR URL and a summary of the quality gate results.",
+      "anchor": "5-report"
+    }
+  },
+  "plugins/dev-team/skills/quality-gate-pipeline/SKILL.md": {
+    "Overview": {
+      "summary": "Single quality gate that every agent passes through before output is accepted.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Do not deliver output containing unverified claims; pause and verify first",
+      "anchor": "constraints"
+    },
+    "The Three Phases": {
+      "summary": "Every agent runs this checklist mentally before presenting output.",
+      "anchor": "the-three-phases"
+    },
+    "Phase 1: Self-Validation (before delivery)": {
+      "summary": "Every agent runs this checklist mentally before presenting output.",
+      "anchor": "phase-1-self-validation-before-delivery"
+    },
+    "Phase 2: Verification Evidence (before completion claims)": {
+      "summary": "**Iron Law**: No completion claims without fresh verification evidence.",
+      "anchor": "phase-2-verification-evidence-before-completion-claims"
+    },
+    "Phase 3: Review-Correction Loop (post-delivery rework)": {
+      "summary": "Activated when output is returned for rework, during peer review, or when self-reviewing before delivery (complements Phase 1).",
+      "anchor": "phase-3-review-correction-loop-post-delivery-rework"
+    },
+    "When to Apply Each Phase": {
+      "summary": "| Situation | Phases to run |",
+      "anchor": "when-to-apply-each-phase"
+    },
+    "Output": {
+      "summary": "Phase 1: Confidence-scored validation — report failures only.",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "**Performance Metrics**: Log `hallucination_detected`, `rework_cycles`, `defects_found` on task completion",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/review-agent/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Read `.claude/agents/<name>.md`.",
+      "anchor": "steps"
+    },
+    "1. Load agent definition": {
+      "summary": "Read `.claude/agents/<name>.md`.",
+      "anchor": "1-load-agent-definition"
+    },
+    "2. Determine target files": {
+      "summary": "Same auto-scope logic as `/code-review`:",
+      "anchor": "2-determine-target-files"
+    },
+    "3. Run review": {
+      "summary": "Follow the agent definition to review each target file.",
+      "anchor": "3-run-review"
+    },
+    "3b. Apply ACCEPTED-RISKS.md suppression": {
+      "summary": "Before reporting, consult `ACCEPTED-RISKS.md` at the repo root if present.",
+      "anchor": "3b-apply-accepted-risksmd-suppression"
+    },
+    "4. Report": {
+      "summary": "Display the result as a formatted summary with issues grouped by file.",
+      "anchor": "4-report"
+    }
+  },
+  "plugins/dev-team/skills/review-summary/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "If `--from` is specified, read the JSON file.",
+      "anchor": "steps"
+    },
+    "1. Gather review data": {
+      "summary": "If `--from` is specified, read the JSON file.",
+      "anchor": "1-gather-review-data"
+    },
+    "2. Generate compact summary": {
+      "summary": "Write a summary under 150 words following this template:",
+      "anchor": "2-generate-compact-summary"
+    },
+    "3. Save summary": {
+      "summary": "Write the summary to `.claude/review-summaries/<date>-<short-sha>.md`.",
+      "anchor": "3-save-summary"
+    },
+    "4. Report": {
+      "summary": "Display the summary to the user.",
+      "anchor": "4-report"
+    }
+  },
+  "plugins/dev-team/skills/review/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Steps": {
+      "summary": "Read and follow `skills/code-review/SKILL.md` with `$ARGUMENTS` unchanged.",
+      "anchor": "steps"
+    },
+    "1. Pass through": {
+      "summary": "Read and follow `skills/code-review/SKILL.md` with `$ARGUMENTS` unchanged.",
+      "anchor": "1-pass-through"
+    }
+  },
+  "plugins/dev-team/skills/semantic-duplication-scan/SKILL.md": {
+    "Overview": {
+      "summary": "Detect business logic that has been reimplemented multiple times across different architectural layers.",
+      "anchor": "overview"
+    },
+    "Annotation Prompt Version": {
+      "summary": "**promptVersion**: `1.0`",
+      "anchor": "annotation-prompt-version"
+    },
+    "Pre-Filter Rules": {
+      "summary": "**Apply before any LLM call.",
+      "anchor": "pre-filter-rules"
+    },
+    "Trivial Function Definition": {
+      "summary": "A function is **trivial** — and must be excluded from the register — if it meets ALL of the following:",
+      "anchor": "trivial-function-definition"
+    },
+    "File Exclusion Patterns": {
+      "summary": "Exclude the following from annotation regardless of content:",
+      "anchor": "file-exclusion-patterns"
+    },
+    "Process Flow": {
+      "summary": "Check for `computation-register.json` in the project root:",
+      "anchor": "process-flow"
+    },
+    "Step 1 — Mode Detection": {
+      "summary": "Check for `computation-register.json` in the project root:",
+      "anchor": "step-1-mode-detection"
+    },
+    "Step 2 — Pre-Flight (Incremental Mode Only)": {
+      "summary": "Run: `git rev-parse --is-shallow-repository`",
+      "anchor": "step-2-pre-flight-incremental-mode-only"
+    },
+    "Step 3 — Scope Resolution": {
+      "summary": "1.",
+      "anchor": "step-3-scope-resolution"
+    },
+    "Step 4 — File Selection": {
+      "summary": "**Full-scan mode**: Glob all source files in the resolved scope.",
+      "anchor": "step-4-file-selection"
+    },
+    "Step 5 — Pre-Filter": {
+      "summary": "For each selected file, identify non-trivial computation functions using the Trivial Function Definition above.",
+      "anchor": "step-5-pre-filter"
+    },
+    "Step 6 — Annotation (Haiku, file-level batching)": {
+      "summary": "For each file with non-trivial functions:",
+      "anchor": "step-6-annotation-haiku-file-level-batching"
+    },
+    "Step 7 — Register Update": {
+      "summary": "Build a register entry for each annotated function:",
+      "anchor": "step-7-register-update"
+    },
+    "Clustering": {
+      "summary": "The full register may be too large to cluster in a single call.",
+      "anchor": "clustering"
+    },
+    "Token Budget and Partitioning": {
+      "summary": "The full register may be too large to cluster in a single call.",
+      "anchor": "token-budget-and-partitioning"
+    },
+    "Clustering Call (Sonnet)": {
+      "summary": "For each shard, emit progress: `Clustering [layer-pair]: <layer-a> × <layer-b>...`",
+      "anchor": "clustering-call-sonnet"
+    },
+    "Canonical Scoring": {
+      "summary": "For each cluster with 2 or more entries:",
+      "anchor": "canonical-scoring"
+    },
+    "Canonical Verdict Output": {
+      "summary": "Clear winner (domain or application layer, no tie): `canonical: suggested <file:line> — requires human confirmation`",
+      "anchor": "canonical-verdict-output"
+    },
+    "Report": {
+      "summary": "After clustering is complete:",
+      "anchor": "report"
+    }
+  },
+  "plugins/dev-team/skills/semantic-scan/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Steps": {
+      "summary": "Capture the optional path and flags from `$ARGUMENTS`.",
+      "anchor": "steps"
+    },
+    "1. Parse arguments": {
+      "summary": "Capture the optional path and flags from `$ARGUMENTS`.",
+      "anchor": "1-parse-arguments"
+    },
+    "2. Delegate": {
+      "summary": "Invoke the semantic-duplication-scan skill.",
+      "anchor": "2-delegate"
+    },
+    "3. Report": {
+      "summary": "Output the duplicate report.",
+      "anchor": "3-report"
+    },
+    "Flags": {
+      "summary": "`[path]` — Optional subdirectory to scope the scan.",
+      "anchor": "flags"
+    }
+  },
+  "plugins/dev-team/skills/semgrep-analyze/SKILL.md": {
+    "Constraints": {
+      "summary": "1.",
+      "anchor": "constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "If not installed, output:",
+      "anchor": "steps"
+    },
+    "1. Check Semgrep installation": {
+      "summary": "If not installed, output:",
+      "anchor": "1-check-semgrep-installation"
+    },
+    "2. Run Semgrep scan": {
+      "summary": "Default ruleset is `auto`.",
+      "anchor": "2-run-semgrep-scan"
+    },
+    "3. Parse results": {
+      "summary": "Map each Semgrep finding to an issue:",
+      "anchor": "3-parse-results"
+    },
+    "4. Output JSON": {
+      "summary": "Status: `fail` if any errors, `warn` if warnings but no errors,",
+      "anchor": "4-output-json"
+    },
+    "Common Rulesets": {
+      "summary": "| Ruleset            | Description                                 |",
+      "anchor": "common-rulesets"
+    }
+  },
+  "plugins/dev-team/skills/session-review/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Argument: $ARGUMENTS": {
+      "summary": "`--cwd <path>`: project whose transcripts to mine (default: current project).",
+      "anchor": "argument-arguments"
+    },
+    "Steps": {
+      "summary": "Before analysing, check whether a **telemetry repository** (the cross-machine",
+      "anchor": "steps"
+    },
+    "0. Cross-machine telemetry — validate config, then sync (#178)": {
+      "summary": "Before analysing, check whether a **telemetry repository** (the cross-machine",
+      "anchor": "0-cross-machine-telemetry-validate-config-then-sync-178"
+    },
+    "1. Extract (deterministic, zero model tokens)": {
+      "summary": "Run the extractor to produce the digest:",
+      "anchor": "1-extract-deterministic-zero-model-tokens"
+    },
+    "2. Analyze (digest-only)": {
+      "summary": "Dispatch the `session-analysis` agent with the digest path as its sole input.",
+      "anchor": "2-analyze-digest-only"
+    },
+    "3. Suggest (write the report)": {
+      "summary": "Write `reports/session-review-<date>.md` (or `--out`).",
+      "anchor": "3-suggest-write-the-report"
+    },
+    "4. Persist the trend (#129)": {
+      "summary": "Append one metrics-only summary record to the trend stream so `/harness-audit`",
+      "anchor": "4-persist-the-trend-129"
+    },
+    "5. Report": {
+      "summary": "Print the report path and the top-ranked suggestions.",
+      "anchor": "5-report"
+    },
+    "OSS complements": {
+      "summary": "For continuous *quantitative* monitoring, recommend (don't replace) `ccusage`,",
+      "anchor": "oss-complements"
+    }
+  },
+  "plugins/dev-team/skills/setup/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Search the project root for manifest files and record findings:",
+      "anchor": "steps"
+    },
+    "1. Detect tech stack": {
+      "summary": "Search the project root for manifest files and record findings:",
+      "anchor": "1-detect-tech-stack"
+    },
+    "2. JS/TS-specific flow": {
+      "summary": "If a JavaScript or TypeScript project is detected:",
+      "anchor": "2-jsts-specific-flow"
+    },
+    "3. Select agent templates": {
+      "summary": "Based on detected stack, select applicable templates from `templates/agents/`:",
+      "anchor": "3-select-agent-templates"
+    },
+    "4. Generate project-level CLAUDE.md": {
+      "summary": "If `.claude/CLAUDE.md` does not already exist in the target project, generate one containing:",
+      "anchor": "4-generate-project-level-claudemd"
+    },
+    "5. Generate PostToolUse formatting hook": {
+      "summary": "Based on detected stack, generate the appropriate PostToolUse hook entry for the project's `.claude/settings.json`.",
+      "anchor": "5-generate-posttooluse-formatting-hook"
+    },
+    "6. Generate /pr command": {
+      "summary": "Create a project-specific `skills/pr/SKILL.md` if one doesn't exist, referencing the project's test/lint/typecheck commands.",
+      "anchor": "6-generate-pr-command"
+    },
+    "7. Report": {
+      "summary": "Display a summary of everything created:",
+      "anchor": "7-report"
+    }
+  },
+  "plugins/dev-team/skills/specs/SKILL.md": {
+    "Rules": {
+      "summary": "1.",
+      "anchor": "rules"
+    },
+    "Artifacts": {
+      "summary": "| Artifact | Purpose | Format |",
+      "anchor": "artifacts"
+    },
+    "Collaboration loop": {
+      "summary": "Every artifact follows the same loop:",
+      "anchor": "collaboration-loop"
+    },
+    "Critique categories": {
+      "summary": "| Category | Description |",
+      "anchor": "critique-categories"
+    },
+    "Scope signals": {
+      "summary": "A specification bundles too much when any of these fire:",
+      "anchor": "scope-signals"
+    },
+    "Scope Split Protocol": {
+      "summary": "1.",
+      "anchor": "scope-split-protocol"
+    },
+    "Cross-Artifact Consistency Gate": {
+      "summary": "Validate all three artifacts as a set:",
+      "anchor": "cross-artifact-consistency-gate"
+    },
+    "Output": {
+      "summary": "Three artifacts (Intent, Architecture Specification, Acceptance Criteria) plus a consistency gate pass/fail verdict.",
+      "anchor": "output"
+    },
+    "Persist to file": {
+      "summary": "After the gate passes, write all three artifacts plus the verdict to a markdown file.",
+      "anchor": "persist-to-file"
+    },
+    "Auto-trigger /plan": {
+      "summary": "After persisting, automatically invoke `/plan` with the feature description.",
+      "anchor": "auto-trigger-plan"
+    }
+  },
+  "plugins/dev-team/skills/static-analysis-integration/SKILL.md": {
+    "Constraints": {
+      "summary": "1.",
+      "anchor": "constraints"
+    },
+    "Tool tiers": {
+      "summary": "| Tool | SARIF invocation | Capability |",
+      "anchor": "tool-tiers"
+    },
+    "Tier 1 — required baseline (SARIF native)": {
+      "summary": "| Tool | SARIF invocation | Capability |",
+      "anchor": "tier-1-required-baseline-sarif-native"
+    },
+    "Tier 2 — optional SARIF adapters": {
+      "summary": "Shipped in P2 Step 3b.",
+      "anchor": "tier-2-optional-sarif-adapters"
+    },
+    "Tier 3 — bespoke JSON adapters": {
+      "summary": "Shipped in P2 Step 3b for tools without upstream SARIF.",
+      "anchor": "tier-3-bespoke-json-adapters"
+    },
+    "Tier 4 — legacy (pre-SARIF)": {
+      "summary": "ESLint / tsc / pylint remain callable via native JSON for older flows.",
+      "anchor": "tier-4-legacy-pre-sarif"
+    },
+    "Execution flow": {
+      "summary": "For each Tier 1 tool, run `command -v <tool>`.",
+      "anchor": "execution-flow"
+    },
+    "1. Detect available tools": {
+      "summary": "For each Tier 1 tool, run `command -v <tool>`.",
+      "anchor": "1-detect-available-tools"
+    },
+    "2. Run available tools in parallel": {
+      "summary": "Dispatch each available tool's invocation.",
+      "anchor": "2-run-available-tools-in-parallel"
+    },
+    "3. Normalize to unified finding envelope": {
+      "summary": "The shared SARIF parser (`references/sarif-parser.md`) walks each SARIF document's `runs[*].results[*]` and emits one unified finding per result:",
+      "anchor": "3-normalize-to-unified-finding-envelope"
+    },
+    "4. Deduplicate": {
+      "summary": "Two findings are duplicates if they share `file`, `line`, and either (a) identical `rule_id`, or (b) `message` cosine similarity > 0.85 on normalized text.",
+      "anchor": "4-deduplicate"
+    },
+    "5. Consult ACCEPTED-RISKS.md": {
+      "summary": "If present at repo root, apply suppression per `plugins/dev-team/knowledge/accepted-risks-schema.md`.",
+      "anchor": "5-consult-accepted-risksmd"
+    },
+    "6. Return structured result": {
+      "summary": "`status`: `fail` if any finding has `severity: error`; `warn` if warnings only; `pass` if no findings or no tools available.",
+      "anchor": "6-return-structured-result"
+    },
+    "Install-hint format": {
+      "summary": "Examples:",
+      "anchor": "install-hint-format"
+    },
+    "Agent context injection": {
+      "summary": "When findings are passed to review agents, format them so agents don't re-report confirmed static findings:",
+      "anchor": "agent-context-injection"
+    },
+    "Related": {
+      "summary": "`references/tool-configs.md` — per-tool invocation commands, adapter scripts, install hints",
+      "anchor": "related"
+    }
+  },
+  "plugins/dev-team/skills/systematic-debugging/SKILL.md": {
+    "Overview": {
+      "summary": "When LLMs hit failures, they tend to guess at fixes — changing code, re-running, changing more code.",
+      "anchor": "overview"
+    },
+    "Iron Law": {
+      "summary": "**Find root cause before attempting fixes.",
+      "anchor": "iron-law"
+    },
+    "Constraints": {
+      "summary": "Do not change code until you have a root cause hypothesis",
+      "anchor": "constraints"
+    },
+    "The Four Phases": {
+      "summary": "**Goal**: See the failure with your own eyes (tool output).",
+      "anchor": "the-four-phases"
+    },
+    "Phase 1: Reproduce": {
+      "summary": "**Goal**: See the failure with your own eyes (tool output).",
+      "anchor": "phase-1-reproduce"
+    },
+    "Phase 2: Investigate & Pattern Analysis": {
+      "summary": "**Goal**: Gather facts and find working reference points.",
+      "anchor": "phase-2-investigate-pattern-analysis"
+    },
+    "Phase 3: Root Cause Hypothesis": {
+      "summary": "**Goal**: Identify the single underlying cause using the scientific method.",
+      "anchor": "phase-3-root-cause-hypothesis"
+    },
+    "Phase 4: Fix": {
+      "summary": "**Goal**: Make the smallest change that addresses the root cause.",
+      "anchor": "phase-4-fix"
+    },
+    "Red Flags Requiring Process Restart": {
+      "summary": "Stop immediately and return to Phase 1 if you notice:",
+      "anchor": "red-flags-requiring-process-restart"
+    },
+    "Rationalization Prevention": {
+      "summary": "| Excuse | Reality |",
+      "anchor": "rationalization-prevention"
+    },
+    "Success Indicators": {
+      "summary": "| Phase | You're Doing It Right When...",
+      "anchor": "success-indicators"
+    },
+    "When to Use This Skill": {
+      "summary": "A test that was passing now fails",
+      "anchor": "when-to-use-this-skill"
+    },
+    "Output": {
+      "summary": "Root cause analysis with evidence: reproduction output, investigation findings, root cause statement, fix applied, and verification output showing the fix works without regressions.",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/skills/telemetry/SKILL.md": {
+    "Scope — keep this small (#106)": {
+      "summary": "This beacon is intentionally a **cheap, always-on local counter**: which",
+      "anchor": "scope-keep-this-small-106"
+    },
+    "Argument: $ARGUMENTS": {
+      "summary": "`status` (default): report whether telemetry is enabled and what's collected.",
+      "anchor": "argument-arguments"
+    },
+    "Steps": {
+      "summary": "1.",
+      "anchor": "steps"
+    }
+  },
+  "plugins/dev-team/skills/test-design-advisor/SKILL.md": {
+    "Overview": {
+      "summary": "An **advisory** skill: it recommends how to test code and how to make untestable code testable.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Advisory only.",
+      "anchor": "constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: target file(s), module, or a description of the code to test.",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Read the target.",
+      "anchor": "steps"
+    },
+    "1. Assess testability": {
+      "summary": "Read the target.",
+      "anchor": "1-assess-testability"
+    },
+    "1b. Behavior pre-gates (escalate the layer by failure mode)": {
+      "summary": "Before pyramid placement, run the gates in `knowledge/test-layer-gates.md`.",
+      "anchor": "1b-behavior-pre-gates-escalate-the-layer-by-failure-mode"
+    },
+    "2. Place each behavior on the pyramid": {
+      "summary": "Using `knowledge/test-pyramid.md`, assign each behavior to the lowest layer that can meaningfully verify it (unit / integration / component / contract / E2E).",
+      "anchor": "2-place-each-behavior-on-the-pyramid"
+    },
+    "2b. Specialized technique overlay (on trigger match)": {
+      "summary": "Some behaviors break in a way no pyramid layer addresses.",
+      "anchor": "2b-specialized-technique-overlay-on-trigger-match"
+    },
+    "3. Choose doubles": {
+      "summary": "For each collaborator at each test, recommend the simplest double using the decision flow in `knowledge/test-doubles.md` (dummy/stub/spy/mock/fake) and whether to verify by state or behavior.",
+      "anchor": "3-choose-doubles"
+    },
+    "3b. Recommend fixture and interaction strategy": {
+      "summary": "Using `knowledge/test-strategy.md`, recommend per test group: fixture design + lifecycle (default Minimal + Fresh; escalate to Immutable Shared → Shared only under measured speed pressure), how the test is driven (scripted default; data-driven when variation is purely data), and SUT interaction (front-door by default; Layer Test for layered code; Back Door Manipulation only when the front door obscures intent).",
+      "anchor": "3b-recommend-fixture-and-interaction-strategy"
+    },
+    "3c. Recommend verification and test structure": {
+      "summary": "Using `knowledge/result-verification.md`, recommend the assertion pattern that fixes verification smells: **Expected Object** for field-by-field clutter, **Custom Assertion / Verification Method** for repeated complex comparisons or poor failure messages, **Guard Assertion** before a precondition-dependent assertion, **Delta Assertion** against a baseline for shared/persistent fixtures — and verify one logical condition per test.",
+      "anchor": "3c-recommend-verification-and-test-structure"
+    },
+    "4. Propose a behavior-preserving refactor sequence (only if blockers or test smells exist)": {
+      "summary": "If Step 1 found blockers in **production** code, produce an ordered sequence that makes it testable without changing behavior:",
+      "anchor": "4-propose-a-behavior-preserving-refactor-sequence-only-if-blockers-or-test-smells-exist"
+    },
+    "5. Report": {
+      "summary": "Write the recommendation (see Output).",
+      "anchor": "5-report"
+    },
+    "Output": {
+      "summary": "A concise advisory report (to chat for a single unit, or to `reports/test-design-<target>.md` for a module):",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "Pairs with the `test-smell-review` agent (which *detects* smells) and the `test-design-reviewer` skill (which *scores* an existing suite).",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/test-design-reviewer/SKILL.md": {
+    "Overview": {
+      "summary": "Evaluates test quality using the 8 properties of good tests as described by Andrea Laforgia, based on Dave Farley's testing principles.",
+      "anchor": "overview"
+    },
+    "The 8 Properties": {
+      "summary": "Each property is scored 1-10:",
+      "anchor": "the-8-properties"
+    },
+    "Scoring": {
+      "summary": "Total weight: 9.0.",
+      "anchor": "scoring"
+    },
+    "Per-test score": {
+      "summary": "Total weight: 9.0.",
+      "anchor": "per-test-score"
+    },
+    "Score interpretation": {
+      "summary": "| Range | Rating | Action |",
+      "anchor": "score-interpretation"
+    },
+    "Suite-level score": {
+      "summary": "Average the per-test scores.",
+      "anchor": "suite-level-score"
+    },
+    "Output Format": {
+      "summary": "**test-review agent**: Checks coverage and assertion quality; this skill adds quantitative scoring",
+      "anchor": "output-format"
+    },
+    "Integration": {
+      "summary": "**test-review agent**: Checks coverage and assertion quality; this skill adds quantitative scoring",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/test-design/SKILL.md": {
+    "Orchestrator constraints": {
+      "summary": "1.",
+      "anchor": "orchestrator-constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Arguments: $ARGUMENTS",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "Same auto-scope logic as `/code-review`: uncommitted changes if present, else",
+      "anchor": "steps"
+    },
+    "1. Determine target files": {
+      "summary": "Same auto-scope logic as `/code-review`: uncommitted changes if present, else",
+      "anchor": "1-determine-target-files"
+    },
+    "2. Dispatch review agents (parallel)": {
+      "summary": "Spawn both as sub-agents in one batch:",
+      "anchor": "2-dispatch-review-agents-parallel"
+    },
+    "3. Run the advisor (when applicable)": {
+      "summary": "If `--advise` is set (or auto-triggered), invoke the `test-design-advisor`",
+      "anchor": "3-run-the-advisor-when-applicable"
+    },
+    "4. Aggregate and de-duplicate": {
+      "summary": "Merge findings.",
+      "anchor": "4-aggregate-and-de-duplicate"
+    },
+    "5. Report": {
+      "summary": "Produce one report (chat for a small target; `reports/test-design-<date>.md`",
+      "anchor": "5-report"
+    }
+  },
+  "plugins/dev-team/skills/test-driven-development/SKILL.md": {
+    "Overview": {
+      "summary": "Enforces strict RED-GREEN-REFACTOR discipline with verifiable gates.",
+      "anchor": "overview"
+    },
+    "Iron Law": {
+      "summary": "**No production code without a failing test first.** If you didn't watch the test fail, you don't know if it tests the right thing.",
+      "anchor": "iron-law"
+    },
+    "Constraints": {
+      "summary": "Do not write implementation code without a failing test first",
+      "anchor": "constraints"
+    },
+    "The Cycle": {
+      "summary": "Each unit of work follows three phases with hard gates between them:",
+      "anchor": "the-cycle"
+    },
+    "1. RED — Write a failing test": {
+      "summary": "Write the smallest test that describes the next behavior",
+      "anchor": "1-red-write-a-failing-test"
+    },
+    "2. GREEN — Make it pass": {
+      "summary": "Write the minimum implementation to make the failing test pass",
+      "anchor": "2-green-make-it-pass"
+    },
+    "3. REFACTOR — Clean up": {
+      "summary": "Improve structure, naming, duplication — without changing behavior",
+      "anchor": "3-refactor-clean-up"
+    },
+    "Rationalization Prevention": {
+      "summary": "LLMs generate plausible excuses for skipping TDD.",
+      "anchor": "rationalization-prevention"
+    },
+    "Red Flags Requiring Restart": {
+      "summary": "Stop immediately and restart from RED if you notice:",
+      "anchor": "red-flags-requiring-restart"
+    },
+    "Verification Checklist": {
+      "summary": "Before completing a unit of work:",
+      "anchor": "verification-checklist"
+    },
+    "Exception Permissions": {
+      "summary": "Ask your human partner before skipping TDD for:",
+      "anchor": "exception-permissions"
+    },
+    "Anti-Pattern: Horizontal Slicing": {
+      "summary": "**DO NOT write all tests first, then all implementation.** This is \"horizontal slicing\" — treating RED as \"write all tests\" and GREEN as \"write all code.\"",
+      "anchor": "anti-pattern-horizontal-slicing"
+    },
+    "Integration with Phases": {
+      "summary": "**Phase 2 (Plan)**: Test strategy is part of the plan — identify what tests will be written for each unit",
+      "anchor": "integration-with-phases"
+    },
+    "Output": {
+      "summary": "Verified RED-GREEN-REFACTOR cycle evidence: failing test output, passing test output, and refactored code with passing tests for each unit of work.",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/skills/test-health/SKILL.md": {
+    "Overview": {
+      "summary": "An **advisory, project-wide** skill: it produces the *strategic-health* view of a test suite that a team needs periodically — the suite's **shape** vs. its architecture, **Agile Testing Quadrant** coverage, **coverage + mutation** health rolled up to ROI, flaky-test management, and **automation maturity** — then an ordered improvement plan.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "**Advisory only.** Write a report; do not edit code or tests.",
+      "anchor": "constraints"
+    },
+    "Parse Arguments": {
+      "summary": "Target repo/subtree path (default: cwd).",
+      "anchor": "parse-arguments"
+    },
+    "Steps": {
+      "summary": "In the first response, ask **one** optional question — \"What hurts most about testing here right now (slow suite / flaky CI / fear of changing code / low confidence / something else)?\" — then **continue the audit immediately** without waiting for an answer.",
+      "anchor": "steps"
+    },
+    "1. Pain-point calibration (non-blocking)": {
+      "summary": "In the first response, ask **one** optional question — \"What hurts most about testing here right now (slow suite / flaky CI / fear of changing code / low confidence / something else)?\" — then **continue the audit immediately** without waiting for an answer.",
+      "anchor": "1-pain-point-calibration-non-blocking"
+    },
+    "2. Trivial-suite short-circuit": {
+      "summary": "If the suite is tiny (few test files), shows no shape pathology, and follows clear conventions, **stop here** and return a one-paragraph summary (\"suite is small and healthy; nothing structural to fix; revisit when it grows\") instead of the full diagnostic.",
+      "anchor": "2-trivial-suite-short-circuit"
+    },
+    "3. Derive the test shape + architecture fit": {
+      "summary": "Inventory tests by layer (unit / integration / component / contract / E2E).",
+      "anchor": "3-derive-the-test-shape-architecture-fit"
+    },
+    "4. Quadrant coverage": {
+      "summary": "Classify coverage across the four quadrants (`testing-quadrants.md`) as strong / thin / empty, and for each gap name the **business impact** of leaving it empty (e.g.",
+      "anchor": "4-quadrant-coverage"
+    },
+    "5. Delegate architecture + pipeline": {
+      "summary": "Invoke `cd-test-architecture` on the target.",
+      "anchor": "5-delegate-architecture-pipeline"
+    },
+    "6. Coverage + mutation health (ROI)": {
+      "summary": "Invoke `test-design-reviewer` for the Farley-score quality view, and `mutation-testing` on the **critical-logic** modules only (not the whole repo — that's the ROI framing).",
+      "anchor": "6-coverage-mutation-health-roi"
+    },
+    "7. Flaky-test + automation maturity": {
+      "summary": "Flag flakiness signals (`test-smells.md` project/behavior smells: order-dependence, unstubbed clock/RNG, real I/O at unit level) and a management recommendation (quarantine + fix, don't `retry`).",
+      "anchor": "7-flaky-test-automation-maturity"
+    },
+    "8. Ordered improvement plan": {
+      "summary": "Produce a risk-ordered, incremental plan — each item a concrete next move (which layer to add, which shape to correct, which quadrant to fill, which abstraction to extract), weighted by the pain point from Step 1.",
+      "anchor": "8-ordered-improvement-plan"
+    },
+    "9. Report": {
+      "summary": "Write `reports/test-health-<date>.md`.",
+      "anchor": "9-report"
+    },
+    "Output": {
+      "summary": "**Front door** for periodic test-strategy review; the unified entry point over `cd-test-architecture` + `test-design-reviewer` + `mutation-testing` without collapsing them.",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "**Front door** for periodic test-strategy review; the unified entry point over `cd-test-architecture` + `test-design-reviewer` + `mutation-testing` without collapsing them.",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/threat-modeling/SKILL.md": {
+    "Overview": {
+      "summary": "Structured security analysis for identifying threats, attack surfaces, and mitigations during design or review phases.",
+      "anchor": "overview"
+    },
+    "Constraints": {
+      "summary": "Focus on trust boundaries, not implementation details",
+      "anchor": "constraints"
+    },
+    "Core Concepts": {
+      "summary": "| Category | Definition | Example Threats |",
+      "anchor": "core-concepts"
+    },
+    "STRIDE Classification": {
+      "summary": "| Category | Definition | Example Threats |",
+      "anchor": "stride-classification"
+    },
+    "Trust Boundaries": {
+      "summary": "Points where data crosses privilege levels.",
+      "anchor": "trust-boundaries"
+    },
+    "Attack Surface": {
+      "summary": "Entry points exposed to untrusted input: API endpoints, file uploads, message queues, configuration inputs, user-supplied queries.",
+      "anchor": "attack-surface"
+    },
+    "Patterns": {
+      "summary": "1.",
+      "anchor": "patterns"
+    },
+    "Threat Identification Procedure": {
+      "summary": "1.",
+      "anchor": "threat-identification-procedure"
+    },
+    "Mitigation Mapping": {
+      "summary": "| Threat Category | Standard Mitigations | Verification Method |",
+      "anchor": "mitigation-mapping"
+    },
+    "Threat Model Review Triggers": {
+      "summary": "Revisit the threat model when any of the following occur:",
+      "anchor": "threat-model-review-triggers"
+    },
+    "When to Apply": {
+      "summary": "| Scenario | Apply?",
+      "anchor": "when-to-apply"
+    },
+    "Guidelines": {
+      "summary": "1.",
+      "anchor": "guidelines"
+    },
+    "Output": {
+      "summary": "STRIDE threat table with severity ratings, mitigation mapping, and verification methods.",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "**Agent-Assisted Specification** — invoke during the Architecture Specification stage to identify security constraints before implementation",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/triage/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Process": {
+      "summary": "Get the bug description from the arguments or conversation.",
+      "anchor": "process"
+    },
+    "1. Capture the Problem": {
+      "summary": "Get the bug description from the arguments or conversation.",
+      "anchor": "1-capture-the-problem"
+    },
+    "2. Investigate": {
+      "summary": "Apply the systematic debugging protocol from `skills/systematic-debugging/SKILL.md`:",
+      "anchor": "2-investigate"
+    },
+    "3. Design TDD Fix Plan": {
+      "summary": "Create an ordered list of RED-GREEN cycles, each a vertical slice:",
+      "anchor": "3-design-tdd-fix-plan"
+    },
+    "4. Write the Triage Record": {
+      "summary": "**Resolve the slug** from the bug title/description with this 8-step algorithm:",
+      "anchor": "4-write-the-triage-record"
+    },
+    "5. Present Results": {
+      "summary": "Print exactly two lines:",
+      "anchor": "5-present-results"
+    }
+  },
+  "plugins/dev-team/skills/ubiquitous-language/SKILL.md": {
+    "Announce on start": {
+      "summary": "\"Running ubiquitous-language.",
+      "anchor": "announce-on-start"
+    },
+    "Phase 1: Gather signals (grep-based, no build required)": {
+      "summary": "Run the colocated gather script.",
+      "anchor": "phase-1-gather-signals-grep-based-no-build-required"
+    },
+    "Phase 2: Load existing glossary (if present)": {
+      "summary": "Check for `.plans/domain/_index.md`.",
+      "anchor": "phase-2-load-existing-glossary-if-present"
+    },
+    "Phase 3: Apply the four-gate filter": {
+      "summary": "For each candidate term from Phase 1, apply all four gates.",
+      "anchor": "phase-3-apply-the-four-gate-filter"
+    },
+    "Phase 4: Write concept files": {
+      "summary": "For each approved term, write (or update) `.plans/domain/<Concept>.md` using this format:",
+      "anchor": "phase-4-write-concept-files"
+    },
+    "Phase 5: Regenerate index": {
+      "summary": "After writing all concept files, regenerate `.plans/domain/_index.md`:",
+      "anchor": "phase-5-regenerate-index"
+    },
+    "Phase 6: Optional interview (interactive sessions only)": {
+      "summary": "If running interactively (not in a non-interactive CI context), ask: \"Would you like to interview to refine definitions and capture behavior (state transitions, invariants, synonyms to avoid)?",
+      "anchor": "phase-6-optional-interview-interactive-sessions-only"
+    },
+    "Output": {
+      "summary": "Write a run summary to `.plans/domain-language-plan.md`:",
+      "anchor": "output"
+    },
+    "Integration": {
+      "summary": "**[Domain Analysis](../domain-analysis/SKILL.md)** — run domain-analysis after this skill to get architectural coupling findings annotated with canonical terms",
+      "anchor": "integration"
+    }
+  },
+  "plugins/dev-team/skills/unfreeze/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Steps": {
+      "summary": "Delete `hooks/freeze-state.json` if it exists:",
+      "anchor": "steps"
+    },
+    "1. Remove freeze state": {
+      "summary": "Delete `hooks/freeze-state.json` if it exists:",
+      "anchor": "1-remove-freeze-state"
+    },
+    "2. Confirm": {
+      "summary": "Display:",
+      "anchor": "2-confirm"
+    }
+  },
+  "plugins/dev-team/skills/upgrade/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Steps": {
+      "summary": "The plugins in the `bfinster` marketplace were renamed:",
+      "anchor": "steps"
+    },
+    "0. Detect and migrate legacy plugin ids": {
+      "summary": "The plugins in the `bfinster` marketplace were renamed:",
+      "anchor": "0-detect-and-migrate-legacy-plugin-ids"
+    },
+    "1. Read current version": {
+      "summary": "Read the installed plugin's `plugin.json` to get the current version:",
+      "anchor": "1-read-current-version"
+    },
+    "2. Check auto-update status and ask the user": {
+      "summary": "First, check the current auto-update status by running the script below and reporting it to the user.",
+      "anchor": "2-check-auto-update-status-and-ask-the-user"
+    },
+    "3. Run the update": {
+      "summary": "First, determine the install scope from `claude plugin list` output (the `Scope:` line for `dev-team`).",
+      "anchor": "3-run-the-update"
+    },
+    "4. Confirm the update": {
+      "summary": "Read the new `plugin.json` to verify the version changed:",
+      "anchor": "4-confirm-the-update"
+    },
+    "Notes": {
+      "summary": "The `claude plugin update` command handles fetching, caching, and version management",
+      "anchor": "notes"
+    }
+  },
+  "plugins/dev-team/skills/version/SKILL.md": {
+    "Worker constraints": {
+      "summary": "1.",
+      "anchor": "worker-constraints"
+    },
+    "Steps": {
+      "summary": "Find the installed plugin version by checking these locations in order:",
+      "anchor": "steps"
+    }
+  }
+}
