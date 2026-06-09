@@ -83,14 +83,18 @@ extensions:
 | Brique | Livrée par | Comment |
 |---|---|---|
 | Agents, Skills, Knowledge, Commands, MCP | **marketplace** | `omp plugin install` — mis en cache, aucune copie, dispo dans tous les projets |
-| Extensions (8 gardes + routage + telemetry), Rules | **`extensions:` (par projet)** | pointe `extensions:` sur le `.omp/` d'un clone |
+| Extensions (8 gardes + routage + telemetry) | **`extensions:` (par projet)** | pointe `extensions:` sur le `.omp/` d'un clone (chargées seulement là) |
+| Rules (3) | **ne transitent pas** | ni plugin ni `extensions:` (testé) — substance déjà couverte, voir note |
 | `modelRoles`, `APPEND_SYSTEM.md` | **config / fichier** | ne transitent pas par un plugin → à poser dans ta config |
 
-> Pourquoi deux endroits : dans OMP un plugin marketplace découvre
-> agents/skills/commands/MCP mais **pas** les modules d'extension TS ni les rules.
-> Ceux-ci se chargent via `extensions:` (ou `omp plugin link <clone>/.omp`), ce qui
-> les garde **opt-in par projet** — c'est voulu : sinon `review-gate` bloquerait
-> `git commit` dans **tous** tes autres repos.
+> Pourquoi : un plugin marketplace découvre agents/skills/commands/MCP mais **pas**
+> les modules d'extension TS ; `extensions:` (ou `omp plugin link <clone>/.omp`) charge
+> les extensions, ce qui les garde **opt-in par projet** — c'est voulu : sinon
+> `review-gate` bloquerait `git commit` dans **tous** tes autres repos. Les 3 **rules**
+> ne transitent par aucun de ces chemins (vérifié) : mais `output-discipline` est déjà
+> dans `APPEND_SYSTEM.md`, `tdd-first` est couvert par l'extension `tdd-guard`, et
+> `agent-authoring` ne sert qu'en mode workspace. Pour les rules littérales, dépose
+> `.omp/rules/` dans le projet (ou `~/.omp/agent/rules/` en global).
 
 ### Option B — workspace direct
 
@@ -220,9 +224,11 @@ portée est aussi disponible en `/skill:<nom>`.
 Portage du **cœur dev-team** : 32 agents, 78 skills, corpus de connaissance,
 orchestration 3 phases, routage local, 8 extensions de blocage, commandes du
 pipeline, MCP. Empaqueté pour OMP en **plugin marketplace** (`.claude-plugin/`,
-plugin `dev-team@omp-dev-team`) avec extensions/rules en `extensions:` opt-in. Le
-plugin compagnon **security-assessment** (red-team ML, SARIF, mapping conformité)
-n'est pas inclus dans cette vague.
+plugin `dev-team@omp-dev-team`) ; les extensions se chargent en `extensions:`
+opt-in et les 3 rules restent natives au workspace (leur substance est couverte
+par `APPEND_SYSTEM.md` + l'extension `tdd-guard`). Le plugin compagnon
+**security-assessment** (red-team ML, SARIF, mapping conformité) n'est pas inclus
+dans cette vague.
 
 Crédits : harness d'origine [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team)
 (MIT, Bryan Finster) ; cible [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).
