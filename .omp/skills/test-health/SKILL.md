@@ -12,7 +12,7 @@ argument-hint: "[--path <dir>]"
 
 An **advisory, project-wide** skill: it produces the *strategic-health* view of a test suite that a team needs periodically — the suite's **shape** vs. its architecture, **Agile Testing Quadrant** coverage, **coverage + mutation** health rolled up to ROI, flaky-test management, and **automation maturity** — then an ordered improvement plan. It complements, and does not duplicate, `cd-test-architecture`: that skill owns the CD-determinism + pipeline-placement assessment, which this skill **delegates to** rather than re-deriving.
 
-Grounded in: `.omp/knowledge/testing-quadrants.md`, `.omp/knowledge/test-pyramid.md` (shapes + shape↔architecture fit), `.omp/knowledge/test-automation-maturity.md`, `.omp/knowledge/test-smells.md` (project smells / flakiness). It calls the `cd-test-architecture`, `test-design-reviewer`, and `mutation-testing` skills.
+Grounded in: `skill://dev-team-knowledge/testing-quadrants.md`, `skill://dev-team-knowledge/test-pyramid.md` (shapes + shape↔architecture fit), `skill://dev-team-knowledge/test-automation-maturity.md`, `skill://dev-team-knowledge/test-smells.md` (project smells / flakiness). It calls the `cd-test-architecture`, `test-design-reviewer`, and `mutation-testing` skills.
 
 ## Constraints
 

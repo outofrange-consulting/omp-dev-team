@@ -15,8 +15,8 @@ Where `test-design-advisor` works at the unit/module level and `test-smell-revie
 
 Grounded in two knowledge references — read both before assessing:
 
-- `.omp/knowledge/cd-test-architecture.md` — the six test types, the determinism→pre-merge-gate rule, the adapter rule, double validation, pipeline stages, and MinimumCD-vs-Fowler terminology.
-- `.omp/knowledge/component-test-patterns.md` — per-component patterns (UI / Services / Batch) with isolation strategy and pipeline placement.
+- `skill://dev-team-knowledge/cd-test-architecture.md` — the six test types, the determinism→pre-merge-gate rule, the adapter rule, double validation, pipeline stages, and MinimumCD-vs-Fowler terminology.
+- `skill://dev-team-knowledge/component-test-patterns.md` — per-component patterns (UI / Services / Batch) with isolation strategy and pipeline placement.
 
 ## Constraints
 

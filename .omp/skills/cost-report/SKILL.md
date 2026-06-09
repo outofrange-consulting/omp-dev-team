@@ -18,7 +18,7 @@ Role: worker. Reports runtime cost/token spend captured by the cost meter.
 Token usage is not available to hooks, so the `Stop`/`SubagentStop` hook
 (`hooks/cost-meter.sh`) records a per-session summary to
 `metrics/cost-metering.jsonl` by parsing the session transcript, converting
-tokens to dollars via `.omp/knowledge/model-pricing.json`. This skill reports that
+tokens to dollars via `skill://dev-team-knowledge/model-pricing.json`. This skill reports that
 data.
 
 ## Steps
@@ -96,5 +96,5 @@ construction.
 ## Notes
 
 - Disable the meter with `DEV_TEAM_COST_METER=off`.
-- Pricing lives in `.omp/knowledge/model-pricing.json` — update it when rates change
+- Pricing lives in `skill://dev-team-knowledge/model-pricing.json` — update it when rates change
   (it is the named instrument for every cost number this skill prints).

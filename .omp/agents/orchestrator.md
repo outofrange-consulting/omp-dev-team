@@ -40,7 +40,7 @@ Each agent's `model:` frontmatter encodes the tier alias (`haiku`, `sonnet`, `op
 
 When the orchestrator (or any caller) spawns a subagent via the `task` tool with `model: <tier>`, the extension:
 
-1. Reads `.omp/knowledge/model-routing.json` — the single source of truth for tier → snapshot mapping.
+1. Reads `skill://dev-team-knowledge/model-routing.json` — the single source of truth for tier → snapshot mapping.
 2. Reads `.claude/model-overrides.json` if present (per-user, gitignored, populated by the `/init-dev-team` probe or by hand for restricted endpoints).
 3. Walks the alias chain up to 3 hops along the `haiku → sonnet → opus` cascade. Each tier alias resolves to either another tier (bumped) or the literal `"unavailable"` sentinel (refusal).
 4. On any bump, rewrites `tool_input.model` via `hookSpecificOutput.updatedInput` and appends one JSONL event to `.claude/metrics/model-routing.log`.
@@ -75,7 +75,7 @@ All review commands are executed under orchestrator direction. When a user trigg
 
 ## Knowledge index — consumer usage pattern
 
-Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `.omp/knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `.omp/knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `.omp/knowledge/X.md` or `skill://Y` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. `/model-routing-check` is the analogous diagnostic command; for routing, `/model-routing-check`; for knowledge freshness, `bash plugins/dev-team/hooks/lib/build-knowledge-index.sh --check`.
+Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `skill://dev-team-knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `skill://dev-team-knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `skill://dev-team-knowledge/X.md` or `skill://Y` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. `/model-routing-check` is the analogous diagnostic command; for routing, `/model-routing-check`; for knowledge freshness, `bash plugins/dev-team/hooks/lib/build-knowledge-index.sh --check`.
 
 ## Skills
 

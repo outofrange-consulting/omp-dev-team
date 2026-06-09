@@ -91,7 +91,7 @@ Follow the agent definition to review each target file. Produce a JSON result:
 
 ### 3b. Apply ACCEPTED-RISKS.md suppression
 
-Before reporting, consult `ACCEPTED-RISKS.md` at the repo root if present. For each issue, check rules in declaration order per `.omp/knowledge/accepted-risks-schema.md`. The first matching rule suppresses the issue from the displayed result and emits an audit entry of the form `SUPPRESSED: <file>:<line> [<rule_id>] by ACCEPTED-RISKS rule <rule.id>`. Expired rules become inert (stop suppressing). Schema-invalid rules fail the run with a specific parse error. Absent file: skip silently.
+Before reporting, consult `ACCEPTED-RISKS.md` at the repo root if present. For each issue, check rules in declaration order per `skill://dev-team-knowledge/accepted-risks-schema.md`. The first matching rule suppresses the issue from the displayed result and emits an audit entry of the form `SUPPRESSED: <file>:<line> [<rule_id>] by ACCEPTED-RISKS rule <rule.id>`. Expired rules become inert (stop suppressing). Schema-invalid rules fail the run with a specific parse error. Absent file: skip silently.
 
 ### 4. Report
 

@@ -111,7 +111,7 @@ Remove each matching file with `git rm` (or `rm` if not in git).
 - Remove the agent's row from the appropriate table (Team Agents or
   Review Agents)
 - No routing-table edit required — tier-to-snapshot resolution flows
-  through `.omp/knowledge/model-routing.json` and the PreToolUse hook;
+  through `skill://dev-team-knowledge/model-routing.json` and the PreToolUse hook;
   removing the agent file is sufficient
 - Remove the agent from the Skills Registry if listed
 

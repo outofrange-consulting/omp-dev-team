@@ -24,7 +24,7 @@ Context needs: full-file
 
 ## Knowledge Files
 
-Read `.omp/knowledge/object-calisthenics.md` before analysis. Whole-file load: the agent needs all nine rules as design-pressure thresholds (especially rule 1 one-indentation-level, rule 2 no-else, rule 7 small-entities) plus the rationale prose tying them to the numeric limits below.
+Read `skill://dev-team-knowledge/object-calisthenics.md` before analysis. Whole-file load: the agent needs all nine rules as design-pressure thresholds (especially rule 1 one-indentation-level, rule 2 no-else, rule 7 small-entities) plus the rationale prose tying them to the numeric limits below.
 
 ## Skip
 
@@ -69,7 +69,7 @@ Cognitive load:
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `.omp/knowledge/adversarial-review-protocol.md#structure-review`. Use the structure-review challenge questions (the nearest applicable section — no complexity-specific section exists). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#structure-review`. Use the structure-review challenge questions (the nearest applicable section — no complexity-specific section exists). Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

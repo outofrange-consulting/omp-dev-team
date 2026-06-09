@@ -175,6 +175,6 @@ This context goes to **all** review agents, not just security-review.
 - `references/sarif-parser.md` — normalized mapping from SARIF `result` to unified finding envelope v1.0
 - `evals/static-analysis-tools/tier1-mocks/` — tier-1 mocked SARIF fixtures
 - `evals/static-analysis-tools/tier2-integration/` — tier-2 real-binary integration tests (nightly CI)
-- `.omp/knowledge/security-primitives-contract.md` — unified finding envelope v1.0
-- `.omp/knowledge/accepted-risks-schema.md` — per-project suppression policy
+- `skill://dev-team-knowledge/security-primitives-contract.md` — unified finding envelope v1.0
+- `skill://dev-team-knowledge/accepted-risks-schema.md` — per-project suppression policy
 - `maintenance.md` — adapter and ruleset lifecycle policies

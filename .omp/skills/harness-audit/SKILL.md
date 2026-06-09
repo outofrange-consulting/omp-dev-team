@@ -51,7 +51,7 @@ List what data is missing and exit.
 
 ### 2. Analyze review agent effectiveness
 
-For each review agent in the registry (`.omp/knowledge/agent-registry.md`):
+For each review agent in the registry (`skill://dev-team-knowledge/agent-registry.md`):
 
 1. **Finding rate**: How often does this agent produce findings (fail or warn) vs. pass?
 2. **Zero-fail agents**: Flag agents that have never returned `fail` across all logged reviews. These are removal candidates — they may not be catching real issues.
@@ -60,7 +60,7 @@ For each review agent in the registry (`.omp/knowledge/agent-registry.md`):
 
 ### 3. Analyze model routing
 
-For each agent listed in `.omp/knowledge/agent-registry.md` (with model tier from its `model:` frontmatter, resolved via the PreToolUse hook per `agents/orchestrator.md` → Resolution Procedure):
+For each agent listed in `skill://dev-team-knowledge/agent-registry.md` (with model tier from its `model:` frontmatter, resolved via the PreToolUse hook per `agents/orchestrator.md` → Resolution Procedure):
 
 1. **Over-tiered agents**: Agents assigned to opus that consistently produce simple pattern-match findings may work equally well on sonnet or haiku.
 2. **Under-tiered agents**: Agents on haiku that frequently miss issues caught by human review may need a higher tier.

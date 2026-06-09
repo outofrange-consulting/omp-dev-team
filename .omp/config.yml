@@ -23,7 +23,11 @@ modelRoles:
   # 14B dense, still fast. For max throughput swap to ollama/qwen2.5-coder:14b
   # (fits fully in 16GB VRAM); for max speed on the 30B use the llama.cpp
   # provider with --n-cpu-moe (see models.yml.example).
-  smol: ollama/qwen3-coder:30b
+  # CURRENT: cloud Haiku — no local backend installed. OMP resolves pi/smol
+  # agents to this. To restore the LOCAL small tier: set this back to
+  # ollama/qwen3-coder:30b AND flip local.enabled:true in
+  # .omp/skills/dev-team-knowledge/model-routing.json (re-arms the model-routing gate).
+  smol: claude-haiku-4-5
   # Deep-reasoning tier alias (used by a few commands/agents via pi/slow).
   slow: claude-opus-4-8
   # `default` is intentionally left to the user's interactive choice (--model).
@@ -68,4 +72,4 @@ task:
   # Allow deep enough nesting for orchestrator -> implementer -> explore.
   maxRecursionDepth: 4
   # Let custom task calls pass schemas through to structured-output agents.
-  simple: false
+  simple: default

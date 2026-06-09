@@ -45,7 +45,7 @@ Arguments: $ARGUMENTS
 | `--path <dir>` | Review only files in this directory |
 | `--all` | Force full-repository review even when uncommitted changes exist |
 | `--json` | Output aggregated JSON instead of prose (for CI integration) |
-| `--init-risks` | Scaffold `ACCEPTED-RISKS.md` from `templates/ACCEPTED-RISKS.md.tmpl` if absent. Exits non-zero without overwriting if present. Schema: `.omp/knowledge/accepted-risks-schema.md`. |
+| `--init-risks` | Scaffold `ACCEPTED-RISKS.md` from `templates/ACCEPTED-RISKS.md.tmpl` if absent. Exits non-zero without overwriting if present. Schema: `skill://dev-team-knowledge/accepted-risks-schema.md`. |
 | `--force` | Skip pre-flight gates **and the documentation-only short-circuit** (forces a full review of doc-only changes). **Requires `--reason "<text>"`** — logged to `metrics/override-audit.jsonl`. |
 | `--reason "<text>"` | Override justification (required with `--force`) |
 | `--static-analysis` / `--no-static-analysis` | Force on/off the static analysis pre-pass (Semgrep, ESLint, TypeScript, pylint). Auto-enabled when tools are detected. |
@@ -94,7 +94,7 @@ Priority order:
 - any path under a `docs/` directory
 - a root doc: `README*`, `CHANGELOG*`, `CONTRIBUTING*`, `LICENSE*`, `NOTICE*`, `AUTHORS*`, `CODE_OF_CONDUCT*`
 
-…**except functional Claude-config markdown, which is never documentation** (it drives agent/skill/command behavior and must be reviewed): any path containing a `.claude/` segment, or under `agents/`, `skills/`, `prompts/`, `.omp/knowledge/`, or `templates/agents/`. Treat `CLAUDE.md` and `AGENTS.md` as functional config too, not documentation.
+…**except functional Claude-config markdown, which is never documentation** (it drives agent/skill/command behavior and must be reviewed): any path containing a `.claude/` segment, or under `agents/`, `skills/`, `prompts/`, `skill://dev-team-knowledge/`, or `templates/agents/`. Treat `CLAUDE.md` and `AGENTS.md` as functional config too, not documentation.
 
 If **every** target file is documentation, short-circuit:
 
@@ -118,7 +118,7 @@ If `REVIEW-CONTEXT.md` exists at the repo root, read it and pass its contents to
 | Documentation MCP | wiki/docs search available | Architecture docs |
 | Semgrep | `which semgrep` | SAST context for security-review |
 
-Pass availability info to each agent so they can use enhanced tools or fall back to Glob/Grep/Read. Include in the final report per `.omp/knowledge/review-template.md`.
+Pass availability info to each agent so they can use enhanced tools or fall back to Glob/Grep/Read. Include in the final report per `skill://dev-team-knowledge/review-template.md`.
 
 ### 2. Pre-flight gates
 
@@ -178,7 +178,7 @@ Wait for all agents to complete before aggregating.
 
 #### 5a. Apply ACCEPTED-RISKS.md
 
-If `ACCEPTED-RISKS.md` exists at the repo root, parse its `rules:` YAML frontmatter per `.omp/knowledge/accepted-risks-schema.md`. For each finding, check rules in declaration order; the first match suppresses and emits one audit entry:
+If `ACCEPTED-RISKS.md` exists at the repo root, parse its `rules:` YAML frontmatter per `skill://dev-team-knowledge/accepted-risks-schema.md`. For each finding, check rules in declaration order; the first match suppresses and emits one audit entry:
 
 ```
 SUPPRESSED: <file>:<line> [<rule_id>] by ACCEPTED-RISKS rule <rule.id>
@@ -192,7 +192,7 @@ Suppressed findings are removed from scoring, listed under "Suppressed by ACCEPT
 
 #### 5b. Health scoring
 
-Read `.omp/knowledge/review-rubric.md` for the formula. Compute the overall health score; security failures auto-escalate to 🔴.
+Read `skill://dev-team-knowledge/review-rubric.md` for the formula. Compute the overall health score; security failures auto-escalate to 🔴.
 
 Classify each issue by actionability:
 
@@ -248,7 +248,7 @@ Track each iteration for the report — template in [`output-format.md`](code-re
 
 ### 7. Generate report
 
-Read `.omp/knowledge/review-template.md` for the structure.
+Read `skill://dev-team-knowledge/review-template.md` for the structure.
 
 If `--json`, emit the aggregated JSON object per the schema in [`output-format.md`](code-review/output-format.md#aggregated-json-result---json-flag) and stop.
 

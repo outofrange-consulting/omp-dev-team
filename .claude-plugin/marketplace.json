@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "omp-dev-team",
+  "owner": {
+    "name": "outofrange-consulting"
+  },
+  "metadata": {
+    "description": "Persona-driven AI development team for Oh-My-Pi (port of agentic-dev-team) with local small-tier model routing.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "dev-team",
+      "description": "32 persona/review agents, 78 skills, the /specs->/plan->/build->/pr pipeline, 8 blocking-guard extensions, and a shared knowledge corpus. Install once, enable per project.",
+      "source": "./.omp",
+      "category": "development",
+      "version": "0.1.0",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+      "repository": "https://github.com/outofrange-consulting/omp-dev-team",
+      "license": "MIT",
+      "keywords": ["agents", "orchestration", "code-review", "tdd", "local-models"]
+    }
+  ]
+}

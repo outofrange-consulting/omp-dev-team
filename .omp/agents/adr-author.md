@@ -17,7 +17,7 @@ thinking-level: medium
 
 ## Decision Framework
 
-Whole-file load: `.omp/knowledge/adr-decision-criteria.md` for the full criteria. Summary:
+Whole-file load: `skill://dev-team-knowledge/adr-decision-criteria.md` for the full criteria. Summary:
 
 An ADR is warranted when **both** conditions hold:
 

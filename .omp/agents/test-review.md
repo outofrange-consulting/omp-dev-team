@@ -24,11 +24,11 @@ Context needs: full-file
 
 ## Knowledge Files
 
-Read `.omp/knowledge/testability-patterns.md` before analysis. Whole-file load: the agent uses the decision flow, the anti-patterns table, and all four patterns as one connected reference when flagging untestable code (missing interfaces, static factories, concrete class coupling). Never recommend a test workaround (reflection, InternalsVisibleTo, mocking concrete classes).
+Read `skill://dev-team-knowledge/testability-patterns.md` before analysis. Whole-file load: the agent uses the decision flow, the anti-patterns table, and all four patterns as one connected reference when flagging untestable code (missing interfaces, static factories, concrete class coupling). Never recommend a test workaround (reflection, InternalsVisibleTo, mocking concrete classes).
 
-For maintainability findings (duplicated selectors/literals, UI-based setup), consult `.omp/knowledge/test-automation-maturity.md`. Whole-file load: apply its single-point-of-change check and graduated-disclosure thresholds (don't recommend abstraction below the count threshold).
+For maintainability findings (duplicated selectors/literals, UI-based setup), consult `skill://dev-team-knowledge/test-automation-maturity.md`. Whole-file load: apply its single-point-of-change check and graduated-disclosure thresholds (don't recommend abstraction below the count threshold).
 
-For assertion-quality findings, consult `.omp/knowledge/result-verification.md`. Whole-file load: name the specific verification pattern (Expected Object, Custom Assertion, Guard Assertion, Delta Assertion) that fixes a weak/cluttered/misleading assertion, and enforce one logical condition per test.
+For assertion-quality findings, consult `skill://dev-team-knowledge/result-verification.md`. Whole-file load: name the specific verification pattern (Expected Object, Custom Assertion, Guard Assertion, Delta Assertion) that fixes a weak/cluttered/misleading assertion, and enforce one logical condition per test.
 
 ## Skills
 
@@ -93,17 +93,17 @@ Test code quality:
 - Copy-pasted assertion blocks that should be extracted into a helper
 - Magic literal values in assertions with no explanation of their significance
 - Dead test utilities or helpers that are defined but never called
-- Low automation maturity (`.omp/knowledge/test-automation-maturity.md`): a volatile detail (selector, endpoint, field name) duplicated raw across many test files (single-point-of-change failure); UI driven to establish preconditions instead of back-door setup — flag only when suite size makes the cost real (graduated thresholds)
+- Low automation maturity (`skill://dev-team-knowledge/test-automation-maturity.md`): a volatile detail (selector, endpoint, field name) duplicated raw across many test files (single-point-of-change failure); UI driven to establish preconditions instead of back-door setup — flag only when suite size makes the cost real (graduated thresholds)
 
 Testability blockers:
 
-- Code under test that cannot be constructed with known values (static factories, singletons, no injectable constructor) — flag as error; per `.omp/knowledge/testability-patterns.md#pattern-1-constructor-injection-replace-static-factories-singletons`, the production code must change, not the test approach
+- Code under test that cannot be constructed with known values (static factories, singletons, no injectable constructor) — flag as error; per `skill://dev-team-knowledge/testability-patterns.md#pattern-1-constructor-injection-replace-static-factories-singletons`, the production code must change, not the test approach
 - Mocking of concrete classes (not interfaces) — flag as warning; extract an interface for the dependency
 - Tests using reflection into private members as primary strategy — flag as warning; the public API surface needs expanding
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `.omp/knowledge/adversarial-review-protocol.md#test-review` (test-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#test-review` (test-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

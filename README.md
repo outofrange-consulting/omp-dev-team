@@ -15,7 +15,8 @@ qui tourne bien sur une **RTX 5070 Ti 16 Go**.
 
 ## Ce que c'est
 
-Un workspace OMP complet sous `.omp/` :
+Un workspace OMP complet sous `.omp/` (installable aussi comme **plugin
+marketplace**, voir *Installation*) :
 
 | Brique | Emplacement | Rôle |
 |---|---|---|
@@ -24,8 +25,8 @@ Un workspace OMP complet sous `.omp/` :
 | **Commands** | `.omp/commands/*.md` | points d'entrée du pipeline (`/specs` `/plan` `/build` `/pr` …) |
 | **Extensions** (8) | `.omp/extensions/*.ts` | les « scripts de blocage » (gardes + routage), en TypeScript natif OMP |
 | **Rules** | `.omp/rules/*.md` | garde-fous toujours/scopés (discipline de sortie, TDD, authoring) |
-| **Knowledge** | `.omp/knowledge/` | registres, rubriques, motifs de détection, `model-routing.json` |
-| **MCP** | `.omp/mcp.json` | serveurs MCP (CodeGraph, GitHub) |
+| **Knowledge** | `.omp/skills/dev-team-knowledge/` | corpus de référence (registres, rubriques, OWASP, taxonomies de test), lu via `skill://dev-team-knowledge/<fichier>` — portable (résout depuis n'importe quel projet) |
+| **MCP** | `.omp/.mcp.json` (+ `.omp/mcp.json` pour le mode workspace) | serveurs MCP (CodeGraph, GitHub) |
 | **Manuel d'équipe** | `.omp/APPEND_SYSTEM.md` | contexte toujours chargé (orchestration, routage, flux) |
 
 ### Correspondance Claude Code → OMP
@@ -44,18 +45,64 @@ Un workspace OMP complet sous `.omp/` :
 
 ## Installation
 
-### Option A — workspace direct (le plus simple)
+### Option A — Plugin OMP (recommandé : installé une fois, zéro copie)
 
-Clone le repo et lance OMP dedans : `.omp/` est découvert automatiquement.
+Le repo embarque un catalogue marketplace (`.claude-plugin/marketplace.json`).
+OMP met le contenu en cache **une seule fois** ; tu l'actives **par projet**
+(opt-in) via un petit `config.yml`, sans copier `.omp/` nulle part.
+
+**1. Installer l'équipe** (agents, skills, corpus de connaissance, commandes, MCP) :
+
+```sh
+# depuis le clone local (le marketplace.json n'est pas encore poussé sur GitHub) :
+omp plugin marketplace add ~/sources/omp-dev-team
+# après push : omp plugin marketplace add outofrange-consulting/omp-dev-team
+omp plugin install dev-team@omp-dev-team --scope user   # ou --scope project
+```
+
+**2. Activer l'équipe dans un projet** — crée `<projet>/.omp/config.yml` :
+
+```yaml
+skills:
+  enabled: true            # le marketplace fournit les skills + le corpus knowledge
+task:
+  disabledAgents: []       # ré-active les 32 agents si tu les désactives globalement
+  maxRecursionDepth: 4     # orchestrator -> implémenteur -> explore
+modelRoles:
+  smol: claude-haiku-4-5   # ou ollama/qwen3-coder:30b (voir « Routage »)
+  task: claude-sonnet-4-6
+extensions:
+  - ~/sources/omp-dev-team/.omp   # gardes (path-guard, review-gate…) + rules
+```
+
+`APPEND_SYSTEM.md` (le manuel d'équipe) se pose une fois en
+`~/.omp/agent/APPEND_SYSTEM.md` (global) ou `<projet>/.omp/APPEND_SYSTEM.md`.
+
+**Ce que le format plugin transporte — ou pas :**
+
+| Brique | Livrée par | Comment |
+|---|---|---|
+| Agents, Skills, Knowledge, Commands, MCP | **marketplace** | `omp plugin install` — mis en cache, aucune copie, dispo dans tous les projets |
+| Extensions (8 gardes + routage + telemetry), Rules | **`extensions:` (par projet)** | pointe `extensions:` sur le `.omp/` d'un clone |
+| `modelRoles`, `APPEND_SYSTEM.md` | **config / fichier** | ne transitent pas par un plugin → à poser dans ta config |
+
+> Pourquoi deux endroits : dans OMP un plugin marketplace découvre
+> agents/skills/commands/MCP mais **pas** les modules d'extension TS ni les rules.
+> Ceux-ci se chargent via `extensions:` (ou `omp plugin link <clone>/.omp`), ce qui
+> les garde **opt-in par projet** — c'est voulu : sinon `review-gate` bloquerait
+> `git commit` dans **tous** tes autres repos.
+
+### Option B — workspace direct
+
+Clone le repo et lance OMP dedans : `.omp/` est découvert automatiquement (tout
+est actif, sans config opt-in).
 
 ```sh
 git clone <ce-repo> omp-dev-team && cd omp-dev-team
 omp
 ```
 
-### Option B — déposer dans un projet existant
-
-Copie le dossier `.omp/` à la racine de ton projet :
+### Option C — copier `.omp/` dans un projet
 
 ```sh
 cp -r omp-dev-team/.omp /chemin/vers/ton-projet/
@@ -92,7 +139,7 @@ Variantes :
 ## Routage des modèles (le cœur)
 
 Chaque agent déclare son palier dans son frontmatter `model:`. La source de
-vérité est `.omp/knowledge/model-routing.json` ; le câblage est natif via
+vérité est `skill://dev-team-knowledge/model-routing.json` ; le câblage est natif via
 `.omp/config.yml` → `modelRoles`.
 
 | Palier | Frontmatter | Résout vers | Agents |
@@ -160,20 +207,22 @@ portée est aussi disponible en `/skill:<nom>`.
 
 ## Personnalisation
 
-- **Routage** : `.omp/config.yml` (`modelRoles`) + `.omp/knowledge/model-routing.json`.
+- **Routage** : `.omp/config.yml` (`modelRoles`) + `skill://dev-team-knowledge/model-routing.json`.
 - **Modèles locaux** : `models.yml.example` → `~/.omp/agent/models.yml`.
 - **Garde-fous** : éditer les listes de motifs en tête de chaque extension.
-- **MCP** : `.omp/mcp.json` (activer `codegraph`/`github`, mettre `enabled: true`).
+- **MCP** : `.omp/.mcp.json` (et `.omp/mcp.json` en workspace) — activer `codegraph`/`github`, `enabled: true`.
 - **Prompt système** : `.omp/APPEND_SYSTEM.md` (ajouté au prompt par défaut).
 
 ---
 
 ## État du portage
 
-Portage du **cœur dev-team** : 32 agents, 78 skills, orchestration 3 phases,
-routage local, 8 extensions de blocage, commandes du pipeline, base de
-connaissances, MCP. Le plugin compagnon **security-assessment** (red-team ML,
-SARIF, mapping conformité) n'est pas inclus dans cette vague.
+Portage du **cœur dev-team** : 32 agents, 78 skills, corpus de connaissance,
+orchestration 3 phases, routage local, 8 extensions de blocage, commandes du
+pipeline, MCP. Empaqueté pour OMP en **plugin marketplace** (`.claude-plugin/`,
+plugin `dev-team@omp-dev-team`) avec extensions/rules en `extensions:` opt-in. Le
+plugin compagnon **security-assessment** (red-team ML, SARIF, mapping conformité)
+n'est pas inclus dans cette vague.
 
 Crédits : harness d'origine [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team)
 (MIT, Bryan Finster) ; cible [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

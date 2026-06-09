@@ -24,7 +24,7 @@ Context needs: project-structure
 
 ## Knowledge Files
 
-Read `.omp/knowledge/architecture-assessment.md` before starting analysis. Whole-file load: the agent uses every section — exploration patterns, ADR compliance checks, layer boundary rules, dependency direction, pattern consistency, and the optional MCP guidance.
+Read `skill://dev-team-knowledge/architecture-assessment.md` before starting analysis. Whole-file load: the agent uses every section — exploration patterns, ADR compliance checks, layer boundary rules, dependency direction, pattern consistency, and the optional MCP guidance.
 
 ## MCP Tools (Optional)
 
@@ -40,7 +40,7 @@ Note tool availability in output for the orchestrator's report.
 
 ## Explore
 
-Follow the discovery sequence in `.omp/knowledge/architecture-assessment.md#discovery-sequence`
+Follow the discovery sequence in `skill://dev-team-knowledge/architecture-assessment.md#discovery-sequence`
 to map the architectural landscape: ADRs, architecture docs, layer
 definitions, and import patterns.
 
@@ -97,7 +97,7 @@ Grep for patterns that architecture documentation explicitly bans:
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `.omp/knowledge/adversarial-review-protocol.md#arch-review` (arch-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#arch-review` (arch-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

@@ -9,7 +9,7 @@
 //      call is BLOCKED with an actionable message instead of failing mid-run.
 //   2. A dispatch LOG (the "bump log" analog) at .omp/state/model-routing.log.
 //
-// See .omp/knowledge/model-routing.json for the source of truth and
+// See skills/dev-team-knowledge/model-routing.json for the source of truth and
 // /model-routing-check (skill) / the `routing` command for diagnostics.
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
@@ -33,8 +33,8 @@ export default function modelRouting(pi: ExtensionAPI) {
 	let probedBackend = "";
 	let probedUrl = "";
 
-	async function refreshProbe(cwd: string): Promise<void> {
-		const routing = loadRouting(cwd);
+	async function refreshProbe(): Promise<void> {
+		const routing = loadRouting();
 		if (!routing) {
 			localUp = null;
 			return;
@@ -45,9 +45,17 @@ export default function modelRouting(pi: ExtensionAPI) {
 	}
 
 	pi.on("session_start", async (_event, ctx) => {
-		await refreshProbe(ctx.cwd);
-		const routing = loadRouting(ctx.cwd);
+		const routing = loadRouting();
 		if (!routing) return;
+		if (routing.local.enabled === false) {
+			ctx.ui.notify(
+				`small tier routed to cloud (modelRoles.smol); local-backend gate ` +
+					`disabled (local.enabled=false in model-routing.json).`,
+				"info",
+			);
+			return;
+		}
+		await refreshProbe();
 		if (localUp === false) {
 			ctx.ui.notify(
 				`local model backend (${probedBackend}) unreachable at ${probedUrl} — ` +
@@ -70,8 +78,14 @@ export default function modelRouting(pi: ExtensionAPI) {
 		);
 		if (!agent) return;
 
-		const model = agentModel(ctx.cwd, agent);
-		const isLocalTier = model !== null && LOCAL_TIER_MODELS.has(model);
+		const model = agentModel(agent);
+		const routing = loadRouting();
+		// pi/smol resolves to a LOCAL model only when local.enabled !== false.
+		// When the small tier is routed to cloud (modelRoles.smol), treat these
+		// agents as cloud-tier so the availability gate never blocks them.
+		const localRequired = routing ? routing.local.enabled !== false : true;
+		const isLocalTier =
+			model !== null && LOCAL_TIER_MODELS.has(model) && localRequired;
 
 		appendJSONL(statePath(ctx.cwd, "model-routing.log"), {
 			ts: nowISO(),
@@ -84,9 +98,8 @@ export default function modelRouting(pi: ExtensionAPI) {
 		if (!isLocalTier) return;
 
 		// Small-tier agent -> needs the local backend. Probe lazily if unknown.
-		if (localUp === null) await refreshProbe(ctx.cwd);
+		if (localUp === null) await refreshProbe();
 		if (localUp === false) {
-			const routing = loadRouting(ctx.cwd);
 			const fb = routing?.local.fallback ?? "claude-haiku-4-5";
 			return {
 				block: true,
@@ -105,12 +118,20 @@ export default function modelRouting(pi: ExtensionAPI) {
 	pi.registerCommand("routing", {
 		description: "Show effective tier->model routing and local backend status",
 		handler: async (_args, ctx) => {
-			const routing = loadRouting(ctx.cwd);
+			const routing = loadRouting();
 			if (!routing) {
-				ctx.ui.notify("no .omp/knowledge/model-routing.json found", "error");
+				ctx.ui.notify("no model-routing.json found in skills/dev-team-knowledge", "error");
 				return;
 			}
-			await refreshProbe(ctx.cwd);
+			if (routing.local.enabled === false) {
+				ctx.ui.notify(
+					`small -> cloud (modelRoles.smol); local-backend gate disabled ` +
+						`(local.enabled=false).`,
+					"info",
+				);
+				return;
+			}
+			await refreshProbe();
 			const status = localUp === true ? "UP" : localUp === false ? "DOWN" : "n/a";
 			ctx.ui.notify(
 				`small=${routing.local.model} [${probedBackend}:${status}]  ` +

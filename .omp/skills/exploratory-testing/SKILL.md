@@ -11,7 +11,7 @@ user-invocable: true
 
 The QA Engineer in charter-driven **"Chaos Specialist"** mode. Given a charter and a running target (endpoint, CLI, feature), it probes with structured heuristics, captures telemetry on every probe, classifies defects, auto-triages critical findings, and writes an incremental report ending with runnable follow-up charters. It is bounded by a **probe budget** so a session always terminates.
 
-Frameworks (charter quality, variable identification, state model, implicit-expectation lenses) live in `.omp/knowledge/exploratory-testing-field-guide.md`; this file is the protocol.
+Frameworks (charter quality, variable identification, state model, implicit-expectation lenses) live in `skill://dev-team-knowledge/exploratory-testing-field-guide.md`; this file is the protocol.
 
 ## Constraints
 
@@ -105,4 +105,4 @@ The report must contain **≥1 Goldilocks and ≥1 Happy-Path Divergence** entry
 
 - Invoked by the `/explore` command; runs as the QA Engineer's Chaos Specialist mode.
 - Hands critical defects to `/triage` (which writes `.triage/<slug>.md`).
-- Frameworks: `.omp/knowledge/exploratory-testing-field-guide.md`. For *test design* (which layer, which double) use `test-design-advisor`; this skill probes running behavior, it does not design a suite.
+- Frameworks: `skill://dev-team-knowledge/exploratory-testing-field-guide.md`. For *test design* (which layer, which double) use `test-design-advisor`; this skill probes running behavior, it does not design a suite.

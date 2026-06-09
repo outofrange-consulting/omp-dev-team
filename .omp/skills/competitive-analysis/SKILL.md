@@ -41,7 +41,7 @@ The comparison target can come in several forms. Determine which applies and gat
 
 ### Step 1: Catalog dev-team
 
-Read `.omp/knowledge/agent-registry.md` for the full inventory. Organize into these capability layers:
+Read `skill://dev-team-knowledge/agent-registry.md` for the full inventory. Organize into these capability layers:
 
 - **Team agents** — roles and primary focus areas
 - **Review agents** — what code quality aspects are covered

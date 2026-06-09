@@ -5,5 +5,5 @@
   "license": "MIT",
   "private": true,
   "keywords": ["oh-my-pi", "omp", "agents", "orchestration", "local-models", "ollama"],
-  "comment": "This repo is an OMP workspace: OMP auto-discovers .omp/{agents,skills,commands,extensions,rules}. There is intentionally no omp.extensions manifest here — native .omp/extensions discovery loads them, and listing them again would double-load. Install by running `omp` in this dir or copying .omp/ into your project (see README)."
+  "comment": "This repo is both an OMP workspace and a marketplace plugin. Marketplace catalog: .claude-plugin/marketplace.json (plugin dev-team@omp-dev-team, source ./.omp). Plugin/extension manifest: .omp/package.json (omp.extensions). The ROOT intentionally declares no omp.extensions: a marketplace install delivers agents/skills/knowledge/commands/MCP but NOT extension modules, so the 8 guard/routing extensions are wired per-project via `extensions: [<clone>/.omp]` (or `omp plugin link <clone>/.omp`). See README Installation."
 }

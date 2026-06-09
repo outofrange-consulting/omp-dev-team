@@ -168,6 +168,6 @@ Consumers of `memory/recon-<slug>.json`:
 - `tool-finding-narrative-annotator` (P2 Step 10) — consumes `security_surface` to scope narratives
 - `cross-repo-synthesizer` (P2 Step 12) — consumes `repo` + `architecture` for attack-chain context
 - `exec-report-generator` (P2 Step 14) — consumes `git_history` for context in the executive summary
-- Any future manifest-membership consumer (Gap 6's OMP extension `model-routing` + `.omp/config.yml` `modelRoles`, audit tooling) — consumes `file_inventory.sibling_ref` to locate the path list at `memory/<sibling_ref>`. Consumers MUST follow the fail-open contract in `.omp/knowledge/security-primitives-contract.md#consumer-error-contract` when the field is absent, the sibling file is missing, or the declared `count` mismatches `wc -l` of the sibling.
+- Any future manifest-membership consumer (Gap 6's OMP extension `model-routing` + `.omp/config.yml` `modelRoles`, audit tooling) — consumes `file_inventory.sibling_ref` to locate the path list at `memory/<sibling_ref>`. Consumers MUST follow the fail-open contract in `skill://dev-team-knowledge/security-primitives-contract.md#consumer-error-contract` when the field is absent, the sibling file is missing, or the declared `count` mismatches `wc -l` of the sibling.
 
 If the consumer receives a RECON with `schema_version != "0.2"`, treat as incompatible until P2 Step 4's contract v1.0.0 subsumes this placeholder.

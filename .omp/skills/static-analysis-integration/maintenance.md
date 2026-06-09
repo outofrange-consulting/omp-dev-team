@@ -16,7 +16,7 @@ Adapters (SARIF wrappers, bespoke JSON adapters) have a lifecycle independent of
 
 Separate lifecycle from adapters — rulesets track evolving attack patterns, not tool schema drift.
 
-- **Owners**: each custom ruleset (`.omp/knowledge/semgrep-rules/*.yaml`) has a `maintainers:` frontmatter block with ≥ 2 names.
+- **Owners**: each custom ruleset (`skill://dev-team-knowledge/semgrep-rules/*.yaml`) has a `maintainers:` frontmatter block with ≥ 2 names.
 - **Review cadence**: quarterly. Reviewers confirm patterns are still relevant, add new attack signatures, retire deprecated ones.
 - **FP drift threshold**: if eval fixtures show > 20% false-positive noise on the tier-2 suite, the ruleset is paused and triaged within one release.
 - **Community-PR intake**: PRs adding patterns require a positive fixture plus a negative fixture. Rejections must cite the policy.

@@ -19,6 +19,8 @@
     }
   },
   "local": {
+    "enabled": false,
+    "$enabled_note": "false = small tier runs on CLOUD via modelRoles.smol (currently claude-haiku-4-5); the model-routing extension skips the local-backend availability gate so pi/smol agents are not blocked. Set true AND point modelRoles.smol back at a local model id (e.g. ollama/qwen3-coder:30b) to require the local GPU backend again.",
     "backend": "ollama",
     "model": "ollama/qwen3-coder:30b",
     "rationale": "Qwen3-Coder-30B-A3B (a.k.a. Qwen3-Coder-Flash): 30.5B total / ~3.3B active MoE. On a 9950X + 64GB RAM + 5070 Ti 16GB it does not fully fit VRAM, but as an MoE it offloads expert FFNs to CPU/RAM and keeps attention + KV on the GPU, so it stays fast (~20-40 tok/s) while being clearly smarter than a 14B dense model. Ollama auto-offloads and is auto-discovered by OMP. For the best throughput on the 30B, run it under llama.cpp with --n-cpu-moe (see alternatives).",

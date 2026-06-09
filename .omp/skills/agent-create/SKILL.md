@@ -244,7 +244,7 @@ Apply these rules when generating the body:
 2. **No description restatement**: title must not contain the `description` field value verbatim (whitespace-normalized)
 3. **No placeholder text**: body must not contain `your-agent-name`, `One-sentence description`, or `# Agent Name`
 4. **Bullet length**: no single bullet point may span more than two lines
-5. **Knowledge file reference**: one line only — `Read .omp/knowledge/X.md before starting` — no prose explanation
+5. **Knowledge file reference**: one line only — `Read skill://dev-team-knowledge/X.md before starting` — no prose explanation
 6. **Review Skip section**: 1–3 bullet conditions, no prose explanation
 7. **Review Ignore section**: one sentence listing what other agents handle
 8. **Skills section (team)**: skill name + one-line invocation context only
@@ -315,11 +315,11 @@ On `yes`: the file is already on disk from Step 11; no re-write needed unless th
 
 ## Step 13 — Update Agent Registry
 
-Locate the table in `.omp/knowledge/agent-registry.md` whose heading contains
+Locate the table in `skill://dev-team-knowledge/agent-registry.md` whose heading contains
 `Review Agents` (for review type) or `Team Agents` (for team type).
 
 If the heading is not found: emit
-`Cannot update .omp/knowledge/agent-registry.md: heading containing '<type> Agents' not found. Update manually.`
+`Cannot update skill://dev-team-knowledge/agent-registry.md: heading containing '<type> Agents' not found. Update manually.`
 and stop without modifying the file.
 
 Map model to tier label: `haiku` → `small`, `sonnet` → `mid`, `opus` → `frontier`, `inherit` → `mid`.
@@ -335,7 +335,7 @@ Append a row to the correct table:
 ## Step 14 — Update CLAUDE.md
 
 CLAUDE.md carries a **prose Quick Reference list**, not a table — the
-authoritative agent tables live in `.omp/knowledge/agent-registry.md` (updated in
+authoritative agent tables live in `skill://dev-team-knowledge/agent-registry.md` (updated in
 Step 13). Update the matching Quick Reference line under `### Quick Reference`:
 
 - Review type → the line beginning `**Review agents** (<N>):`
@@ -362,6 +362,6 @@ Type: <review|team>
 Model: <model> (<tier-label>)
 Body: <N> lines
 Validation: PASS (/agent-audit)
-Registry updated: .omp/knowledge/agent-registry.md (<type> Agents table)
+Registry updated: skill://dev-team-knowledge/agent-registry.md (<type> Agents table)
 CLAUDE.md updated: <type> agents Quick Reference list (count <N>→<N+1>)
 ```

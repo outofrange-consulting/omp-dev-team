@@ -24,11 +24,11 @@ Context needs: project-structure
 
 ## Knowledge Files
 
-Read `.omp/knowledge/domain-modeling.md` before starting analysis. Whole-file load: the agent uses every section — exploration patterns, anti-pattern recognition, ubiquitous-language drift detection, and the per-language ORM / boundary / application-service signals.
+Read `skill://dev-team-knowledge/domain-modeling.md` before starting analysis. Whole-file load: the agent uses every section — exploration patterns, anti-pattern recognition, ubiquitous-language drift detection, and the per-language ORM / boundary / application-service signals.
 
 ## Explore
 
-Follow the exploration patterns in `.omp/knowledge/domain-modeling.md#exploration-patterns` to
+Follow the exploration patterns in `skill://dev-team-knowledge/domain-modeling.md#exploration-patterns` to
 map the project structure: entity/model files, service layer,
 repositories, DTOs, ORM markers, boundary entry points, and
 application services.
@@ -88,7 +88,7 @@ Whole-file load: each linked skill is loaded in full when invoked.
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `.omp/knowledge/adversarial-review-protocol.md#domain-review` (domain-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#domain-review` (domain-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

@@ -31,7 +31,7 @@ Arguments: none.
 Four sections, in order:
 
 1. **Effective tier → snapshot map** — the result of merging
-   `.omp/knowledge/model-routing.json` (plugin defaults) with any
+   `skill://dev-team-knowledge/model-routing.json` (plugin defaults) with any
    `tier_aliases` in `.claude/model-overrides.json` (per-user).
 2. **Overrides** — whether `.claude/model-overrides.json` exists and, if
    so, its raw contents. `Overrides: none` when the file is absent.

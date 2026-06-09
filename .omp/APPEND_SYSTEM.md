@@ -32,7 +32,7 @@ that cannot name the friction it removes does not ship.
 - **Skills** live in `.omp/skills/*/SKILL.md`. Read one with `read skill://<name>`
   or invoke as `/skill:<name>`. Load on demand, not all at once.
 - **Knowledge** (registries, rubrics, detection patterns) lives in
-  `.omp/knowledge/`. Resolve a section anchor via `.omp/knowledge/index.json`,
+  `skill://dev-team-knowledge/`. Resolve a section anchor via `skill://dev-team-knowledge/index.json`,
   then `read` just that section with offset/limit.
 - **Workflow commands** live in `.omp/commands/*.md`: `/specs`, `/plan`,
   `/build`, `/pr`, `/code-review`, `/review-agent`, `/continue`, `/triage`, …
@@ -46,7 +46,7 @@ that cannot name the friction it removes does not ship.
 
 Each agent declares a tier in its `model:` frontmatter. The mapping is native
 (`.omp/config.yml` `modelRoles` + the agent frontmatter); the source of truth is
-`.omp/knowledge/model-routing.json`.
+`skill://dev-team-knowledge/model-routing.json`.
 
 | Tier | Frontmatter | Resolves to | Used for |
 |---|---|---|---|
