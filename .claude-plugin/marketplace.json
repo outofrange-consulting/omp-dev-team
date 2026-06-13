@@ -1,24 +1,27 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "omp-dev-team",
-  "owner": {
-    "name": "outofrange-consulting"
-  },
+  "owner": { "name": "outofrange-consulting" },
   "metadata": {
-    "description": "Persona-driven AI development team for Oh-My-Pi (port of agentic-dev-team) with local small-tier model routing.",
-    "version": "0.1.0"
+    "description": "Oh-My-Pi plugins: a persona-driven dev team and an Azure DevOps filesystem.",
+    "pluginRoot": "./plugins"
   },
   "plugins": [
     {
       "name": "dev-team",
-      "description": "32 persona/review agents, 78 skills, the /specs->/plan->/build->/pr pipeline, 8 blocking-guard extensions, and a shared knowledge corpus. Install once, enable per project.",
-      "source": "./.omp",
+      "source": "./dev-team",
+      "description": "Persona-driven AI development team: 32 agents, 3-phase orchestration (specs/plan/build/pr), blocking guard extensions, and local small-tier model routing (Sonnet/Opus stay cloud).",
       "category": "development",
-      "version": "0.1.0",
-      "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
-      "repository": "https://github.com/outofrange-consulting/omp-dev-team",
       "license": "MIT",
-      "keywords": ["agents", "orchestration", "code-review", "tdd", "local-models"]
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "azure-devops-fs",
+      "source": "./azure-devops-fs",
+      "description": "Azure DevOps as a filesystem for OMP: read repos/files/PRs/diffs via ado:// URIs, create/checkout/push PRs, comment/vote, watch pipelines. Standalone, PAT-authenticated, with a SQLite read cache.",
+      "category": "devops",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     }
   ]
 }

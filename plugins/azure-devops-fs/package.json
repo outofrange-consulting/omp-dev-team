@@ -1,0 +1,10 @@
+{
+  "name": "@omp-dev-team/azure-devops-fs",
+  "version": "0.1.0",
+  "description": "Azure DevOps as a filesystem for Oh-My-Pi.",
+  "license": "MIT",
+  "private": true,
+  "omp": {
+    "extensions": ["./extensions/ado.ts"]
+  }
+}

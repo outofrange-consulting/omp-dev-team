@@ -1,0 +1,8 @@
+{
+  "name": "dev-team",
+  "version": "0.1.0",
+  "description": "Persona-driven AI development team for Oh-My-Pi: 32 agents, 3-phase orchestration, blocking guard extensions, and local small-tier model routing.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+}

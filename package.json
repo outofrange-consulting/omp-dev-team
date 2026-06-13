@@ -1,9 +1,9 @@
 {
   "name": "omp-dev-team",
   "version": "0.1.0",
-  "description": "Persona-driven AI development team for Oh-My-Pi — port of agentic-dev-team with local-model routing for the small tier.",
+  "description": "Oh-My-Pi marketplace: dev-team (persona dev team) and azure-devops-fs (Azure DevOps as a filesystem). Two independent plugins.",
   "license": "MIT",
   "private": true,
-  "keywords": ["oh-my-pi", "omp", "agents", "orchestration", "local-models", "ollama"],
-  "comment": "This repo is both an OMP workspace and a marketplace plugin. Marketplace catalog: .claude-plugin/marketplace.json (plugin dev-team@omp-dev-team, source ./.omp). Plugin/extension manifest: .omp/package.json (omp.extensions). The ROOT intentionally declares no omp.extensions: a marketplace install delivers agents/skills/knowledge/commands/MCP but NOT extension modules, so the 8 guard/routing extensions are wired per-project via `extensions: [<clone>/.omp]` (or `omp plugin link <clone>/.omp`). See README Installation."
+  "keywords": ["oh-my-pi", "omp", "marketplace", "plugin", "agents", "azure-devops", "local-models"],
+  "comment": "This repo is an OMP MARKETPLACE. Catalog: .claude-plugin/marketplace.json; plugins live under plugins/<name>/, each with its own package.json (omp.extensions) and .claude-plugin/plugin.json. Add it with `omp plugin marketplace add <repo-or-./>` then install plugins individually. The two plugins are independent."
 }

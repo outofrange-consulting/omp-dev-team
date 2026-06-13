@@ -1,8 +1,9 @@
-# omp-dev-team — project configuration for Oh-My-Pi
+# dev-team — user config snippet for Oh-My-Pi
 # Docs: https://github.com/can1357/oh-my-pi/blob/main/docs/config-usage.md
 #
-# This file is discovered by OMP at <cwd>/.omp/config.yml. It wires the
-# persona team's model routing, skills, and subagent graph.
+# Paste into ~/.omp/agent/config.yml (or a project .omp/config.yml). The plugin
+# auto-loads its extensions/agents/skills/commands/rules; what you set here is
+# your model routing, skills, and subagent graph.
 
 # ---------------------------------------------------------------------------
 # MODEL ROUTING (the heart of the local-model redirection)
@@ -53,17 +54,10 @@ skills:
 # ---------------------------------------------------------------------------
 # EXTENSIONS (the "blocking scripts" — ported from the Claude Code shell hooks)
 # ---------------------------------------------------------------------------
-# Native discovery auto-loads every module under .omp/extensions/, so listing
-# them here is optional. They are listed for documentation / explicit ordering.
-extensions:
-  - ./.omp/extensions/model-routing.ts # local-model availability gate + dispatch log
-  - ./.omp/extensions/path-guard.ts # blocks writes to secrets/credentials
-  - ./.omp/extensions/destructive-guard.ts # warns/blocks destructive bash (careful mode)
-  - ./.omp/extensions/careful-mode.ts # /careful on|off toggle + state
-  - ./.omp/extensions/freeze-guard.ts # /freeze path lock
-  - ./.omp/extensions/tdd-guard.ts # nudges RED-GREEN-REFACTOR on source edits
-  - ./.omp/extensions/review-gate.ts # blocks `git commit` until /code-review passes
-  - ./.omp/extensions/telemetry.ts # per-session cost/turn meter + /cost-report
+# Note: the 8 guard/routing extensions load automatically from the plugin
+# manifest (plugins/dev-team/package.json -> omp.extensions). You do NOT list
+# them here. (Only add an `extensions:` list if you run dev-team as a raw .omp
+# workspace instead of an installed plugin.)
 
 # ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH

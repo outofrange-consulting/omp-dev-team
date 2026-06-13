@@ -1,6 +1,11 @@
+---
+description: Dev-team operating manual — orchestration pipeline, model tiers, guardrails (always loaded)
+alwaysApply: true
+---
+
 # Dev-Team — Orchestration Pipeline (Oh-My-Pi port)
 
-This workspace runs a persona-driven AI development team on Oh-My-Pi (OMP),
+This plugin runs a persona-driven AI development team on Oh-My-Pi (OMP),
 ported from `bdfinst/agentic-dev-team`. The **orchestrator** agent is the
 central dispatcher; it routes work to specialized agents via the `task` tool
 based on task type, complexity, and required expertise.

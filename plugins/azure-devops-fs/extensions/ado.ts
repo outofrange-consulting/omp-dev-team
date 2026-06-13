@@ -1,0 +1,395 @@
+// ado.ts — "Azure DevOps as a filesystem" for Oh-My-Pi.
+//
+// One tool, `ado`, dispatched on `op`. Reads (repo/files/PRs/diffs) accept the
+// ado:// and adopr:// URI sugar; mutations (create/checkout/push/comment/vote)
+// mirror OMP's `github` tool. Standalone: PAT auth, SQLite read cache, git
+// worktrees. No dependency on any other plugin.
+//
+// Env: AZURE_DEVOPS_PAT (required), AZURE_DEVOPS_ORG, AZURE_DEVOPS_PROJECT.
+
+import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { cacheGet, cacheSet } from "./lib/cache.ts";
+import {
+	fmtChanges,
+	fmtFile,
+	fmtItems,
+	fmtPr,
+	fmtPrList,
+	fmtRepo,
+	fmtWorkItem,
+} from "./lib/format.ts";
+import { AdoError, authHeader, makeClient, resolveEnv } from "./lib/rest.ts";
+import { isAdoUri, parseAdoUri } from "./lib/uri.ts";
+import { prCheckout, prPush, prWorktreePath } from "./lib/worktree.ts";
+
+const READ_TTL = 120; // seconds; reads are cached, mutations never are
+const DESTRUCTIVE = new Set(["pr_abandon"]);
+const VOTE: Record<string, number> = {
+	approve: 10,
+	"approve-suggestions": 5,
+	reset: 0,
+	waiting: -5,
+	reject: -10,
+};
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function text(s: string, details?: Record<string, unknown>) {
+	return { content: [{ type: "text" as const, text: s }], details };
+}
+
+export default function ado(pi: ExtensionAPI) {
+	const { z } = pi.zod;
+	pi.setLabel("azure-devops-fs");
+
+	pi.registerTool({
+		name: "ado",
+		label: "Azure DevOps",
+		description:
+			"Azure DevOps as a filesystem. Reads accept ado:// / adopr:// URIs.\n" +
+			"Read ops: repo_view, repo_ls, repo_read, pr_view, pr_list, pr_files, pr_diff, work_item, search_code.\n" +
+			"Write ops: pr_create, pr_checkout, pr_push, pr_comment, pr_vote, pr_abandon, pipeline_watch.\n" +
+			"URIs: ado://{org}/{project}/{repo}/{path}@{ref}  ·  adopr://{org}/{project}/{repo}/{id}[/diff[/path]].\n" +
+			"org/project default from AZURE_DEVOPS_ORG/PROJECT. Needs AZURE_DEVOPS_PAT.",
+		parameters: z.object({
+			op: z.enum([
+				"repo_view",
+				"repo_ls",
+				"repo_read",
+				"pr_view",
+				"pr_list",
+				"pr_files",
+				"pr_diff",
+				"pr_create",
+				"pr_checkout",
+				"pr_push",
+				"pr_comment",
+				"pr_vote",
+				"pr_abandon",
+				"pipeline_watch",
+				"work_item",
+				"search_code",
+			]),
+			uri: z.string().optional().describe("ado:// or adopr:// shortcut; fills org/project/repo/path/ref/id"),
+			org: z.string().optional(),
+			project: z.string().optional(),
+			repo: z.string().optional(),
+			path: z.string().optional().describe("repo path (repo_ls/repo_read) or single file for pr_diff"),
+			ref: z.string().optional().describe("branch/tag/commit (default: repo default branch)"),
+			id: z.number().optional().describe("PR id or work item id"),
+			title: z.string().optional(),
+			description: z.string().optional(),
+			source: z.string().optional().describe("pr_create: source branch"),
+			target: z.string().optional().describe("pr_create: target branch"),
+			draft: z.boolean().optional(),
+			status: z.string().optional().describe("pr_list: active|completed|abandoned|all"),
+			limit: z.number().optional(),
+			comment: z.string().optional().describe("pr_comment body"),
+			threadId: z.number().optional().describe("pr_comment: reply to this thread"),
+			vote: z.enum(["approve", "approve-suggestions", "reset", "waiting", "reject"]).optional(),
+			query: z.string().optional().describe("search_code query"),
+			buildId: z.number().optional().describe("pipeline_watch build id"),
+			type: z.string().optional().describe("work_item create type, e.g. Bug, Task"),
+			force: z.boolean().optional(),
+			confirm: z.boolean().optional().describe("required for destructive ops when no UI"),
+		}),
+		async execute(_id, p: any, signal, onUpdate, ctx) {
+			try {
+				// Resolve target from uri sugar if present.
+				let { org, project, repo, path, ref, id } = p;
+				if (isAdoUri(p.uri)) {
+					const t = parseAdoUri(p.uri, {
+						org: process.env.AZURE_DEVOPS_ORG,
+						project: process.env.AZURE_DEVOPS_PROJECT,
+						repo,
+					});
+					org = t.org;
+					project = t.project;
+					repo = t.repo;
+					if (t.kind === "repo") {
+						path = t.path;
+						ref = t.ref ?? ref;
+					} else {
+						id = t.id;
+						if (t.diff) p._diff = t.diff;
+					}
+				}
+				const env = resolveEnv({ org, project });
+				const c = makeClient(env, signal ?? undefined);
+				const repoEnc = repo ? encodeURIComponent(repo) : "";
+				const verDesc = (r?: string) =>
+					r ? { "versionDescriptor.version": r, "versionDescriptor.versionType": "branch" } : {};
+
+				// Confirmation gate for destructive ops.
+				if (DESTRUCTIVE.has(p.op) || (p.op === "pr_vote" && p.vote === "reject") || (p.op === "pr_push" && p.force)) {
+					const what = `${p.op}${p.vote ? ` (${p.vote})` : ""} on ${repo ?? "?"}${id ? ` !${id}` : ""}`;
+					const ok = ctx.hasUI ? await ctx.ui.confirm("Azure DevOps", `Confirm ${what}?`) : p.confirm === true;
+					if (!ok)
+						return text(`Aborted ${what}. ${ctx.hasUI ? "" : "Pass confirm:true to proceed without a UI."}`);
+				}
+
+				const cacheKey = JSON.stringify([p.op, env.org, env.project, repo, path, ref, id, p._diff, p.status, p.limit, p.query]);
+				if (["repo_view", "repo_ls", "repo_read", "pr_view", "pr_list", "pr_files", "work_item"].includes(p.op)) {
+					const hit = cacheGet(cacheKey, READ_TTL);
+					if (hit) return text(hit, { cached: true });
+				}
+
+				const need = (v: unknown, name: string) => {
+					if (v === undefined || v === null || v === "") throw new AdoError(`op ${p.op} requires '${name}'`);
+				};
+
+				switch (p.op) {
+					case "repo_view": {
+						need(repo, "repo");
+						const r = await c.get<any>(`/_apis/git/repositories/${repoEnc}`);
+						const out = fmtRepo(r);
+						cacheSet(cacheKey, out);
+						return text(out, { sourceUrl: r.webUrl });
+					}
+					case "repo_ls": {
+						need(repo, "repo");
+						const r = await c.get<any>(`/_apis/git/repositories/${repoEnc}/items`, {
+							scopePath: path ?? "/",
+							recursionLevel: "OneLevel",
+							...verDesc(ref),
+						});
+						const out = fmtItems(r.value ?? [], { repo, path: path ?? "/", ref });
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "repo_read": {
+						need(repo, "repo");
+						need(path, "path");
+						const r = await c.get<any>(`/_apis/git/repositories/${repoEnc}/items`, {
+							path,
+							includeContent: true,
+							...verDesc(ref),
+						});
+						const out = fmtFile(path, ref, r.content ?? "(empty)");
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "pr_view": {
+						need(repo, "repo");
+						need(id, "id");
+						const pr = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}`);
+						let threads: any[] | undefined;
+						try {
+							threads = (await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/threads`)).value;
+						} catch {
+							/* threads optional */
+						}
+						const out = fmtPr(pr, threads);
+						cacheSet(cacheKey, out);
+						return text(out, { sourceUrl: pr._links?.web?.href });
+					}
+					case "pr_list": {
+						need(repo, "repo");
+						const r = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests`, {
+							"searchCriteria.status": p.status ?? "active",
+							$top: Math.min(p.limit ?? 20, 100),
+						});
+						const out = fmtPrList(r.value ?? []);
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "pr_files": {
+						need(repo, "repo");
+						need(id, "id");
+						const its = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations`);
+						const last = (its.value ?? []).at(-1);
+						if (!last) return text("(no iterations)");
+						const ch = await c.get<any>(
+							`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations/${last.id}/changes`,
+						);
+						const out = fmtChanges(ch.changeEntries ?? []);
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "pr_diff": {
+						need(repo, "repo");
+						need(id, "id");
+						const pr = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}`);
+						const base = pr.lastMergeTargetCommit?.commitId;
+						const src = pr.lastMergeSourceCommit?.commitId;
+						const its = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations`);
+						const last = (its.value ?? []).at(-1);
+						const ch = last
+							? (await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations/${last.id}/changes`)).changeEntries ?? []
+							: [];
+						const want = p._diff?.path ?? path;
+						let files = ch.filter((e: any) => e.item?.path && !e.item.isFolder);
+						if (want) files = files.filter((e: any) => e.item.path === want || e.item.path === `/${want}`);
+						files = files.slice(0, want ? 1 : 25);
+						const contentAt = async (commit: string | undefined, fp: string) => {
+							if (!commit) return "";
+							try {
+								const r = await c.get<any>(`/_apis/git/repositories/${repoEnc}/items`, {
+									path: fp,
+									includeContent: true,
+									"versionDescriptor.version": commit,
+									"versionDescriptor.versionType": "commit",
+								});
+								return r.content ?? "";
+							} catch {
+								return "";
+							}
+						};
+						const dir = mkdtempSync(join(tmpdir(), "ado-diff-"));
+						const parts: string[] = [];
+						for (const e of files) {
+							const fp = e.item.path as string;
+							const a = await contentAt(base, fp);
+							const b = await contentAt(src, fp);
+							const af = join(dir, "a");
+							const bf = join(dir, "b");
+							writeFileSync(af, a);
+							writeFileSync(bf, b);
+							let d = "";
+							try {
+								execFileSync("git", ["diff", "--no-index", "--", af, bf], { encoding: "utf8" });
+							} catch (err: any) {
+								d = String(err.stdout ?? ""); // git diff exits 1 when files differ
+							}
+							parts.push(`### ${fp} (${e.changeType})\n\n\`\`\`diff\n${d.replace(new RegExp(dir + "/", "g"), "")}\n\`\`\``);
+						}
+						return text(`# PR !${id} diff (${files.length} file${files.length === 1 ? "" : "s"})\n\n${parts.join("\n\n")}`);
+					}
+					case "pr_create": {
+						need(repo, "repo");
+						need(p.title, "title");
+						need(p.source, "source");
+						need(p.target, "target");
+						const pr = await c.send<any>("POST", `/_apis/git/repositories/${repoEnc}/pullRequests`, {
+							sourceRefName: p.source.startsWith("refs/") ? p.source : `refs/heads/${p.source}`,
+							targetRefName: p.target.startsWith("refs/") ? p.target : `refs/heads/${p.target}`,
+							title: p.title,
+							description: p.description ?? "",
+							isDraft: p.draft ?? false,
+						});
+						return text(`Created PR !${pr.pullRequestId}: ${pr.title}\n${pr._links?.web?.href ?? ""}`, {
+							sourceUrl: pr._links?.web?.href,
+							prId: pr.pullRequestId,
+						});
+					}
+					case "pr_checkout": {
+						need(repo, "repo");
+						need(id, "id");
+						const pr = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}`);
+						const res = prCheckout(env, repo, pr.sourceRefName, { prId: id, force: p.force });
+						return text(
+							`${res.reused ? "Reused" : "Checked out"} PR !${id} (${res.branch}) at ${res.worktreePath}`,
+							{ worktreePath: res.worktreePath, branch: res.branch },
+						);
+					}
+					case "pr_push": {
+						need(repo, "repo");
+						need(id, "id");
+						const pr = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}`);
+						const branch = String(pr.sourceRefName).replace("refs/heads/", "");
+						const wt = prWorktreePath(env, repo, id);
+						const out = prPush(env, wt, branch, { force: p.force });
+						return text(`Pushed ${branch} from ${wt}\n${out}`.trim());
+					}
+					case "pr_comment": {
+						need(repo, "repo");
+						need(id, "id");
+						need(p.comment, "comment");
+						if (p.threadId) {
+							await c.send("POST", `/_apis/git/repositories/${repoEnc}/pullRequests/${id}/threads/${p.threadId}/comments`, {
+								content: p.comment,
+								commentType: 1,
+							});
+							return text(`Replied on thread ${p.threadId} of PR !${id}`);
+						}
+						const t = await c.send<any>("POST", `/_apis/git/repositories/${repoEnc}/pullRequests/${id}/threads`, {
+							comments: [{ parentCommentId: 0, content: p.comment, commentType: 1 }],
+							status: 1,
+						});
+						return text(`Added comment thread ${t.id} on PR !${id}`);
+					}
+					case "pr_vote": {
+						need(repo, "repo");
+						need(id, "id");
+						need(p.vote, "vote");
+						const me = await c.selfId();
+						await c.send("PATCH", `/_apis/git/repositories/${repoEnc}/pullRequests/${id}/reviewers/${me.id}`, {
+							vote: VOTE[p.vote],
+						});
+						return text(`Voted '${p.vote}' on PR !${id} as ${me.displayName}`);
+					}
+					case "pr_abandon": {
+						need(repo, "repo");
+						need(id, "id");
+						await c.send("PATCH", `/_apis/git/repositories/${repoEnc}/pullRequests/${id}`, { status: "abandoned" });
+						return text(`Abandoned PR !${id}`);
+					}
+					case "work_item": {
+						if (p.title && p.type) {
+							const wi = await c.send<any>(
+								"POST",
+								`/_apis/wit/workitems/$${encodeURIComponent(p.type)}`,
+								[
+									{ op: "add", path: "/fields/System.Title", value: p.title },
+									...(p.description ? [{ op: "add", path: "/fields/System.Description", value: p.description }] : []),
+								],
+								{},
+								{ contentType: "application/json-patch+json" },
+							);
+							return text(`Created ${p.type} #${wi.id}: ${p.title}`, { id: wi.id });
+						}
+						need(id, "id");
+						const wi = await c.get<any>(`/_apis/wit/workitems/${id}`, { $expand: "all" });
+						const out = fmtWorkItem(wi);
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "search_code": {
+						need(p.query, "query");
+						const url = `https://almsearch.dev.azure.com/${encodeURIComponent(env.org)}/${encodeURIComponent(env.project)}/_apis/search/codesearchresults?api-version=7.1`;
+						const res = await fetch(url, {
+							method: "POST",
+							headers: { Authorization: authHeader(env.pat), "Content-Type": "application/json" },
+							body: JSON.stringify({ searchText: p.query, $top: Math.min(p.limit ?? 15, 50), filters: repo ? { RepositoryFilters: [repo] } : undefined }),
+							signal: signal ?? undefined,
+						});
+						if (res.status === 404)
+							return text("Code Search is not installed for this org (Marketplace extension 'Code Search'). search_code unavailable.");
+						if (!res.ok) throw new AdoError(`search_code -> ${res.status}: ${(await res.text()).slice(0, 200)}`);
+						const j: any = await res.json();
+						const rows = (j.results ?? []).map(
+							(r: any) => `- ${r.repository?.name}/${r.path}  (${r.matches?.content?.length ?? 0} match)`,
+						);
+						return text(`# Code search "${p.query}" (${j.count ?? rows.length})\n${rows.join("\n")}`);
+					}
+					case "pipeline_watch": {
+						need(p.buildId, "buildId");
+						const tailEnd = Date.now() + 20 * 60 * 1000; // 20 min cap
+						let last = "";
+						while (Date.now() < tailEnd) {
+							if (signal?.aborted) return text(`Aborted watching build ${p.buildId} (last: ${last})`);
+							const b = await c.get<any>(`/_apis/build/builds/${p.buildId}`);
+							last = `${b.status}${b.result ? `/${b.result}` : ""}`;
+							onUpdate?.({ content: [{ type: "text", text: `build ${p.buildId}: ${last}` }] });
+							if (b.status === "completed")
+								return text(`Build ${p.buildId} ${b.result} — ${b._links?.web?.href ?? ""}`, {
+									status: b.status,
+									conclusion: b.result,
+								});
+							await new Promise((r) => setTimeout(r, 3000));
+						}
+						return text(`Build ${p.buildId} still running after 20m (last: ${last})`);
+					}
+					default:
+						return text(`Unknown op '${p.op}'`);
+				}
+			} catch (e) {
+				const msg = e instanceof Error ? e.message : String(e);
+				return { content: [{ type: "text" as const, text: `ado error: ${msg}` }], isError: true };
+			}
+		},
+	});
+}
