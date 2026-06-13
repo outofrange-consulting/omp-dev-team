@@ -23,12 +23,14 @@ if ((Have rtk) -and -not $Update) {
   Say "RTK present ($(rtk --version 2>$null)) — use -Update to refresh"
 } else {
   Say "Installing latest RTK (Rust Token Killer)"
-  if (Have winget) { Run "winget install --id rtk-ai.rtk -e --accept-source-agreements --accept-package-agreements" }
-  elseif (Have cargo) { Run "cargo install --git https://github.com/rtk-ai/rtk" }
-  else {
-    $zip = Join-Path $env:TEMP "rtk.zip"
+  # Prebuilt zip is the most reliable path on CI; cargo is the fallback.
+  $zip = Join-Path $env:TEMP "rtk.zip"
+  try {
     Run "Invoke-WebRequest -Uri 'https://github.com/rtk-ai/rtk/releases/latest/download/rtk-x86_64-pc-windows-msvc.zip' -OutFile '$zip'"
     Run "Expand-Archive -Path '$zip' -DestinationPath '$BinDir' -Force"
+  } catch {
+    if (Have cargo) { Run "cargo install --git https://github.com/rtk-ai/rtk" }
+    else { Warn "could not install rtk (need network or cargo)" }
   }
 }
 

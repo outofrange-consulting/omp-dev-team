@@ -96,7 +96,9 @@ function Plug ($name, $dir) {
   }
   $ps1 = Join-Path $dir 'install.ps1'
   if (Test-Path $ps1) {
-    $a = @(); if ($DryRun) { $a += '-DryRun' }; if ($Update -and $name -eq 'token-diet') { $a += '-Update' }
+    $a = @(); if ($DryRun) { $a += '-DryRun' }
+    if ($Update -and $name -eq 'token-diet') { $a += '-Update' }
+    if ($Yes -and ($name -eq 'token-diet' -or $name -eq 'azure-devops-fs')) { $a += '-Yes' }
     Run "& `"$ps1`" $($a -join ' ')"
   }
 }

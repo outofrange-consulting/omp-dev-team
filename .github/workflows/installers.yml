@@ -59,17 +59,24 @@ jobs:
         shell: pwsh
         run: ./install.ps1 -Yes -DryRun
 
-  # 3) Real end-to-end install on Linux (bootstraps bun/omp/plugins, then verifies
-  #    OMP launches and lists all four plugins).
-  e2e-linux:
-    name: e2e (ubuntu real install)
-    runs-on: ubuntu-latest
+  # 3) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
+  #    verifies OMP launches and lists all four plugins).
+  e2e:
+    name: e2e (${{ matrix.os }} real install)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Run global installer (non-interactive)
+
+      - name: Run global installer (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: bash install.sh -y
-      - name: Verify OMP launches with all plugins
+      - name: Verify OMP launches with all plugins (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
@@ -78,4 +85,21 @@ jobs:
           for p in dev-team copilot-preset token-diet azure-devops-fs; do
             grep -q "$p@omp-dev-team" /tmp/plugins.txt || { echo "missing $p"; exit 1; }
           done
-          echo "all four plugins installed ✓"
+          echo "all four plugins installed"
+
+      - name: Run global installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./install.ps1 -Yes
+      - name: Verify OMP launches with all plugins (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:Path = "$HOME\.bun\bin;$HOME\.local\bin;$HOME\.cargo\bin;$env:Path"
+          omp --version
+          $list = omp plugin list 2>$null
+          $list
+          foreach ($p in 'dev-team','copilot-preset','token-diet','azure-devops-fs') {
+            if (-not ($list | Select-String "$p@omp-dev-team")) { Write-Error "missing $p"; exit 1 }
+          }
+          Write-Host "all four plugins installed"

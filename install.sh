@@ -59,8 +59,11 @@ ensure_path() {  # add $1 to PATH in this session + persist to profiles (idempot
   done
 }
 
-# true if installed $1 version is >= $2 (dotted)
-version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
+# true if installed $1 version is >= $2 (dotted). awk-based for portability
+# (macOS `sort` has no -V).
+version_ge() {
+  awk -v v1="$1" -v v2="$2" 'function cmp(a,b){n=split(a,A,".");m=split(b,B,".");k=(n>m?n:m);for(i=1;i<=k;i++){d=(A[i]+0)-(B[i]+0);if(d)return d}return 0} BEGIN{exit !(cmp(v1,v2)>=0)}'
+}
 
 MIN_BUN="1.3.14"
 ensure_bun() {  # OMP requires bun >= MIN_BUN
