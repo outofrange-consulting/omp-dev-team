@@ -1,6 +1,6 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Token-reduction toolkit for OMP: RTK + CodeGraph + caveman.",
   "license": "MIT",
   "private": true,

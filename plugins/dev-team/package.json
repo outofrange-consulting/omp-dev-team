@@ -1,6 +1,6 @@
 {
   "name": "dev-team",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Dev-team plugin manifest for Oh-My-Pi. Declares the blocking-guard + routing extensions so a marketplace install loads them; agents/skills/commands/.mcp.json are discovered by their conventional sibling directories.",
   "private": true,
   "omp": {

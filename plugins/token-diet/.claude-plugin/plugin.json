@@ -1,6 +1,6 @@
 {
   "name": "token-diet",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Aggressive token reduction for OMP dev teams: RTK (Rust Token Killer) for compressed shell output, CodeGraph (MCP) for symbol/call-graph queries instead of grep+read, and a caveman terse-output skill. Layers on top of OMP's native compaction + astGrep/summarizeCode.",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",

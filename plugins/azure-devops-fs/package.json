@@ -1,6 +1,6 @@
 {
   "name": "@omp-dev-team/azure-devops-fs",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Azure DevOps as a filesystem for Oh-My-Pi.",
   "license": "MIT",
   "private": true,
