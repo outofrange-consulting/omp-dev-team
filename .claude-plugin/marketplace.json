@@ -30,6 +30,14 @@
       "category": "configuration",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "token-diet",
+      "source": "./token-diet",
+      "description": "Aggressive token reduction: RTK (Rust Token Killer) for compressed shell output, CodeGraph (MCP) for symbol/call-graph queries instead of grep+read, and a caveman terse-output skill. Layers on OMP's native compaction + astGrep; ships an always-on routing rule, MCP config, skills, and a setup script.",
+      "category": "productivity",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     }
   ]
 }
