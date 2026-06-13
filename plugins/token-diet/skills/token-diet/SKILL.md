@@ -9,7 +9,7 @@ description: >-
 # token-diet — aggressive token reduction for OMP
 
 Three external layers on top of what OMP already does natively. Run
-`plugins/token-diet/scripts/setup.sh` to install them.
+`plugins/token-diet/install.sh` to install them.
 
 ## What OMP already does (don't reinvent)
 
@@ -41,7 +41,7 @@ Three external layers on top of what OMP already does natively. Run
 ## Setup (once per machine / project)
 
 ```sh
-bash plugins/token-diet/scripts/setup.sh
+bash plugins/token-diet/install.sh
 ```
 
 Then enable the CodeGraph MCP server (it ships `enabled: false`): set

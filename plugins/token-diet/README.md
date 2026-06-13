@@ -15,7 +15,7 @@ in place of it.
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/scripts/setup.sh   # installs rtk + codegraph, indexes the repo
+bash plugins/token-diet/install.sh   # installs rtk + codegraph, indexes the repo
 ```
 
 Then enable the CodeGraph MCP server (ships `enabled: false`): set

@@ -7,8 +7,8 @@ globs:
 **Every agent file must declare its tier and a minimal tool set.**
 
 - `model:` frontmatter declares the tier:
-  - `pi/smol` — small/local tier (lexical/structural pattern matching, checklist
-    review). Routed to the local model via `modelRoles.smol`.
+  - `pi/smol` — small cheap-cloud tier (lexical/structural pattern matching,
+    checklist review). Routed via `modelRoles.smol` (default Haiku).
   - `claude-sonnet-4-6` — balanced semantic analysis.
   - `claude-opus-4-8` — deep cross-file reasoning / synthesis.
 - Grant only the tools the agent needs (OMP names: `read, search, find, edit,

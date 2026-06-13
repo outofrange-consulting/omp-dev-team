@@ -6,40 +6,26 @@
 # your model routing, skills, and subagent graph.
 
 # ---------------------------------------------------------------------------
-# MODEL ROUTING (the heart of the local-model redirection)
+# MODEL ROUTING (tier -> model)
 # ---------------------------------------------------------------------------
 # Agents declare a tier in their `model:` frontmatter:
-#   small/pattern agents -> `pi/smol`  (resolved here, LOCAL by default)
+#   small/pattern agents -> `pi/smol`        (resolved here)
 #   balanced agents      -> `claude-sonnet-4-6`
 #   deep-reasoning agents-> `claude-opus-4-8`
 #
-# Only the small tier runs locally. Flip `smol` to `claude-haiku-4-5` to go
-# fully cloud, or point it at any local model id. OMP auto-discovers Ollama on
-# http://127.0.0.1:11434, so `ollama/<tag>` resolves with no models.yml once
-# you've pulled the model (see scripts/setup-local-models.sh).
+# The small tier is a CHEAP-CLOUD, high-volume tier: lexical/structural checks
+# and checklist reviews that don't need Sonnet/Opus. Keep it on the cheapest
+# capable model to limit token spend.
 modelRoles:
-  # Small tier -> LOCAL coder model. Default: Qwen3-Coder-30B-A3B (MoE, ~3.3B
-  # active) which OMP auto-discovers from Ollama. On a 9950X + 64GB it offloads
-  # experts to RAM and keeps attention on the 5070 Ti — better judgment than any
-  # 14B dense, still fast. For max throughput swap to ollama/qwen2.5-coder:14b
-  # (fits fully in 16GB VRAM); for max speed on the 30B use the llama.cpp
-  # provider with --n-cpu-moe (see models.yml.example).
-  # CURRENT: cloud Haiku — no local backend installed. OMP resolves pi/smol
-  # agents to this. To restore the LOCAL small tier: set this back to
-  # ollama/qwen3-coder:30b AND flip local.enabled:true in
-  # .omp/skills/dev-team-knowledge/model-routing.json (re-arms the model-routing gate).
+  # Small tier -> cheapest capable model. Default: Haiku. With the copilot-preset
+  # plugin you can point this at github-copilot/gpt-5-mini (or mai-code-1-flash)
+  # to run the whole high-volume tier on your Copilot license for less.
   smol: claude-haiku-4-5
   # Deep-reasoning tier alias (used by a few commands/agents via pi/slow).
   slow: claude-opus-4-8
-  # `default` is intentionally left to the user's interactive choice (--model).
   # Subagent default for agents that don't pin a model:
   task: claude-sonnet-4-6
-
-# Global canonical-provider precedence when a canonical id maps to several
-# concrete providers. Keep Anthropic first for the cloud tiers.
-modelProviderOrder:
-  - anthropic
-  - ollama
+  # `default` is intentionally left to the user's interactive choice (--model).
 
 # ---------------------------------------------------------------------------
 # SKILLS
@@ -54,7 +40,7 @@ skills:
 # ---------------------------------------------------------------------------
 # EXTENSIONS (the "blocking scripts" — ported from the Claude Code shell hooks)
 # ---------------------------------------------------------------------------
-# Note: the 8 guard/routing extensions load automatically from the plugin
+# Note: the guard/routing extensions load automatically from the plugin
 # manifest (plugins/dev-team/package.json -> omp.extensions). You do NOT list
 # them here. (Only add an `extensions:` list if you run dev-team as a raw .omp
 # workspace instead of an installed plugin.)

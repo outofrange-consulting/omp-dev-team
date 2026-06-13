@@ -45,7 +45,7 @@ that cannot name the friction it removes does not ship.
   scripts"): `path-guard` (secrets), `destructive-guard` + `/careful`,
   `freeze-guard` (`/freeze` `/unfreeze`), `review-gate` (blocks `git commit`
   until `/code-review` + `/review-approve`), `tdd-guard` (advisory), and
-  `model-routing` (local-model availability gate + dispatch log).
+  `model-routing` (dispatch tier log + `/routing` diagnostic).
 
 ## Model routing (tiers → models)
 
@@ -55,14 +55,15 @@ Each agent declares a tier in its `model:` frontmatter. The mapping is native
 
 | Tier | Frontmatter | Resolves to | Used for |
 |---|---|---|---|
-| small | `pi/smol` | **local** model (Ollama, via `modelRoles.smol`) | lexical/structural pattern matching, checklist review (naming, complexity, a11y, svelte, js-fp, token-efficiency) |
+| small | `pi/smol` | cheap cloud model (via `modelRoles.smol`, default Haiku) | lexical/structural pattern matching, checklist review (naming, complexity, a11y, svelte, js-fp, token-efficiency) |
 | balanced | `claude-sonnet-4-6` | Sonnet (cloud) | semantic analysis, most team & review agents, orchestrator |
 | deep | `claude-opus-4-8` | Opus (cloud) | cross-file reasoning, design synthesis, threat modeling, recon |
 
-**Only the small tier is local by design** — local models replace the cheap
-high-volume agents, not Sonnet/Opus. The `model-routing` extension blocks a
-small-tier dispatch if the local backend is down, with a fix message. Run
-`/skill:model-routing-check` or the `/routing` command for the effective map.
+**The small tier is a cheap-cloud, high-volume tier** — it replaces expensive
+Sonnet/Opus calls for lexical/structural checks, not the other way round. Keep it
+on the cheapest capable model (default `claude-haiku-4-5`; cheaper via the
+copilot-preset plugin). The `model-routing` extension logs each dispatch's tier;
+run `/skill:model-routing-check` or the `/routing` command for the effective map.
 
 ## Request processing flow
 

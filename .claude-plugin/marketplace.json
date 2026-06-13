@@ -3,14 +3,14 @@
   "name": "omp-dev-team",
   "owner": { "name": "outofrange-consulting" },
   "metadata": {
-    "description": "Oh-My-Pi plugins: a persona-driven dev team and an Azure DevOps filesystem.",
+    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, a token-reduction toolkit, and an Azure DevOps filesystem.",
     "pluginRoot": "./plugins"
   },
   "plugins": [
     {
       "name": "dev-team",
       "source": "./dev-team",
-      "description": "Persona-driven AI development team: 32 agents, 3-phase orchestration (specs/plan/build/pr), blocking guard extensions, and local small-tier model routing (Sonnet/Opus stay cloud).",
+      "description": "Agentic dev team (port of bdfinst/agentic-dev-team): orchestrator + 32 specialist/critic agents, the specs->plan->build->pr workflow, strict TDD and human gates, ~78 skills, and blocking guard extensions. All-cloud tiers.",
       "category": "development",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

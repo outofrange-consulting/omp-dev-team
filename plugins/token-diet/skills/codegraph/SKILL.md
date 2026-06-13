@@ -15,7 +15,7 @@ grep+read round-trips (~96% fewer tokens on those tasks).
 
 ## Prerequisites
 
-- Installed + indexed: `bash plugins/token-diet/scripts/setup.sh`, or manually
+- Installed + indexed: `bash plugins/token-diet/install.sh`, or manually
   `codegraph init && codegraph index`.
 - `codegraph` MCP server set `enabled: true` in `.mcp.json` (ships disabled).
 - The server auto-syncs the graph on file changes (file watcher, ~2s debounce).

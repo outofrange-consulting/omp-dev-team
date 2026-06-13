@@ -1,9 +1,14 @@
 # dev-team
 
-Persona-driven AI development team for [Oh-My-Pi](https://github.com/can1357/oh-my-pi),
-ported from [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team).
-32 agents, 3-phase orchestration, blocking guard extensions, and **local
-small-tier model routing** (Sonnet/Opus stay cloud).
+An **agentic development team** for [Oh-My-Pi](https://github.com/can1357/oh-my-pi),
+ported from Bryan Finster's [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team).
+An orchestrator routes work through a **spec → plan → build → PR** workflow with
+**strict TDD** and **human gates**, backed by 32 specialist and critic agents and
+blocking guard extensions.
+
+> Philosophy (Finster): AI is a high-pass filter for engineering discipline. The
+> win comes from continuous delivery, TDD, and defining what you build before you
+> build it — not from picking a model. This plugin encodes that discipline.
 
 ## Install
 
@@ -12,48 +17,56 @@ omp plugin marketplace add outofrange-consulting/omp-dev-team
 omp plugin install dev-team@omp-dev-team
 ```
 
-Then paste `config.snippet.yml` into `~/.omp/agent/config.yml` (sets model
-routing + `skills.enableSkillCommands` + the task graph).
-
-## Local small-tier model (the headline)
-
-Agents declare a tier in `model:`. Small/pattern agents use `pi/smol`, resolved
-by `modelRoles.smol`; balanced/deep agents pin `claude-sonnet-4-6` /
-`claude-opus-4-8`. Only the small tier is local.
+Then paste `config.snippet.yml` into `~/.omp/agent/config.yml` (model routing +
+`skills.enableSkillCommands` + the task graph). The plugin's prerequisite checker:
 
 ```sh
-scripts/setup-local-models.sh          # pull Qwen3-Coder-30B-A3B (+ --fast / --next / --devstral)
+bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, can apply config
 ```
 
-Ships **cloud-safe** (`smol: claude-haiku-4-5`, `local.enabled:false`) so a
-fresh install never blocks on a missing GPU. Flip to local:
+## The workflow
 
-```yaml
-# ~/.omp/agent/config.yml
-modelRoles:
-  smol: ollama/qwen3-coder:30b   # local GPU small tier
-# …and set "local": { "enabled": true } in model-routing.json to re-arm the gate.
-```
+`/specs` → `/plan` → `/build` → `/pr`:
 
-Source of truth: `skills/dev-team-knowledge/model-routing.json`. The
-`model-routing` extension probes the local backend, **blocks** a small-tier
-dispatch when it's down (set `local.enabled:false` to disarm), and logs
-dispatches to `<project>/.omp/state/model-routing.log`. Diagnose with `/routing`
-or `/skill:model-routing-check`.
+1. **`/specs`** — capture a feature as Intent + BDD scenarios + Architecture +
+   Acceptance Criteria. Human approves.
+2. **`/plan`** — turn the approved spec into a TDD step-plan. Four **plan-review
+   critics** (acceptance-test, design, UX, strategic) challenge it in parallel
+   *before* you see it.
+3. **`/build`** — execute the approved plan under **RED → GREEN → REFACTOR** hard
+   gates (`tdd-guard`).
+4. **`/pr`** — run the quality gates and open the pull request.
 
-## Pipeline
+For complex work the **orchestrator** runs **Research → Plan → Implement** with a
+human gate between phases. Plus `/code-review` (`/review`), `/review-agent`,
+`/continue`, `/triage`, `/design-doc`, `/issues-from-plan`, `/model-routing-check`.
+Every skill is also available as `/skill:<name>`.
 
-`/specs` → `/plan` → `/build` → `/pr`, plus `/code-review` (`/review`),
-`/review-agent`, `/continue`, `/triage`, `/design-doc`, `/issues-from-plan`,
-`/model-routing-check`. Every skill is also `/skill:<name>`.
+## Model tiers (all cloud)
+
+Agents declare a tier in `model:` frontmatter, resolved natively by your
+`modelRoles`:
+
+| Tier | Frontmatter | For |
+|---|---|---|
+| small | `pi/smol` (cheap cloud, default Haiku) | lexical/structural checks, checklist reviews — high volume |
+| balanced | `claude-sonnet-4-6` | most team & review agents, orchestrator |
+| deep | `claude-opus-4-8` | cross-file reasoning, design synthesis, threat modeling, recon |
+
+The high-volume **small tier** is where token spend concentrates — keep it cheap.
+Point `modelRoles.smol` at `claude-haiku-4-5`, or (with the **copilot-preset**
+plugin) at `github-copilot/gpt-5-mini` to run it on your Copilot license. Pair
+with **token-diet** to cut tokens further. Source of truth:
+`skills/dev-team-knowledge/model-routing.json`; diagnose with `/routing` or
+`/skill:model-routing-check`.
 
 ## Guardrails (extensions)
 
 `path-guard` (secrets), `destructive-guard` + `/careful`, `freeze-guard`
-(`/freeze` `/unfreeze`), `tdd-guard` (advisory), `review-gate` (blocks
-`git commit` until `/review-approve`), `telemetry` + `/cost-report`,
-`model-routing` (+ `/routing`). They intercept `tool_call` and block with a
-reason — OMP's native blocking mechanism.
+(`/freeze` `/unfreeze`), `tdd-guard` (RED-GREEN-REFACTOR), `review-gate` (blocks
+`git commit` until `/code-review` + `/review-approve`), `telemetry` +
+`/cost-report`, `model-routing` (dispatch tier log + `/routing`). They intercept
+`tool_call` and block with a reason — OMP's native blocking mechanism.
 
 ## Layout
 
@@ -61,5 +74,5 @@ reason — OMP's native blocking mechanism.
 .claude-plugin/plugin.json · package.json (omp.extensions)
 agents/  skills/  commands/  rules/  extensions/  .mcp.json
 skills/dev-team-knowledge/   # registries, rubrics, model-routing.json
-config.snippet.yml  models.yml.example  scripts/
+config.snippet.yml  install.sh  install.ps1
 ```

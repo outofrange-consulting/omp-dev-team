@@ -1,46 +1,22 @@
 {
-  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension and the /model-routing-check command read this file. Agents declare a tier in their `model:` frontmatter: small-tier agents use `pi/smol` (resolved by .omp/config.yml modelRoles.smol, defaulting to a LOCAL model); reasoning-tier agents pin a concrete cloud model id. Only the small tier is local by design -- local models replace the cheap pattern-matching agents, not Sonnet/Opus.",
+  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension and the /model-routing-check command read this file. Agents declare a tier in their `model:` frontmatter: small/pattern agents use the `pi/smol` role (resolved by .omp/config.yml modelRoles.smol -> a cheap CLOUD model); balanced/deep agents pin a concrete cloud model id. The small tier is a CHEAP-CLOUD high-volume tier (it replaces the expensive Sonnet/Opus calls for lexical/structural checks), not a local-GPU tier.",
   "tiers": {
-    "haiku": {
+    "small": {
       "role": "smol",
       "frontmatter": "pi/smol",
-      "intent": "local",
-      "rationale": "Lexical/structural pattern matching, checklist-style verification (naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian). Cheap, high-volume, parallel. Routed to a local model on the GPU."
+      "intent": "cheap-cloud",
+      "rationale": "Lexical/structural pattern matching, checklist-style verification (naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian). Cheap, high-volume, parallel. Routed to whatever modelRoles.smol points at -- a cheap cloud model (default claude-haiku-4-5; with the copilot-preset plugin, e.g. github-copilot/gpt-5-mini)."
     },
-    "sonnet": {
+    "balanced": {
       "frontmatter": "claude-sonnet-4-6",
       "intent": "cloud",
       "rationale": "Semantic analysis with balanced cost/quality (most team agents + most review agents + orchestrator)."
     },
-    "opus": {
+    "deep": {
       "frontmatter": "claude-opus-4-8",
       "intent": "cloud",
       "rationale": "Cross-file reasoning, high-stakes design synthesis, threat modeling, broad reconnaissance (security-review, domain-review, arch-review, architect, security-engineer, codebase-recon)."
     }
   },
-  "local": {
-    "enabled": false,
-    "$enabled_note": "false = small tier runs on CLOUD via modelRoles.smol (currently claude-haiku-4-5); the model-routing extension skips the local-backend availability gate so pi/smol agents are not blocked. Set true AND point modelRoles.smol back at a local model id (e.g. ollama/qwen3-coder:30b) to require the local GPU backend again.",
-    "backend": "ollama",
-    "model": "ollama/qwen3-coder:30b",
-    "rationale": "Qwen3-Coder-30B-A3B (a.k.a. Qwen3-Coder-Flash): 30.5B total / ~3.3B active MoE. On a 9950X + 64GB RAM + 5070 Ti 16GB it does not fully fit VRAM, but as an MoE it offloads expert FFNs to CPU/RAM and keeps attention + KV on the GPU, so it stays fast (~20-40 tok/s) while being clearly smarter than a 14B dense model. Ollama auto-offloads and is auto-discovered by OMP. For the best throughput on the 30B, run it under llama.cpp with --n-cpu-moe (see alternatives).",
-    "alternatives": [
-      "llama.cpp/qwen3-coder-next",
-      "llama.cpp/qwen3-coder-30b-a3b",
-      "ollama/devstral",
-      "ollama/qwen2.5-coder:14b",
-      "ollama/qwen2.5-coder:7b"
-    ],
-    "alternatives_notes": {
-      "llama.cpp/qwen3-coder-next": "80B total / ~3B active MoE (hybrid Gated DeltaNet + attention, 256K ctx), SWE-bench Verified ~70.6%. ~40GB Q4 -> fits 64GB RAM. Best quality. Needs a recent llama.cpp build. Run: scripts/setup-local-models.sh --next",
-      "ollama/devstral": "Devstral Small 2 (Mistral, 24B dense), SWE-bench ~72% but narrowly SWE-tuned. ~14GB Q4 -> full-VRAM, best throughput. Run: scripts/setup-local-models.sh --devstral"
-    },
-    "probe": {
-      "ollama": "http://127.0.0.1:11434/api/tags",
-      "llama.cpp": "http://127.0.0.1:8080/v1/models",
-      "lm-studio": "http://127.0.0.1:1234/v1/models"
-    },
-    "fallback": "claude-haiku-4-5",
-    "notes": "Tier sizing for 16GB VRAM + 64GB RAM: (1) ollama/qwen3-coder:30b = best quality, MoE expert offload, recommended. (2) ollama/qwen2.5-coder:14b Q4 (~9GB) = fully in VRAM, max throughput for parallel review fan-out. (3) llama.cpp/qwen3-coder-30b-a3b with `--n-cpu-moe N` or `-ot '.ffn_.*_exps.=CPU'` = max speed on the 30B. If the local backend is unreachable, the `model-routing` extension blocks small-tier dispatches; set modelRoles.smol: claude-haiku-4-5 to run fully on cloud."
-  }
+  "notes": "Keep the high-volume `small` tier on the cheapest capable model to limit token spend; reserve balanced/deep for work that needs them. Pair with the copilot-preset and token-diet plugins for further cost control."
 }
