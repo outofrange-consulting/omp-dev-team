@@ -6,16 +6,17 @@
 # Flags:
 #   -y, --yes      non-interactive: install all plugins + apply default configs
 #                  (skips the Azure PAT prompt unless env vars are already set)
+#   --no-runtimes  skip installing node/bun/cargo (assume they're present)
 #   --dry-run      print actions without executing (passed to plugin installers)
 #   -h, --help     this help
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-DRY=0; YES=0
+DRY=0; YES=0; RUNTIMES=1
 for a in "$@"; do case "$a" in
-  -y|--yes) YES=1 ;; --dry-run) DRY=1 ;;
-  -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+  -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;;
+  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -44,6 +45,8 @@ ensure_path() {  # add $1 to PATH in this session + persist to profiles (idempot
   [ -d "$dir" ] || return 0
   case ":$PATH:" in *":$dir:"*) ;; *) PATH="$dir:$PATH"; export PATH ;; esac
   [ "$DRY" = 1 ] && { printf '  [dry-run] persist PATH += %s\n' "$dir"; return 0; }
+  # Guarantee a login-shell profile exists so a fresh account picks up PATH.
+  [ -e "$HOME/.profile" ] || : > "$HOME/.profile"
   for p in "${PROFILES[@]}"; do
     [ -e "$p" ] || continue
     grep -qsF "$dir" "$p" 2>/dev/null && continue
@@ -51,14 +54,66 @@ ensure_path() {  # add $1 to PATH in this session + persist to profiles (idempot
   done
 }
 
+# true if installed $1 version is >= $2 (dotted)
+version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; }
+
+MIN_BUN="1.3.14"
+ensure_bun() {  # OMP requires bun >= MIN_BUN
+  if have bun && version_ge "$(bun --version 2>/dev/null || echo 0)" "$MIN_BUN"; then
+    ok "bun $(bun --version)"
+  else
+    say "Installing bun (>= $MIN_BUN; OMP requires it)"
+    run "curl -fsSL https://bun.sh/install | bash"
+  fi
+  ensure_path "$HOME/.bun/bin"
+}
+ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
+  if have node; then ok "node $(node --version)"; return; fi
+  say "Installing Node.js (LTS)"
+  if have brew; then run "brew install node"
+  elif have curl; then
+    run "curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell"
+    ensure_path "$HOME/.local/share/fnm"; hash -r 2>/dev/null || true
+    if have fnm; then
+      run 'eval "$(fnm env --shell bash)"; fnm install --lts && fnm use lts-latest'
+      # fnm's multishell bin is per-process/ephemeral — symlink the REAL node/npm/npx
+      # into ~/.local/bin so they persist to new shells.
+      mkdir -p "$HOME/.local/bin"
+      if have node; then
+        local rn bd b
+        rn="$(readlink -f "$(command -v node)" 2>/dev/null || true)"
+        if [ -n "$rn" ]; then bd="$(dirname "$rn")"; for b in node npm npx; do [ -e "$bd/$b" ] && ln -sf "$bd/$b" "$HOME/.local/bin/$b"; done; fi
+        ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
+      fi
+    fi
+  else warn "could not install Node.js automatically — see https://nodejs.org"; fi
+}
+ensure_cargo() {  # Rust toolchain (rtk fallback build; generally useful)
+  if have cargo; then ok "cargo $(cargo --version 2>/dev/null | awk '{print $2}')"; return; fi
+  say "Installing Rust (rustup)"
+  run "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path"
+  ensure_path "$HOME/.cargo/bin"
+}
+
 bold "omp-dev-team installer"
 echo "Repo: $ROOT"
+
+# --- 0) Runtimes (node, bun, cargo) ----------------------------------------
+if [ "$RUNTIMES" = 1 ]; then
+  say "Ensuring runtimes"
+  ensure_bun
+  ensure_node
+  ensure_cargo
+else
+  say "Skipping runtime install (--no-runtimes)"
+fi
 
 # --- 1) OMP ----------------------------------------------------------------
 if have omp; then ok "omp present ($(omp --version 2>/dev/null | head -1))"
 else say "Installing OMP (latest)"; run "curl -fsSL https://omp.sh/install | sh"; fi
-# Make omp + tool dirs available now and in future shells.
-for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do ensure_path "$d"; done
+# Make omp + tool dirs available now and in future shells. Create them first so
+# ensure_path adds them even before later steps drop binaries in (e.g. rtk).
+for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do mkdir -p "$d" 2>/dev/null || true; ensure_path "$d"; done
 have omp || warn "omp not on PATH yet — open a new shell or 'source ~/.profile' after this"
 
 # --- 2) Register the marketplace -------------------------------------------
@@ -123,10 +178,42 @@ if ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" "N"; then
   echo "  Reminder: enable the 'azure-devops' MCP server (enabled:true) in your .mcp.json."
 fi
 
-bold "Done"
-say "Installed tools:"
-for t in omp rtk codegraph node; do
-  if have "$t"; then ok "$t -> $(command -v "$t")"; fi
-done
+# --- 4) Doctor (verify everything is present) ------------------------------
+bold "Doctor"
+[ "$DRY" = 1 ] && { echo "(dry-run — skipping verification)"; exit 0; }
+# Refresh PATH for dirs that may have been created during plugin installs.
+for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do ensure_path "$d"; done
+hash -r 2>/dev/null || true
+fail=0
+check() {  # check <tool> <required|optional> <version-cmd>
+  local t="$1" req="$2" vc="${3:-}"
+  if have "$t"; then
+    local v=""; [ -n "$vc" ] && v="$(eval "$vc" 2>/dev/null | head -1)"
+    ok "$t ${v:+($v)} -> $(command -v "$t")"
+  elif [ "$req" = required ]; then warn "$t MISSING (required)"; fail=1
+  else warn "$t not found (optional)"; fi
+}
+check git      required "git --version"
+check bun      required "bun --version"
+check node     recommended "node --version"
+check cargo    recommended "cargo --version"
+check omp      required "omp --version"
+check rtk      optional "rtk --version"
+check codegraph optional "codegraph --version"
+
+bold "OMP launch check"
+if have omp && omp --version >/dev/null 2>&1; then
+  ok "omp launches: $(omp --version 2>/dev/null | head -1)"
+  echo "  plugins installed:"; omp plugin list 2>/dev/null | grep -E "@${MARKET}" | sed 's/^/    /' || true
+else
+  warn "omp did not launch — ensure \$HOME/.bun/bin is on PATH"; fail=1
+fi
+
 echo
-echo "Open a NEW shell (or 'source ~/.profile') so PATH changes take effect, then run: omp"
+if [ "$fail" = 0 ]; then
+  bold "All set ✓"
+else
+  bold "Finished with warnings — see above"
+fi
+echo "Open a NEW shell (or 'source ~/.profile') so PATH changes persist, then run: omp"
+[ "$fail" = 0 ] || exit 1

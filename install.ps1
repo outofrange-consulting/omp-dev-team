@@ -4,11 +4,12 @@
   Installs OMP, registers this marketplace, then interactively offers each plugin
   and its config. Updates the user PATH so everything works in new shells.
   Flags:
-    -Yes       non-interactive: install all plugins + apply default configs
-    -DryRun    print actions without executing
+    -Yes          non-interactive: install all plugins + apply default configs
+    -NoRuntimes   skip installing node/bun/cargo (assume they're present)
+    -DryRun       print actions without executing
 #>
 [CmdletBinding()]
-param([switch]$Yes, [switch]$DryRun)
+param([switch]$Yes, [switch]$DryRun, [switch]$NoRuntimes)
 $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -36,8 +37,38 @@ function Ensure-Path ($dir) {
   if (";$u;" -notlike "*;$dir;*") { [Environment]::SetEnvironmentVariable('Path', "$u;$dir", 'User') }
 }
 
+$MinBun = [version]'1.3.14'
+function Ensure-Bun {
+  $okv = $false
+  if (Have bun) { try { $okv = ([version]((bun --version).Trim()) -ge $MinBun) } catch {} }
+  if ($okv) { Ok "bun $(bun --version)" }
+  else {
+    Say "Installing bun (>= $MinBun; OMP requires it)"
+    if (Have winget) { Run "winget install --id Oven-sh.Bun -e --accept-source-agreements --accept-package-agreements" }
+    else { Run "irm https://bun.sh/install.ps1 | iex" }
+  }
+  Ensure-Path (Join-Path $HOME ".bun\bin")
+}
+function Ensure-Node {
+  if (Have node) { Ok "node $(node --version)"; return }
+  Say "Installing Node.js (LTS)"
+  if (Have winget) { Run "winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements" }
+  else { Warn "could not install Node.js automatically — see https://nodejs.org" }
+}
+function Ensure-Cargo {
+  if (Have cargo) { Ok "cargo $((cargo --version) -split ' ' | Select-Object -Index 1)"; return }
+  Say "Installing Rust (rustup)"
+  if (Have winget) { Run "winget install --id Rustlang.Rustup -e --accept-source-agreements --accept-package-agreements" }
+  else { Warn "install Rust from https://rustup.rs" }
+  Ensure-Path (Join-Path $HOME ".cargo\bin")
+}
+
 Bold "omp-dev-team installer"
 Write-Host "Repo: $Root"
+
+# --- 0) Runtimes (node, bun, cargo) ----------------------------------------
+if (-not $NoRuntimes) { Say "Ensuring runtimes"; Ensure-Bun; Ensure-Node; Ensure-Cargo }
+else { Say "Skipping runtime install (-NoRuntimes)" }
 
 # --- 1) OMP ----------------------------------------------------------------
 if (Have omp) { Ok "omp present ($(omp --version 2>$null))" }
@@ -100,7 +131,32 @@ if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
   Write-Host "  Reminder: enable the azure-devops MCP server (enabled:true) in your .mcp.json."
 }
 
-Bold "Done"
-Say "Installed tools:"
-foreach ($t in 'omp','rtk','codegraph','node') { if (Have $t) { Ok "$t -> $((Get-Command $t).Source)" } }
-Write-Host "`nOpen a NEW shell so PATH changes take effect, then run: omp"
+# --- 4) Doctor -------------------------------------------------------------
+Bold "Doctor"
+if ($DryRun) { Write-Host "(dry-run — skipping verification)"; return }
+$fail = $false
+function Check ($t, $req, $vc) {
+  if (Have $t) {
+    $v = ''; if ($vc) { try { $v = (Invoke-Expression $vc 2>$null | Select-Object -First 1) } catch {} }
+    Ok ("{0} {1}-> {2}" -f $t, $(if ($v) { "($v) " } else { '' }), (Get-Command $t).Source)
+  } elseif ($req -eq 'required') { Warn "$t MISSING (required)"; $script:fail = $true }
+  else { Warn "$t not found (optional)" }
+}
+Check git       'required'    'git --version'
+Check bun       'required'    'bun --version'
+Check node      'recommended' 'node --version'
+Check cargo     'recommended' 'cargo --version'
+Check omp       'required'    'omp --version'
+Check rtk       'optional'    'rtk --version'
+Check codegraph 'optional'    'codegraph --version'
+
+Bold "OMP launch check"
+if ((Have omp) -and (omp --version 2>$null)) {
+  Ok "omp launches: $(omp --version 2>$null | Select-Object -First 1)"
+  Write-Host "  plugins installed:"; (omp plugin list 2>$null | Select-String "@$Market") | ForEach-Object { Write-Host "    $_" }
+} else { Warn "omp did not launch — ensure $HOME\.bun\bin is on PATH"; $script:fail = $true }
+
+Write-Host ""
+if (-not $fail) { Bold "All set" } else { Bold "Finished with warnings — see above" }
+Write-Host "Open a NEW shell so PATH changes persist, then run: omp"
+if ($fail) { exit 1 }
