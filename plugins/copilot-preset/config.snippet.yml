@@ -1,38 +1,55 @@
 # copilot-preset — route Oh-My-Pi through GitHub Copilot
 # Paste into ~/.omp/agent/config.yml (or a project .omp/config.yml).
 #
+# Billing note (changed 2026-06-01): Copilot is now USAGE-BASED — you pay per
+# token (input/cached/output) at each model's rate, drawn from your plan's
+# monthly AI-credit allowance (1 credit = $0.01). So model choice per tier is
+# now a direct $ lever. See pricing.md for the full rate table + comparison.
+#
 # Auth first (one of):
 #   omp                       # then /login -> GitHub Copilot (OAuth), or
 #   export COPILOT_GITHUB_TOKEN=...   # (falls back to GH_TOKEN / GITHUB_TOKEN)
-# Verify the catalog:  omp --list-models | grep github-copilot
-# (Copilot's available models depend on your plan; adjust ids below to match.)
+# Verify ids against YOUR plan (catalog is fetched live from your Copilot acct):
+#   omp --list-models | grep github-copilot
 
-# Restrict OMP to Copilot-served models (optional but recommended for teams).
+# Restrict OMP to Copilot-served models (recommended for teams).
 enabledModels:
   - github-copilot/*
 
 modelProviderOrder:
   - github-copilot
 
-# Role -> Copilot model. These map the dev-team tiers too:
-#   pi/smol (dev-team small/pattern agents) -> a cheap, fast Copilot model
-#   default/task (balanced)                 -> a mid Copilot model
-#   slow (deep reasoning)                   -> a premium Copilot model
+# Tier -> Copilot model. Tuned for "solid but cheap" to limit token spend.
+# (rates per 1M tokens, in/out — see pricing.md)
 modelRoles:
-  default: github-copilot/claude-sonnet-4.5
-  task: github-copilot/claude-sonnet-4.5
-  smol: github-copilot/gpt-5.4-mini        # or github-copilot/grok-code-fast-1 (cheapest)
-  slow: github-copilot/claude-opus-4.6     # or github-copilot/gpt-5.5
-  plan: github-copilot/claude-sonnet-4.5
+  # high-volume small tier (dev-team pattern/triage agents) — keep it cheap
+  smol: github-copilot/gpt-5-mini          # $0.25 / $2.00  (cheapest solid option today)
+  # everyday balanced work
+  default: github-copilot/claude-sonnet-4.6 # $3.00 / $15.00
+  task: github-copilot/claude-sonnet-4.6
+  plan: github-copilot/claude-sonnet-4.6
+  # deep reasoning, reserve for the hard stuff
+  slow: github-copilot/claude-opus-4.8     # $5.00 / $25.00  (Opus 4.6 is same price)
 
 skills:
   enableSkillCommands: true
 
+# ---------------------------------------------------------------------------
+# MAI-Code-1-Flash (Microsoft, "MIA Coding"): cheap, coding-tuned, pitched above
+# Claude Haiku 4.5 on price/perf at $0.75 / $4.50. Currently rolling out via the
+# Copilot model picker. The MOMENT it shows in `omp --list-models`, prefer it for
+# the cheap tiers — uncomment to make it your low-cost default:
+#
+# modelRoles:
+#   smol: github-copilot/mai-code-1-flash
+#   default: github-copilot/mai-code-1-flash   # ultra-cheap everyday profile
+#   task: github-copilot/mai-code-1-flash
+# ---------------------------------------------------------------------------
+
 # NOTE — running the dev-team fully on Copilot:
 # dev-team's *small tier* uses the `pi/smol` role, so it follows modelRoles.smol
-# above automatically. dev-team's balanced/deep agents PIN concrete Anthropic
-# ids (claude-sonnet-4-6 / claude-opus-4-8) in their frontmatter, so they go
-# direct to Anthropic unless you either (a) run your interactive default on a
-# github-copilot model and rely on it, or (b) edit those agents' `model:` to a
-# github-copilot id. See this plugin's README for the trade-off (premium-request
-# accounting differs per model).
+# automatically (this is the high-volume tier, biggest savings). dev-team's
+# balanced/deep agents PIN concrete Anthropic ids (claude-sonnet-4-6 /
+# claude-opus-4-8) in frontmatter, so they go direct to Anthropic unless you
+# either (a) run your interactive default on a github-copilot model, or (b) edit
+# those agents' `model:` to a github-copilot id.

@@ -2,8 +2,9 @@
 name: copilot-preset
 description: >-
   How this OMP workspace is wired to GitHub Copilot models. Use when the user
-  asks which model is running, how to switch Copilot models, about premium
-  requests, or how to run the dev-team on their Copilot license.
+  asks which model is running, how to switch Copilot models, about AI-credit /
+  token billing, which model is cheapest, MAI-Code-1-Flash ("MIA Coding"), or
+  how to run the dev-team cheaply on their Copilot license.
 ---
 
 # GitHub Copilot model preset
@@ -16,28 +17,38 @@ so a team uses its Copilot license instead of direct provider billing.
 OAuth: run `omp`, then `/login` → **GitHub Copilot**. Or set a token:
 `COPILOT_GITHUB_TOKEN` (falls back to `GH_TOKEN`, then `GITHUB_TOKEN`).
 
-List what your plan exposes: `omp --list-models | grep github-copilot`.
+List what YOUR plan exposes (catalog is fetched live from your Copilot account):
+`omp --list-models | grep github-copilot`.
 
-## Tier mapping (see config.snippet.yml)
+## Billing (changed 2026-06-01)
 
-| Role | Model | Notes |
+Copilot is now **usage-based**: you pay per token (input/cached/output) at each
+model's rate, drawn from your plan's monthly **AI-credit** allowance
+(1 credit = $0.01). Model choice per tier is a direct cost lever, and **cached
+input is ~10× cheaper than fresh input** — long-lived sessions beat cold
+one-shots. Full rate table + comparison: `plugins/copilot-preset/pricing.md`.
+
+## Tier mapping (see config.snippet.yml) — "solid but cheap"
+
+| Role | Model | Rate in/out (per 1M) |
 |---|---|---|
-| `smol` (dev-team small tier) | `github-copilot/gpt-5.4-mini` | cheap/fast; `grok-code-fast-1` is cheapest |
-| `default` / `task` (balanced) | `github-copilot/claude-sonnet-4.5` | everyday work |
-| `slow` (deep reasoning) | `github-copilot/claude-opus-4.6` | premium-heavy; or `gpt-5.5` |
+| `smol` (dev-team small tier) | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
+| `default`/`task` (balanced) | `github-copilot/claude-sonnet-4.6` | $3.00 / $15.00 |
+| `slow` (deep) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
 
-## Premium requests
+Reserve **Fable 5** ($10/$50) for long-horizon autonomous tasks only.
 
-Copilot bills many models in **premium requests** (a multiplier per call).
-`*-mini` and `grok-code-fast-1` are cheap/free-tier; Opus/GPT-5.5 are expensive.
-For high-volume fan-out (the dev-team review agents), keep `smol` on a cheap
-model. The `github-copilot` provider sends the correct premium-request headers
-automatically.
+## MAI-Code-1-Flash ("MIA Coding")
+
+Microsoft's cheap, coding-tuned model ($0.75/$4.50), pitched above Haiku 4.5 on
+price/perf, rolling out via the Copilot picker. The config ships a commented
+block — the moment it appears in `omp --list-models`, switch the cheap tiers
+(`smol`/`default`) to `github-copilot/mai-code-1-flash`.
 
 ## Running the dev-team on Copilot
 
 - The dev-team **small tier** uses the `pi/smol` role → follows `modelRoles.smol`
-  here automatically (this is the high-volume tier, so the win is biggest).
+  here automatically (highest-volume tier, biggest savings).
 - The **balanced/deep** dev-team agents pin Anthropic ids in frontmatter. To run
   them on Copilot too, either set your interactive default to a `github-copilot`
   model, or change those agents' `model:` to `github-copilot/...`.
