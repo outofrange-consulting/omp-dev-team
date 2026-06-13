@@ -1,5 +1,7 @@
 # copilot-preset
 
+> 🌐 **English** · [Français](README.fr.md)
+
 A **ready model configuration** that routes [Oh-My-Pi](https://github.com/can1357/oh-my-pi)
 — and, if installed, the **dev-team** plugin — through **GitHub Copilot**
 (`github-copilot` provider). For teams that already pay for Copilot and want a

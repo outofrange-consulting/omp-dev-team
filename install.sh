@@ -142,8 +142,10 @@ plug() {  # plug <name> <dir>
       else ok "plugin ${name} already installed (skip; --update to refresh)"; fi
     else run "omp plugin install ${name}@${MARKET} || true"; fi
   fi
-  if [ -x "$dir/install.sh" ] || [ -f "$dir/install.sh" ]; then
-    run "bash \"$dir/install.sh\" $flags ${YES:+-y}"
+  # A plugin's optional tooling failing must not abort the whole run; the doctor
+  # reports the real end state.
+  if [ -f "$dir/install.sh" ]; then
+    run "bash \"$dir/install.sh\" $flags ${YES:+-y} || true"
   fi
 }
 
@@ -171,25 +173,9 @@ if ask "Install token-diet (RTK + CodeGraph + caveman; token reduction)?" "N"; t
 fi
 
 if ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" "N"; then
+  # The plugin installer ensures Node, pre-warms the MCP server, and (when
+  # interactive) prompts for the org/project/PAT and persists them.
   plug azure-devops-fs "$ROOT/plugins/azure-devops-fs"
-  if ask "  Configure Azure DevOps env vars now?" "N"; then
-    SECRETS="$HOME/.omp/secrets.env"
-    read -r -p "    AZURE_DEVOPS_ORG: " ado_org </dev/tty || ado_org=""
-    read -r -p "    AZURE_DEVOPS_PROJECT (optional): " ado_proj </dev/tty || ado_proj=""
-    read -r -s -p "    AZURE_DEVOPS_PAT (hidden): " ado_pat </dev/tty || ado_pat=""; echo
-    if [ "$DRY" = 1 ]; then
-      echo "  [dry-run] write org/project to profiles, PAT to $SECRETS (chmod 600)"
-    else
-      [ -n "$ado_org" ]  && for p in "${PROFILES[@]}"; do [ -e "$p" ] && { grep -qsF AZURE_DEVOPS_ORG "$p" || printf '\nexport AZURE_DEVOPS_ORG=%q\n' "$ado_org" >> "$p"; }; done
-      [ -n "$ado_proj" ] && for p in "${PROFILES[@]}"; do [ -e "$p" ] && { grep -qsF AZURE_DEVOPS_PROJECT "$p" || printf 'export AZURE_DEVOPS_PROJECT=%q\n' "$ado_proj" >> "$p"; }; done
-      if [ -n "$ado_pat" ]; then
-        mkdir -p "$(dirname "$SECRETS")"; touch "$SECRETS"; chmod 600 "$SECRETS"
-        grep -qsF AZURE_DEVOPS_PAT "$SECRETS" || printf 'export AZURE_DEVOPS_PAT=%q\n' "$ado_pat" >> "$SECRETS"
-        for p in "${PROFILES[@]}"; do [ -e "$p" ] && { grep -qsF "secrets.env" "$p" || printf '\n[ -f "%s" ] && . "%s"\n' "$SECRETS" "$SECRETS" >> "$p"; }; done
-        echo "  PAT stored in $SECRETS (chmod 600), sourced from your profile."
-      fi
-    fi
-  fi
   echo "  Reminder: enable the 'azure-devops' MCP server (enabled:true) in your .mcp.json."
 fi
 

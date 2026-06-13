@@ -1,5 +1,7 @@
 # dev-team
 
+> 🌐 **English** · [Français](README.fr.md)
+
 An **agentic development team** for [Oh-My-Pi](https://github.com/can1357/oh-my-pi),
 ported from Bryan Finster's [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team).
 An orchestrator routes work through a **spec → plan → build → PR** workflow with

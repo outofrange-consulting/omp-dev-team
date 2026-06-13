@@ -1,5 +1,7 @@
 # token-diet
 
+> 🌐 **English** · [Français](README.fr.md)
+
 Aggressive **token reduction** for OMP dev teams. Bundles three best-in-class
 external token savers and wires them into OMP the native way — on top of what OMP
 already does (compaction, `astGrep`/`summarizeCode`, provider prompt caching), not
@@ -15,12 +17,15 @@ in place of it.
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installs rtk + codegraph, indexes the repo
+bash plugins/token-diet/install.sh   # installs rtk + codegraph, then asks for your
+                                     # sources ROOT and indexes EVERY git repo under it
 ```
 
-Then enable the CodeGraph MCP server (ships `enabled: false`): set
-`mcpServers.codegraph.enabled = true` in your merged `.mcp.json` once the project
-is indexed.
+`install.sh` prompts for the **root of your sources** (a directory containing many
+repos) and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`), so
+any repo is ready the moment you open it. Then enable the CodeGraph MCP server
+(ships `enabled: false`): set `mcpServers.codegraph.enabled = true` in your merged
+`.mcp.json`.
 
 ## How it's wired into OMP
 

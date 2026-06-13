@@ -1,5 +1,7 @@
 # omp-dev-team — an Oh-My-Pi marketplace
 
+> 🌐 **English** · [Français](README.fr.md)
+
 Four **independent** [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi) plugins.
 Install any subset — they share nothing. A global installer sets up OMP and walks
 you through them.

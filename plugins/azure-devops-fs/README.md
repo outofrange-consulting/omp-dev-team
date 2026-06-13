@@ -1,5 +1,7 @@
 # azure-devops-fs
 
+> 🌐 **English** · [Français](README.fr.md)
+
 **Azure DevOps as a filesystem for [Oh-My-Pi](https://github.com/can1357/oh-my-pi).**
 The ADO analog of OMP's "GitHub as a filesystem" (`pr://` / `issue://` + the
 `github` tool). Standalone — depends on no other plugin.
@@ -24,12 +26,19 @@ that makes paths/refs first-class and understands `ado://` / `adopr://` URIs.
 ## Setup
 
 ```sh
+omp plugin install azure-devops-fs@omp-dev-team
+bash plugins/azure-devops-fs/install.sh     # ensures Node + prompts for org/project/PAT
+```
+
+The installer (interactive) asks for your org/project/**PAT** and persists them
+(org/project to your shell profile; the PAT to `~/.omp/secrets.env`, chmod 600,
+sourced from your profile). To set them by hand instead:
+
+```sh
 export AZURE_DEVOPS_ORG=your-org
 export AZURE_DEVOPS_PROJECT=your-project    # optional default
 export AZURE_DEVOPS_PAT=xxxxxxxx            # Code R/W, PR R/W (+ Build R for pipelines)
 ```
-
-Install: `omp plugin install azure-devops-fs@omp-dev-team`.
 
 ## Design notes
 

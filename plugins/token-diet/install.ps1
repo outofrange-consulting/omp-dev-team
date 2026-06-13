@@ -1,11 +1,13 @@
 #requires -Version 5.1
 <#
   token-diet installer (Windows) — installs the LATEST RTK + CodeGraph and
-  indexes the current project. caveman ships as an OMP skill (no install).
-  Flags: -DryRun (print only), -Update (refresh existing).
+  indexes EVERY git repo under a sources root. caveman ships as an OMP skill.
+  Flags: -DryRun, -Update (refresh existing), -Yes (non-interactive),
+         -SourcesRoot <path> (parent of your repos; every git repo under it is
+         indexed; default cwd, asked if interactive), -Depth N (default 3).
 #>
 [CmdletBinding()]
-param([switch]$DryRun, [switch]$Update)
+param([switch]$DryRun, [switch]$Update, [switch]$Yes, [string]$SourcesRoot, [int]$Depth = 3)
 $ErrorActionPreference = 'Stop'
 
 function Say  ($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
@@ -48,10 +50,31 @@ if (";$env:Path;" -notlike "*;$BinDir;*") {
   } else { Write-Host "  [dry-run] setx PATH += $BinDir" }
 }
 
-# --- Index the current project ----------------------------------------------
+# --- Scan/index source repos with CodeGraph ---------------------------------
+# Point CodeGraph at the ROOT of your sources; every git repo under it is indexed.
+if (-not $SourcesRoot) {
+  if (-not $Yes -and -not $DryRun -and -not [Console]::IsInputRedirected) {
+    $ans = Read-Host "Sources ROOT to scan (every git repo under it is indexed)? [default: $(Get-Location)]"
+    if (-not [string]::IsNullOrWhiteSpace($ans)) { $SourcesRoot = $ans }
+  }
+  if (-not $SourcesRoot) { $SourcesRoot = (Get-Location).Path }
+}
+function Index-One ($repo) {
+  Say "  CodeGraph: $repo"
+  Run "codegraph init `"$repo`""; Run "codegraph index `"$repo`""
+}
 if ((Have codegraph) -or $DryRun) {
-  Say "Indexing this project with CodeGraph (cwd: $(Get-Location))"
-  Run "codegraph init ."   ; Run "codegraph index ."  ; Run "codegraph status ."
+  if (Test-Path (Join-Path $SourcesRoot '.git')) {
+    Say "Scanning single repo: $SourcesRoot"; Index-One $SourcesRoot
+  } else {
+    Say "Scanning every git repo under: $SourcesRoot (depth $Depth)"
+    $repos = @()
+    if (-not $DryRun) {
+      $repos = Get-ChildItem -Path $SourcesRoot -Recurse -Depth $Depth -Directory -Filter '.git' -ErrorAction SilentlyContinue | ForEach-Object { $_.Parent.FullName }
+    }
+    if ($repos.Count -gt 0) { foreach ($r in $repos) { Index-One $r }; Say "Indexed $($repos.Count) repo(s) under $SourcesRoot." }
+    else { Warn "no git repos under $SourcesRoot — indexing it as a single project"; Index-One $SourcesRoot }
+  }
 }
 
 Write-Host @"

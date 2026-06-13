@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 # token-diet installer (Linux/macOS) — installs the LATEST RTK + CodeGraph and
-# indexes the current project. caveman ships as an OMP skill (no install).
-# Idempotent. Flags: --dry-run (print only), --update (refresh existing), -y.
+# indexes EVERY git repo under a sources root. caveman ships as an OMP skill.
+# Flags:
+#   --sources-root=PATH  parent dir of your repos; every git repo under it is
+#                        indexed (default: cwd; asked if interactive). --project= is an alias.
+#   --depth=N            how deep to look for repos under the root (default 3)
+#   --update             refresh rtk/codegraph if already installed
+#   --dry-run            print only
+#   -y, --yes            non-interactive (don't prompt for the sources root)
 set -euo pipefail
 
-DRY=0; UPDATE=0; YES=0
+DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3
 for a in "$@"; do case "$a" in
   --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;;
-  -h|--help) sed -n '2,6p' "$0"; exit 0 ;;
+  --sources-root=*|--project=*) SROOT="${a#*=}" ;;
+  --depth=*) DEPTH="${a#*=}" ;;
+  -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -21,10 +29,12 @@ if have rtk && [ "$UPDATE" = 0 ]; then
   say "RTK present ($(rtk --version 2>/dev/null || echo '?')) — use --update to refresh"
 else
   say "Installing latest RTK (Rust Token Killer)"
-  if have brew;  then run "brew install rtk || brew upgrade rtk"
-  elif have curl; then run "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh"
+  # curl installer is the official cross-platform path (linux + macOS); brew/cargo
+  # are fallbacks (brew has no guaranteed formula on all taps).
+  if have curl;  then run "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh"
+  elif have brew; then run "brew install rtk"
   elif have cargo; then run "cargo install --git https://github.com/rtk-ai/rtk"
-  else warn "need brew, curl, or cargo to install rtk — skipping"; fi
+  else warn "need curl, brew, or cargo to install rtk — skipping"; fi
 fi
 
 # --- CodeGraph (MCP) ---------------------------------------------------------
@@ -37,12 +47,39 @@ else
   else warn "need curl or npm to install codegraph — skipping"; fi
 fi
 
-# --- Index the current project ----------------------------------------------
+# --- Scan/index source repos with CodeGraph ---------------------------------
+# Point CodeGraph at the ROOT of your sources (a dir containing many repos);
+# every git repo under it gets indexed so any repo is ready when you open it.
+# Asked when interactive so the global installer doesn't index the marketplace clone.
+if [ -z "$SROOT" ]; then
+  if [ "$YES" = 0 ] && [ "$DRY" = 0 ] && [ -r /dev/tty ]; then
+    printf 'Sources ROOT to scan (every git repo under it is indexed)? [default: %s] ' "$PWD"
+    read -r SROOT </dev/tty || SROOT=""
+  fi
+  SROOT="${SROOT:-$PWD}"
+fi
+
+index_one() {  # index_one <repo-dir>
+  say "  CodeGraph: $1"
+  run "codegraph init \"$1\""  || true
+  run "codegraph index \"$1\"" || true
+}
+
 if have codegraph || [ "$DRY" = 1 ]; then
-  say "Indexing this project with CodeGraph (cwd: $(pwd))"
-  run "codegraph init ."   || true
-  run "codegraph index ."  || true
-  run "codegraph status ." || true
+  if [ -d "$SROOT/.git" ]; then
+    say "Scanning single repo: $SROOT"; index_one "$SROOT"
+  else
+    say "Scanning every git repo under: $SROOT (depth $DEPTH)"
+    found=0
+    while IFS= read -r gitdir; do
+      [ -n "$gitdir" ] || continue
+      found=$((found + 1)); index_one "$(dirname "$gitdir")"
+    done <<EOF
+$(find "$SROOT" -maxdepth "$DEPTH" -type d -name .git 2>/dev/null)
+EOF
+    if [ "$found" = 0 ]; then warn "no git repos under $SROOT — indexing it as a single project"; index_one "$SROOT"
+    else say "Indexed $found repo(s) under $SROOT."; fi
+  fi
 fi
 
 cat <<'EOF'

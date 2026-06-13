@@ -1,12 +1,12 @@
 #requires -Version 5.1
 <#
   azure-devops-fs installer (Windows) — ensures Node.js (for `npx
-  @azure-devops/mcp`) and pre-warms the LATEST MCP package. The `ado` tool is a
-  TS extension loaded by OMP (no separate install).
-  Flags: -DryRun.
+  @azure-devops/mcp`), pre-warms the LATEST MCP package, and (when interactive)
+  prompts for the Azure DevOps org/project/PAT and persists them to the User env.
+  Flags: -DryRun, -Yes (non-interactive), -Configure (force prompt), -NoConfig.
 #>
 [CmdletBinding()]
-param([switch]$DryRun)
+param([switch]$DryRun, [switch]$Yes, [switch]$Configure, [switch]$NoConfig)
 $ErrorActionPreference = 'Stop'
 
 function Say  ($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
@@ -34,12 +34,32 @@ if ((Have npx) -or $DryRun) {
   Run "npx -y @azure-devops/mcp@latest --help *> `$null"
 }
 
+# --- Configure org / project / PAT ------------------------------------------
+$interactive = (-not $Yes) -and (-not [Console]::IsInputRedirected)
+if ($env:AZURE_DEVOPS_ORG -and $env:AZURE_DEVOPS_PAT) {
+  Say "Azure DevOps already configured via environment — skipping prompt"
+} elseif ($NoConfig -or (-not $Configure -and -not $interactive)) {
+  Say "Skipping ADO credential prompt (non-interactive)"
+  Write-Host "    Set later (User env): AZURE_DEVOPS_ORG / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT"
+} else {
+  Say "Configure Azure DevOps credentials"
+  $org  = Read-Host "    AZURE_DEVOPS_ORG (e.g. https://dev.azure.com/<org>)"
+  if ($org) {
+    $proj = Read-Host "    AZURE_DEVOPS_PROJECT (optional)"
+    $pat  = Read-Host "    AZURE_DEVOPS_PAT (Code R/W, PR R/W, +Build R)" -AsSecureString
+    if ($DryRun) { Write-Host "  [dry-run] setx AZURE_DEVOPS_ORG/PROJECT/PAT (User)" }
+    else {
+      [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_ORG', $org, 'User')
+      if ($proj) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PROJECT', $proj, 'User') }
+      $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pat))
+      if ($plain) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PAT', $plain, 'User'); Write-Host "  PAT stored in User environment." }
+    }
+  } else { Warn "no org entered — skipping ADO credential write" }
+}
+
 Write-Host @"
 
-==> azure-devops-fs deps ready. Config next-step (env vars):
-    setx AZURE_DEVOPS_ORG your-org
-    setx AZURE_DEVOPS_PROJECT your-project   # optional
-    setx AZURE_DEVOPS_PAT xxxxxxxx           # Code R/W, PR R/W (+ Build R)
-    Then set the azure-devops MCP server enabled:true in your merged .mcp.json.
-    The root install.ps1 can prompt for these.
+==> azure-devops-fs ready. Final step:
+    Enable the azure-devops MCP server (enabled:true) in your merged .mcp.json.
+    The PAT is injected per-request; it is never written to remotes.
 "@ -ForegroundColor Green

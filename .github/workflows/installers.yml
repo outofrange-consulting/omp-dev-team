@@ -1,0 +1,81 @@
+name: installers
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # 1) Static checks on every OS: JSON validity + shell/PowerShell parse.
+  lint:
+    name: lint (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON
+        run: node scripts/ci-validate-json.mjs
+      - name: Shell syntax (bash -n)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          rc=0
+          for f in install.sh plugins/*/install.sh; do
+            if bash -n "$f"; then echo "ok $f"; else echo "FAIL $f"; rc=1; fi
+          done
+          exit $rc
+      - name: PowerShell parse
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $e = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$e) | Out-Null
+            if ($e.Count) { $bad++; $e | ForEach-Object { Write-Host "FAIL $($_.Extent.StartLineNumber): $($_.Message)" } }
+            else { Write-Host "ok $($_.FullName)" }
+          }
+          if ($bad) { exit 1 }
+
+  # 2) Run the global installer end-to-end in dry-run on every OS (native shell).
+  dryrun:
+    name: dry-run (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: install.sh --dry-run
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash install.sh -y --dry-run
+      - name: install.ps1 -DryRun
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./install.ps1 -Yes -DryRun
+
+  # 3) Real end-to-end install on Linux (bootstraps bun/omp/plugins, then verifies
+  #    OMP launches and lists all four plugins).
+  e2e-linux:
+    name: e2e (ubuntu real install)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run global installer (non-interactive)
+        shell: bash
+        run: bash install.sh -y
+      - name: Verify OMP launches with all plugins
+        shell: bash
+        run: |
+          export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+          omp --version
+          omp plugin list | tee /tmp/plugins.txt
+          for p in dev-team copilot-preset token-diet azure-devops-fs; do
+            grep -q "$p@omp-dev-team" /tmp/plugins.txt || { echo "missing $p"; exit 1; }
+          done
+          echo "all four plugins installed ✓"

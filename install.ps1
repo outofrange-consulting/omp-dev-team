@@ -128,19 +128,9 @@ if (Ask "Install token-diet (RTK + CodeGraph + caveman)?" 'N') {
 }
 
 if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
+  # The plugin installer ensures Node, pre-warms the MCP server, and (when
+  # interactive) prompts for the org/project/PAT and persists them.
   Plug 'azure-devops-fs' (Join-Path $Root 'plugins\azure-devops-fs')
-  if (Ask "  Configure Azure DevOps env vars now?" 'N') {
-    $org  = Read-Host "    AZURE_DEVOPS_ORG"
-    $proj = Read-Host "    AZURE_DEVOPS_PROJECT (optional)"
-    $pat  = Read-Host "    AZURE_DEVOPS_PAT" -AsSecureString
-    if ($DryRun) { Write-Host "  [dry-run] setx AZURE_DEVOPS_ORG/PROJECT/PAT" }
-    else {
-      if ($org)  { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_ORG', $org, 'User') }
-      if ($proj) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PROJECT', $proj, 'User') }
-      $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pat))
-      if ($plain) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PAT', $plain, 'User'); Write-Host "  PAT stored in user environment." }
-    }
-  }
   Write-Host "  Reminder: enable the azure-devops MCP server (enabled:true) in your .mcp.json."
 }
 
