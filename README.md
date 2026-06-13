@@ -23,6 +23,12 @@ bash install.sh                 # Linux/macOS   (-y for non-interactive, --dry-r
 #   pwsh -File install.ps1      # Windows
 ```
 
+**Already-installed policy:** everything is idempotent and **skips** what's already
+present (it never overwrites and never re-prompts for it) — pass **`--update`**
+(`-Update` on Windows) to refresh tools/plugins to the latest. The one exception
+is **bun**, which is auto-upgraded if it's below the version OMP requires. Config
+files are only appended to once (re-runs detect the marker and skip).
+
 ## Manual install
 
 ```sh

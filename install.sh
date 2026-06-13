@@ -6,17 +6,22 @@
 # Flags:
 #   -y, --yes      non-interactive: install all plugins + apply default configs
 #                  (skips the Azure PAT prompt unless env vars are already set)
+#   --update       refresh things that are already installed (otherwise: skip them)
 #   --no-runtimes  skip installing node/bun/cargo (assume they're present)
 #   --dry-run      print actions without executing (passed to plugin installers)
 #   -h, --help     this help
+#
+# Default policy for things already present: SKIP (idempotent, never asks, never
+# overwrites). Pass --update to refresh to the latest. Exception: bun is always
+# upgraded if it's below the version OMP requires.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-DRY=0; YES=0; RUNTIMES=1
+DRY=0; YES=0; RUNTIMES=1; UPDATE=0
 for a in "$@"; do case "$a" in
-  -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;;
-  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+  -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;; --update) UPDATE=1 ;;
+  -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -59,8 +64,8 @@ version_ge() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" = "$2" ]; 
 
 MIN_BUN="1.3.14"
 ensure_bun() {  # OMP requires bun >= MIN_BUN
-  if have bun && version_ge "$(bun --version 2>/dev/null || echo 0)" "$MIN_BUN"; then
-    ok "bun $(bun --version)"
+  if have bun && version_ge "$(bun --version 2>/dev/null || echo 0)" "$MIN_BUN" && [ "$UPDATE" = 0 ]; then
+    ok "bun $(bun --version) (skip; --update to refresh)"
   else
     say "Installing bun (>= $MIN_BUN; OMP requires it)"
     run "curl -fsSL https://bun.sh/install | bash"
@@ -68,7 +73,7 @@ ensure_bun() {  # OMP requires bun >= MIN_BUN
   ensure_path "$HOME/.bun/bin"
 }
 ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
-  if have node; then ok "node $(node --version)"; return; fi
+  if have node && [ "$UPDATE" = 0 ]; then ok "node $(node --version) (skip; --update to refresh)"; return; fi
   say "Installing Node.js (LTS)"
   if have brew; then run "brew install node"
   elif have curl; then
@@ -89,7 +94,9 @@ ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
   else warn "could not install Node.js automatically — see https://nodejs.org"; fi
 }
 ensure_cargo() {  # Rust toolchain (rtk fallback build; generally useful)
-  if have cargo; then ok "cargo $(cargo --version 2>/dev/null | awk '{print $2}')"; return; fi
+  if have cargo && [ "$UPDATE" = 0 ]; then ok "cargo $(cargo --version 2>/dev/null | awk '{print $2}') (skip; --update to refresh)"; return; fi
+  if have rustup && [ "$UPDATE" = 1 ]; then say "Updating Rust"; run "rustup update"; return; fi
+  if have cargo; then ok "cargo present"; return; fi
   say "Installing Rust (rustup)"
   run "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path"
   ensure_path "$HOME/.cargo/bin"
@@ -109,7 +116,8 @@ else
 fi
 
 # --- 1) OMP ----------------------------------------------------------------
-if have omp; then ok "omp present ($(omp --version 2>/dev/null | head -1))"
+if have omp && [ "$UPDATE" = 0 ]; then ok "omp present ($(omp --version 2>/dev/null | head -1)) (skip; --update to refresh)"
+elif have omp; then say "Updating OMP"; run "bun add -g @oh-my-pi/pi-coding-agent@latest || curl -fsSL https://omp.sh/install | sh"
 else say "Installing OMP (latest)"; run "curl -fsSL https://omp.sh/install | sh"; fi
 # Make omp + tool dirs available now and in future shells. Create them first so
 # ensure_path adds them even before later steps drop binaries in (e.g. rtk).
@@ -122,11 +130,18 @@ if have omp; then
   run "omp plugin marketplace add \"$ROOT\" || true"
 fi
 
-# helper: install a plugin + run its tool installer
+# helper: install a plugin + run its tool installer.
+# Already-installed policy: SKIP by default; with --update, reinstall (--force).
 plug() {  # plug <name> <dir>
   local name="$1" dir="$2" flags=""
   [ "$DRY" = 1 ] && flags="--dry-run"
-  if have omp; then run "omp plugin install ${name}@${MARKET} || true"; fi
+  [ "$UPDATE" = 1 ] && [ "$name" = token-diet ] && flags="$flags --update"
+  if have omp; then
+    if omp plugin list 2>/dev/null | grep -q "${name}@${MARKET}"; then
+      if [ "$UPDATE" = 1 ]; then run "omp plugin install --force ${name}@${MARKET} || true"
+      else ok "plugin ${name} already installed (skip; --update to refresh)"; fi
+    else run "omp plugin install ${name}@${MARKET} || true"; fi
+  fi
   if [ -x "$dir/install.sh" ] || [ -f "$dir/install.sh" ]; then
     run "bash \"$dir/install.sh\" $flags ${YES:+-y}"
   fi

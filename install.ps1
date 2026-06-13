@@ -5,11 +5,15 @@
   and its config. Updates the user PATH so everything works in new shells.
   Flags:
     -Yes          non-interactive: install all plugins + apply default configs
+    -Update       refresh things already installed (otherwise: skip them)
     -NoRuntimes   skip installing node/bun/cargo (assume they're present)
     -DryRun       print actions without executing
+
+  Already-present policy: SKIP by default (idempotent, never asks). Pass -Update
+  to refresh to latest. Exception: bun is upgraded if below the version OMP needs.
 #>
 [CmdletBinding()]
-param([switch]$Yes, [switch]$DryRun, [switch]$NoRuntimes)
+param([switch]$Yes, [switch]$DryRun, [switch]$NoRuntimes, [switch]$Update)
 $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -41,7 +45,7 @@ $MinBun = [version]'1.3.14'
 function Ensure-Bun {
   $okv = $false
   if (Have bun) { try { $okv = ([version]((bun --version).Trim()) -ge $MinBun) } catch {} }
-  if ($okv) { Ok "bun $(bun --version)" }
+  if ($okv -and -not $Update) { Ok "bun $(bun --version) (skip; -Update to refresh)" }
   else {
     Say "Installing bun (>= $MinBun; OMP requires it)"
     if (Have winget) { Run "winget install --id Oven-sh.Bun -e --accept-source-agreements --accept-package-agreements" }
@@ -50,13 +54,15 @@ function Ensure-Bun {
   Ensure-Path (Join-Path $HOME ".bun\bin")
 }
 function Ensure-Node {
-  if (Have node) { Ok "node $(node --version)"; return }
+  if ((Have node) -and -not $Update) { Ok "node $(node --version) (skip; -Update to refresh)"; return }
   Say "Installing Node.js (LTS)"
   if (Have winget) { Run "winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements" }
   else { Warn "could not install Node.js automatically — see https://nodejs.org" }
 }
 function Ensure-Cargo {
-  if (Have cargo) { Ok "cargo $((cargo --version) -split ' ' | Select-Object -Index 1)"; return }
+  if ((Have cargo) -and -not $Update) { Ok "cargo $((cargo --version) -split ' ' | Select-Object -Index 1) (skip; -Update to refresh)"; return }
+  if ((Have rustup) -and $Update) { Say "Updating Rust"; Run "rustup update"; return }
+  if (Have cargo) { Ok "cargo present"; return }
   Say "Installing Rust (rustup)"
   if (Have winget) { Run "winget install --id Rustlang.Rustup -e --accept-source-agreements --accept-package-agreements" }
   else { Warn "install Rust from https://rustup.rs" }
@@ -71,7 +77,8 @@ if (-not $NoRuntimes) { Say "Ensuring runtimes"; Ensure-Bun; Ensure-Node; Ensure
 else { Say "Skipping runtime install (-NoRuntimes)" }
 
 # --- 1) OMP ----------------------------------------------------------------
-if (Have omp) { Ok "omp present ($(omp --version 2>$null))" }
+if ((Have omp) -and -not $Update) { Ok "omp present ($(omp --version 2>$null)) (skip; -Update to refresh)" }
+elseif (Have omp) { Say "Updating OMP"; Run "bun add -g @oh-my-pi/pi-coding-agent@latest" }
 else { Say "Installing OMP (latest)"; Run "irm https://omp.sh/install.ps1 | iex" }
 Ensure-Path (Join-Path $HOME ".local\bin")
 if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this" }
@@ -79,12 +86,18 @@ if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this
 # --- 2) Register the marketplace -------------------------------------------
 if (Have omp) { Say "Registering marketplace ($Market) from local checkout"; Run "omp plugin marketplace add `"$Root`"" }
 
+# Already-installed policy: SKIP by default; with -Update, reinstall (--force).
 function Plug ($name, $dir) {
-  if (Have omp) { Run "omp plugin install $name@$Market" }
+  if (Have omp) {
+    $installed = (omp plugin list 2>$null | Select-String "$name@$Market")
+    if ($installed) {
+      if ($Update) { Run "omp plugin install --force $name@$Market" } else { Ok "plugin $name already installed (skip; -Update to refresh)" }
+    } else { Run "omp plugin install $name@$Market" }
+  }
   $ps1 = Join-Path $dir 'install.ps1'
   if (Test-Path $ps1) {
-    $args = @(); if ($DryRun) { $args += '-DryRun' }
-    Run "& `"$ps1`" $($args -join ' ')"
+    $a = @(); if ($DryRun) { $a += '-DryRun' }; if ($Update -and $name -eq 'token-diet') { $a += '-Update' }
+    Run "& `"$ps1`" $($a -join ' ')"
   }
 }
 
