@@ -7,6 +7,7 @@ Install either, both, or neither — they share nothing.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | Persona-driven AI development team: 32 agents, 3-phase orchestration (`/specs` → `/plan` → `/build` → `/pr`), 78 skills, blocking guard extensions, and **local small-tier model routing** (Sonnet/Opus stay cloud; the cheap review agents run on your GPU). Port of [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team). |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem**: read repos/files/PRs/diffs through `ado://` URIs, create/checkout/push PRs, comment/vote, watch pipelines. PAT-authenticated, SQLite read cache. The ADO analog of OMP's GitHub `pr://`/`issue://` + `github` tool. |
+| **[`copilot-preset`](plugins/copilot-preset/)** | **GitHub Copilot model preset**: a ready config that routes OMP (and the dev-team's tiers) through `github-copilot`, so teams run on their Copilot license. Config-only — paste the snippet; includes the tier→Copilot model mapping and premium-request guidance. |
 
 ## Install
 
@@ -17,11 +18,13 @@ plugins under `plugins/<name>/`).
 omp plugin marketplace add outofrange-consulting/omp-dev-team   # or:  add ./
 omp plugin install dev-team@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
+omp plugin install copilot-preset@omp-dev-team
 ```
 
 Then follow each plugin's README:
 - **dev-team** → pull a local model (`plugins/dev-team/scripts/setup-local-models.sh`) and paste `plugins/dev-team/config.snippet.yml` into `~/.omp/agent/config.yml`.
 - **azure-devops-fs** → set `AZURE_DEVOPS_PAT` + `AZURE_DEVOPS_ORG`.
+- **copilot-preset** → authenticate Copilot (`/login`) and paste `plugins/copilot-preset/config.snippet.yml`.
 
 ## Layout
 

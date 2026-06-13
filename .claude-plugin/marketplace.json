@@ -22,6 +22,14 @@
       "category": "devops",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "copilot-preset",
+      "source": "./copilot-preset",
+      "description": "Ready model configuration that routes OMP (and the dev-team) through GitHub Copilot, so teams run on their Copilot license. Config-only: paste the snippet; tier -> Copilot model mapping with premium-request guidance.",
+      "category": "configuration",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     }
   ]
 }
