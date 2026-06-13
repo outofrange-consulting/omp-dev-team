@@ -18,6 +18,7 @@ $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Market = 'omp-dev-team'
+$OnWindows = ($IsWindows -or $env:OS -eq 'Windows_NT')
 
 function Bold ($m) { Write-Host "`n$m" -ForegroundColor White }
 function Say  ($m) { Write-Host "==> $m" -ForegroundColor Cyan }
@@ -43,6 +44,7 @@ function Ensure-Path ($dir) {
 
 $MinBun = [version]'1.3.14'
 function Ensure-Bun {
+  if ($OnWindows) { Ok "bun not required on Windows (OMP ships a native .exe)"; return }
   $okv = $false
   if (Have bun) { try { $okv = ([version]((bun --version).Trim()) -ge $MinBun) } catch {} }
   if ($okv -and -not $Update) { Ok "bun $(bun --version) (skip; -Update to refresh)" }
@@ -80,7 +82,14 @@ else { Say "Skipping runtime install (-NoRuntimes)" }
 if ((Have omp) -and -not $Update) { Ok "omp present ($(omp --version 2>$null)) (skip; -Update to refresh)" }
 elseif (Have omp) { Say "Updating OMP"; Run "bun add -g @oh-my-pi/pi-coding-agent@latest" }
 else { Say "Installing OMP (latest)"; Run "irm https://omp.sh/install.ps1 | iex" }
+# Tool install dirs (so omp + co. are found now and in new shells).
 Ensure-Path (Join-Path $HOME ".local\bin")
+if ($OnWindows) {
+  Ensure-Path (Join-Path $env:LOCALAPPDATA 'omp')                      # omp.exe lands here
+  Ensure-Path (Join-Path $env:LOCALAPPDATA 'codegraph\current\bin')    # codegraph
+} else {
+  Ensure-Path (Join-Path $HOME '.bun\bin')
+}
 if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this" }
 
 # --- 2) Register the marketplace -------------------------------------------
@@ -139,6 +148,9 @@ if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
 # --- 4) Doctor -------------------------------------------------------------
 Bold "Doctor"
 if ($DryRun) { Write-Host "(dry-run — skipping verification)"; return }
+# Refresh PATH for dirs created during plugin installs.
+foreach ($d in @((Join-Path $HOME '.local\bin'), (Join-Path $HOME '.bun\bin'), (Join-Path $HOME '.cargo\bin'))) { Ensure-Path $d }
+if ($OnWindows) { foreach ($d in @((Join-Path $env:LOCALAPPDATA 'omp'), (Join-Path $env:LOCALAPPDATA 'codegraph\current\bin'))) { Ensure-Path $d } }
 $fail = $false
 function Check ($t, $req, $vc) {
   if (Have $t) {
@@ -148,7 +160,7 @@ function Check ($t, $req, $vc) {
   else { Warn "$t not found (optional)" }
 }
 Check git       'required'    'git --version'
-Check bun       'required'    'bun --version'
+Check bun       $(if ($OnWindows) { 'optional' } else { 'required' }) 'bun --version'
 Check node      'recommended' 'node --version'
 Check cargo     'recommended' 'cargo --version'
 Check omp       'required'    'omp --version'
