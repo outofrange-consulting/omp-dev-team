@@ -138,6 +138,10 @@ if (Ask "Install token-diet (RTK + CodeGraph + caveman)?" 'N') {
   Write-Host "  Reminder: enable the codegraph MCP server once indexed."
 }
 
+if (Ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" 'N') {
+  Plug 'local-llm' (Join-Path $Root 'plugins\local-llm')
+}
+
 if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
   # The plugin installer ensures Node, pre-warms the MCP server, and (when
   # interactive) prompts for the org/project/PAT and persists them.

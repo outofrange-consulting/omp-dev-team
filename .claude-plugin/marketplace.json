@@ -38,6 +38,14 @@
       "category": "productivity",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "local-llm",
+      "source": "./local-llm",
+      "description": "Run OMP roles on LOCAL models sized to your hardware: detects VRAM/RAM, picks the best-fit GGUF models per role, installs Ollama (or llama.cpp), pulls the models, and registers them as the 'local-llm' provider. Hybrid by default (planning on cloud, execution/cheap roles local).",
+      "category": "configuration",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     }
   ]
 }

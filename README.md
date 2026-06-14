@@ -11,7 +11,8 @@ you through them.
 | **[`dev-team`](plugins/dev-team/)** | **Agentic dev team** — orchestrator + 32 specialist/critic agents, the `/specs` → `/plan` → `/build` → `/pr` workflow, **strict TDD** and human gates, ~78 skills, and blocking guard extensions. Port of [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). All-cloud tiers; keep the high-volume small tier cheap. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **GitHub Copilot model preset** — route OMP (and the dev-team tiers) through `github-copilot` to run on a Copilot license. Config-only: tier→model mapping, post-June-2026 AI-credit pricing comparison, and MAI-Code-1-Flash wired in. |
 | **[`token-diet`](plugins/token-diet/)** | **Aggressive token reduction** — RTK (compressed shell output), CodeGraph (MCP symbol/call-graph queries instead of grep+read), and a caveman terse-output skill — layered on OMP's native compaction/`astGrep`. |
-| **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem** — read repos/files/PRs/diffs via `ado://` URIs, create/checkout/push PRs, comment/vote, watch pipelines. PAT-authenticated, SQLite read cache. |
+| **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem** — read repos/files/PRs/diffs via `ado://` URIs (paginated), PR **gates/policies** + CI (builds/logs/run), create/checkout/push/complete PRs, comment/vote. PAT-authenticated, SQLite read cache. |
+| **[`local-llm`](plugins/local-llm/)** | **Local models sized to your hardware** — detects VRAM/RAM, picks the best-fit GGUF models per role, installs Ollama (or llama.cpp), pulls them, and registers the `local-llm` provider. Hybrid: planning on cloud, execution/cheap roles local. |
 
 ## Quick start (recommended)
 
@@ -39,6 +40,7 @@ omp plugin install dev-team@omp-dev-team
 omp plugin install copilot-preset@omp-dev-team
 omp plugin install token-diet@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
+omp plugin install local-llm@omp-dev-team
 ```
 
 Each plugin ships its own `install.sh` + `install.ps1` (installs that plugin's
@@ -47,7 +49,8 @@ tools at their latest versions) — see its README:
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (prereq check + config). All-cloud; no local backend.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, then `omp` → `/login` → GitHub Copilot.
 - **token-diet** → `bash plugins/token-diet/install.sh` (installs RTK + CodeGraph, indexes the repo), then enable the `codegraph` MCP server.
-- **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (ensures Node), then set `AZURE_DEVOPS_ORG`/`AZURE_DEVOPS_PAT` and enable the `azure-devops` MCP server.
+- **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (ensures Node, prompts for org/project/PAT), then enable the `azure-devops` MCP server.
+- **local-llm** → `bash plugins/local-llm/install.sh` (detects VRAM/RAM, asks, installs Ollama/llama.cpp, pulls the best-fit models, wires roles).
 
 ## Layout
 
@@ -61,6 +64,7 @@ plugins/
   copilot-preset/   config.snippet.yml · pricing.md · skills/ · install.{sh,ps1}
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ commands/ skills/ rules/ knowledge/ .mcp.json · install.{sh,ps1}
+  local-llm/        extensions/ (catalog/selector/detect/emit) · skills/ · install.{sh,ps1}
 ```
 
 Each plugin's extensions load from its own `package.json` `omp.extensions`; the

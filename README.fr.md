@@ -11,7 +11,8 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`dev-team`](plugins/dev-team/)** | **Équipe de dev agentique** — un orchestrateur + 32 agents spécialistes/critiques, le workflow `/specs` → `/plan` → `/build` → `/pr`, **TDD strict** et points de contrôle humains, ~78 skills, et des extensions « garde-fou » bloquantes. Portage de [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). Tiers 100 % cloud ; gardez le tier « small » à haut volume bon marché. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
 | **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — RTK (sortie shell compressée), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), et un skill « caveman » de sortie laconique — par-dessus la compaction/`astGrep` natives d'OMP. |
-| **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via des URIs `ado://`, création/checkout/push de PR, commentaires/votes, suivi de pipelines. Authentifié par PAT, cache de lecture SQLite. |
+| **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Authentifié par PAT, cache SQLite. |
+| **[`local-llm`](plugins/local-llm/)** | **Modèles locaux dimensionnés à votre matériel** — détecte VRAM/RAM, choisit les meilleurs GGUF par rôle, installe Ollama (ou llama.cpp), les télécharge, et enregistre le fournisseur `local-llm`. Hybride : planification cloud, exécution/rôles bon marché en local. |
 
 ## Démarrage rapide (recommandé)
 
@@ -39,6 +40,7 @@ omp plugin install dev-team@omp-dev-team
 omp plugin install copilot-preset@omp-dev-team
 omp plugin install token-diet@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
+omp plugin install local-llm@omp-dev-team
 ```
 
 Chaque plugin fournit son propre `install.sh` + `install.ps1` (installe les outils
@@ -48,6 +50,7 @@ du plugin dans leur dernière version) — voir son README :
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
 - **token-diet** → `bash plugins/token-diet/install.sh` (installe RTK + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (assure Node, demande org/projet/**PAT**), puis activez le serveur MCP `azure-devops`.
+- **local-llm** → `bash plugins/local-llm/install.sh` (détecte VRAM/RAM, demande, installe Ollama/llama.cpp, télécharge les meilleurs modèles, câble les rôles).
 
 ## Disposition
 
@@ -60,6 +63,7 @@ plugins/
   copilot-preset/   config.snippet.yml · pricing.md · skills/ · install.{sh,ps1}
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ commands/ skills/ rules/ knowledge/ .mcp.json · install.{sh,ps1}
+  local-llm/        extensions/ (catalog/selector/detect/emit) · skills/ · install.{sh,ps1}
 ```
 
 ## Agent Package Manager (APM) & définitions dupliquées

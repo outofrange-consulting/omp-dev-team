@@ -1,0 +1,11 @@
+{
+  "name": "@omp-dev-team/local-llm",
+  "version": "1.0.0",
+  "description": "Hardware-aware local LLM setup for OMP (Ollama / llama.cpp).",
+  "license": "MIT",
+  "private": true,
+  "omp": {
+    "extensions": ["./extensions/local-llm.ts"]
+  },
+  "comment": "The extension detects VRAM/RAM, builds a per-role plan from extensions/lib/catalog.ts via selector.ts, and registers the fitting models as the 'local-llm' provider (pi.registerProvider). The same CLI (bun extensions/local-llm.ts --json) drives install.sh/ps1, which installs the backend + pulls the models + wires roles."
+}

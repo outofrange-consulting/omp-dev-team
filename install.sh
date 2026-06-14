@@ -175,6 +175,10 @@ if ask "Install token-diet (RTK + CodeGraph + caveman; token reduction)?" "N"; t
   echo "  Reminder: enable the 'codegraph' MCP server (enabled:true) once indexed."
 fi
 
+if ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" "N"; then
+  plug local-llm "$ROOT/plugins/local-llm"
+fi
+
 if ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" "N"; then
   # The plugin installer ensures Node, pre-warms the MCP server, and (when
   # interactive) prompts for the org/project/PAT and persists them.
