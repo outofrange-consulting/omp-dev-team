@@ -37,6 +37,9 @@ Write-Host "  Detected: ${vramGB}GB VRAM / ${ramGB}GB RAM (via $($plan.hardware.
 
 if ($vramGB -lt 8) {
   Warn "Only ${vramGB}GB VRAM. Local LLMs want >=8GB; cloud (copilot-preset) is a better fit."
+  # Hardware gate: never auto-proceed without a GPU (don't install a backend just
+  # because -Yes was passed / input is redirected).
+  if ($Yes -or [Console]::IsInputRedirected) { Write-Host "Non-interactive with <8GB VRAM — skipping local-llm setup."; return }
   if (-not (Ask "Set up local LLMs anyway?" 'N')) { Write-Host "Skipping."; return }
 } else {
   if (-not (Ask "Set up local LLMs for OMP (sized to ${vramGB}GB VRAM)?" 'Y')) { Write-Host "Skipping."; return }

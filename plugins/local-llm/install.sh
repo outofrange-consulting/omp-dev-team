@@ -36,9 +36,18 @@ ask() { # ask "Q" default(Y/n)
 BUN="$(command -v bun || echo "$HOME/.bun/bin/bun")"
 [ -x "$BUN" ] || { warn "bun not found — install OMP first (bash install.sh at repo root)"; exit 1; }
 
+# Run the selector CLI, passing --vram/--ram only when given so an externally
+# exported OMP_LOCAL_VRAM_GB / OMP_LOCAL_RAM_GB is still respected.
+compute_plan() { # compute_plan <backend>
+  local ev=()
+  [ -n "$VRAM" ] && ev+=("OMP_LOCAL_VRAM_GB=$VRAM")
+  [ -n "$RAM" ] && ev+=("OMP_LOCAL_RAM_GB=$RAM")
+  env ${ev[@]+"${ev[@]}"} "$BUN" "$HERE/extensions/local-llm.ts" --json --backend "$1"
+}
+
 # --- compute the plan -------------------------------------------------------
 say "Detecting hardware and computing the model plan"
-PLAN="$(OMP_LOCAL_VRAM_GB="${VRAM}" OMP_LOCAL_RAM_GB="${RAM}" "$BUN" "$HERE/extensions/local-llm.ts" --json --backend "${BACKEND:-ollama}")"
+PLAN="$(compute_plan "${BACKEND:-ollama}")"
 field() { printf '%s' "$PLAN" | "$BUN" -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);$1})"; }
 VRAMGB="$(field "process.stdout.write(String(j.hardware.vramGB))")"
 RAMGB="$(field "process.stdout.write(String(j.hardware.ramGB))")"
@@ -48,6 +57,9 @@ echo "  Detected: ${VRAMGB}GB VRAM / ${RAMGB}GB RAM (via ${SOURCE})"
 # --- gate: ≥8GB VRAM recommended -------------------------------------------
 if [ "${VRAMGB:-0}" -lt 8 ]; then
   warn "Only ${VRAMGB}GB VRAM detected. Local LLMs want ≥8GB; cloud (copilot-preset) is a better fit."
+  # Hardware gate: never auto-proceed without a GPU (don't install a backend on a
+  # GPU-less machine just because -y was passed / there's no TTY).
+  if [ "$YES" = 1 ] || [ ! -r /dev/tty ]; then echo "Non-interactive with <8GB VRAM — skipping local-llm setup."; exit 0; fi
   ask "Set up local LLMs anyway?" "N" || { echo "Skipping local-llm setup."; exit 0; }
 else
   ask "Set up local LLMs for OMP (sized to ${VRAMGB}GB VRAM)?" "Y" || { echo "Skipping."; exit 0; }
@@ -58,7 +70,7 @@ if [ -z "$BACKEND" ]; then
   if ask "Use Ollama? (recommended; 'n' = llama.cpp, advanced)" "Y"; then BACKEND="ollama"; else BACKEND="llama.cpp"; fi
 fi
 # Recompute plan for the chosen backend (served ids differ).
-PLAN="$(OMP_LOCAL_VRAM_GB="${VRAM}" OMP_LOCAL_RAM_GB="${RAM}" "$BUN" "$HERE/extensions/local-llm.ts" --json --backend "$BACKEND")"
+PLAN="$(compute_plan "$BACKEND")"
 ROLES_YAML="$(field "process.stdout.write(j.rolesYaml)")"
 if [ "$ALL" = 1 ]; then
   PULLS="$(field "process.stdout.write([...new Set(j.pulls.map(p=>p.pull))].join('\n'))")"
