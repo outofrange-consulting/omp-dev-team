@@ -8,6 +8,8 @@
 #                  (skips the Azure PAT prompt unless env vars are already set)
 #   --update       refresh things that are already installed (otherwise: skip them)
 #   --no-runtimes  skip installing node/bun/cargo (assume they're present)
+#   --insecure-tls disable TLS cert verification (corporate Zscaler/Trend MITM under
+#                  WSL); also via OMP_INSECURE_TLS=1 — propagates to plugin installers
 #   --dry-run      print actions without executing (passed to plugin installers)
 #   -h, --help     this help
 #
@@ -18,10 +20,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-DRY=0; YES=0; RUNTIMES=1; UPDATE=0
+DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;; --update) UPDATE=1 ;;
-  -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+  -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;; --update) UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
+  -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -31,6 +33,21 @@ ok()   { printf '\033[32m  ok\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
 run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+
+# Corporate TLS-intercepting proxies (Zscaler / Trend Micro under WSL) break cert
+# verification. When enabled, disable it for everything this run touches: our
+# curl/wget (incl. the piped upstream installers, via CURL_HOME/WGETRC), git,
+# node/bun/npm, and rustup. Opt-in only (--insecure-tls or OMP_INSECURE_TLS=1).
+enable_insecure_tls() {
+  warn "Insecure TLS: certificate verification DISABLED for this run (corporate MITM proxy)."
+  export GIT_SSL_NO_VERIFY=true NODE_TLS_REJECT_UNAUTHORIZED=0 NPM_CONFIG_STRICT_SSL=false \
+         RUSTUP_USE_CURL=1 CARGO_HTTP_CHECK_REVOKE=false OMP_INSECURE_TLS=1
+  local d; d="$(mktemp -d 2>/dev/null || echo "/tmp/omp-tls.$$")"; mkdir -p "$d"
+  printf 'insecure\n' > "$d/.curlrc"; printf 'check_certificate = off\n' > "$d/.wgetrc"
+  export CURL_HOME="$d" WGETRC="$d/.wgetrc"
+}
+{ [ "$INSECURE_TLS" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
+
 # ask "Question?" default(Y/n) -> returns 0 for yes
 ask() {
   local q="$1" def="${2:-Y}" ans
@@ -138,6 +155,7 @@ fi
 plug() {  # plug <name> <dir>
   local name="$1" dir="$2" flags=""
   [ "$DRY" = 1 ] && flags="--dry-run"
+  [ "$INSECURE_TLS" = 1 ] && flags="$flags --insecure-tls"
   [ "$UPDATE" = 1 ] && [ "$name" = token-diet ] && flags="$flags --update"
   if have omp; then
     if omp plugin list 2>/dev/null | grep -q "${name}@${MARKET}"; then

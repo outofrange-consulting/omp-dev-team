@@ -24,3 +24,9 @@ globs:
 No implementation without a failing test first. No scenario without a
 corresponding test. Each step must leave the codebase in a working, committable
 state. See `skill://test-driven-development`.
+
+**Never edit a failing test/spec to make it pass — fix the code.** Editing
+existing `.feature` BDD specs is **blocked** by `tdd-guard` (authoring a new spec
+is fine). If a spec is genuinely wrong, change it deliberately via `/specs`, or
+temporarily lift the block with `/allow-feature-edits` (re-protect with
+`/protect-features`).

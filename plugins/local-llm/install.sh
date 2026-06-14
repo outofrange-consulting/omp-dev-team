@@ -11,9 +11,9 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0; LEVEL=""
+DRY=0; YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0; LEVEL=""; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;;
+  --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
   --backend=*) BACKEND="${a#*=}" ;; --vram=*) VRAM="${a#*=}" ;; --ram=*) RAM="${a#*=}" ;; --level=*) LEVEL="${a#*=}" ;;
   --backend|--vram|--ram|--level) echo "use $a=VALUE" >&2; exit 2 ;;
   -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
@@ -24,6 +24,17 @@ say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
 run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+# Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in
+# bypass of cert verification for curl/wget (incl. piped installers), git, node/bun.
+enable_insecure_tls() {
+  warn "Insecure TLS: certificate verification DISABLED for this run (corporate MITM proxy)."
+  export GIT_SSL_NO_VERIFY=true NODE_TLS_REJECT_UNAUTHORIZED=0 NPM_CONFIG_STRICT_SSL=false \
+         RUSTUP_USE_CURL=1 CARGO_HTTP_CHECK_REVOKE=false OMP_INSECURE_TLS=1
+  local d; d="$(mktemp -d 2>/dev/null || echo "/tmp/omp-tls.$$")"; mkdir -p "$d"
+  printf 'insecure\n' > "$d/.curlrc"; printf 'check_certificate = off\n' > "$d/.wgetrc"
+  export CURL_HOME="$d" WGETRC="$d/.wgetrc"
+}
+{ [ "${INSECURE_TLS:-0}" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
 ask() { # ask "Q" default(Y/n)
   local q="$1" def="${2:-Y}" ans
   [ "$YES" = 1 ] && return 0

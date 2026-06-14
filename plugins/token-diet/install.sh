@@ -10,9 +10,9 @@
 #   -y, --yes            non-interactive (don't prompt for the sources root)
 set -euo pipefail
 
-DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3
+DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;;
+  --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
   --sources-root=*|--project=*) SROOT="${a#*=}" ;;
   --depth=*) DEPTH="${a#*=}" ;;
   -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
@@ -23,6 +23,17 @@ say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
 run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+# Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in
+# bypass of cert verification for curl/wget (incl. piped installers), git, node/bun.
+enable_insecure_tls() {
+  warn "Insecure TLS: certificate verification DISABLED for this run (corporate MITM proxy)."
+  export GIT_SSL_NO_VERIFY=true NODE_TLS_REJECT_UNAUTHORIZED=0 NPM_CONFIG_STRICT_SSL=false \
+         RUSTUP_USE_CURL=1 CARGO_HTTP_CHECK_REVOKE=false OMP_INSECURE_TLS=1
+  local d; d="$(mktemp -d 2>/dev/null || echo "/tmp/omp-tls.$$")"; mkdir -p "$d"
+  printf 'insecure\n' > "$d/.curlrc"; printf 'check_certificate = off\n' > "$d/.wgetrc"
+  export CURL_HOME="$d" WGETRC="$d/.wgetrc"
+}
+{ [ "${INSECURE_TLS:-0}" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
 
 # --- RTK (Rust Token Killer) -------------------------------------------------
 if have rtk && [ "$UPDATE" = 0 ]; then

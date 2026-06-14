@@ -44,7 +44,9 @@ that cannot name the friction it removes does not ship.
 - **Guardrails** are OMP **extensions** in `.omp/extensions/` (the "blocking
   scripts"): `path-guard` (secrets), `destructive-guard` + `/careful`,
   `freeze-guard` (`/freeze` `/unfreeze`), `review-gate` (blocks `git commit`
-  until `/code-review` + `/review-approve`), `tdd-guard` (advisory), and
+  until `/code-review` + `/review-approve`), `tdd-guard` (advisory nudge **+ blocks
+  edits to existing `.feature` specs** so you fix code, not tests; `/allow-feature-edits`
+  to override), and
   `model-routing` (dispatch tier log + `/routing` diagnostic).
 
 ## Model routing (tiers → models)

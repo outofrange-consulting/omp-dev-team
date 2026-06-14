@@ -32,6 +32,15 @@ present (it never overwrites and never re-prompts for it) — pass **`--update`*
 is **bun**, which is auto-upgraded if it's below the version OMP requires. Config
 files are only appended to once (re-runs detect the marker and skip).
 
+**Corporate proxies (Zscaler / Trend Micro under WSL):** if a TLS-intercepting
+proxy breaks certificate checks, run the UNIX installers with **`--insecure-tls`**
+(or export `OMP_INSECURE_TLS=1`) to disable verification for that run — it covers
+curl/wget (including the piped upstream installers), git, node/bun/npm and rustup,
+and the global installer propagates it to the plugin installers. (Ollama *model*
+pulls use Go's own trust store — if those still fail, import your corporate root CA
+into the system store, or set `SSL_CERT_FILE`.) Prefer importing the corp CA when
+you can; this flag is the get-unblocked escape hatch.
+
 ## Manual install
 
 ```sh

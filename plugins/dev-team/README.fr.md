@@ -68,7 +68,9 @@ diagnostic via `/routing` ou `/skill:model-routing-check`.
 ## Garde-fous (extensions)
 
 `path-guard` (secrets), `destructive-guard` + `/careful`, `freeze-guard`
-(`/freeze` `/unfreeze`), `tdd-guard` (RED-GREEN-REFACTOR), `review-gate` (bloque
+(`/freeze` `/unfreeze`), `tdd-guard` (nudge RED-GREEN-REFACTOR + **bloque l'édition
+des specs `.feature` existantes** — on corrige le code, pas les tests ;
+`/allow-feature-edits` pour outrepasser), `review-gate` (bloque
 `git commit` jusqu'à `/code-review` + `/review-approve`), `telemetry` +
 `/cost-report`, `model-routing` (log de tier des dispatches + `/routing`). Elles
 interceptent `tool_call` et bloquent avec un motif — le mécanisme de blocage natif

@@ -65,7 +65,9 @@ with **token-diet** to cut tokens further. Source of truth:
 ## Guardrails (extensions)
 
 `path-guard` (secrets), `destructive-guard` + `/careful`, `freeze-guard`
-(`/freeze` `/unfreeze`), `tdd-guard` (RED-GREEN-REFACTOR), `review-gate` (blocks
+(`/freeze` `/unfreeze`), `tdd-guard` (RED-GREEN-REFACTOR nudge + **blocks edits to
+existing `.feature` specs** — fix code, not tests; `/allow-feature-edits` to override),
+`review-gate` (blocks
 `git commit` until `/code-review` + `/review-approve`), `telemetry` +
 `/cost-report`, `model-routing` (dispatch tier log + `/routing`). They intercept
 `tool_call` and block with a reason — OMP's native blocking mechanism.
