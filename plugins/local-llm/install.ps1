@@ -3,10 +3,11 @@
   local-llm installer (Windows) — set up local LLMs for OMP, sized to your GPU.
   Detects VRAM/RAM, asks (>=8GB VRAM recommended), installs the backend (Ollama
   auto, or llama.cpp guided), pulls the best-fit models, and wires roles.
-  Flags: -Backend ollama|llama.cpp, -Vram N, -Ram N, -All, -ApplyConfig, -DryRun, -Yes
+  Flags: -Backend ollama|llama.cpp, -Level smol|balanced|max|local-only, -Vram N,
+         -Ram N, -All, -ApplyConfig, -DryRun, -Yes
 #>
 [CmdletBinding()]
-param([ValidateSet("ollama","llama.cpp")][string]$Backend, [int]$Vram, [int]$Ram, [switch]$All, [switch]$ApplyConfig, [switch]$DryRun, [switch]$Yes)
+param([ValidateSet("ollama","llama.cpp")][string]$Backend, [ValidateSet("smol","balanced","max","local-only")][string]$Level, [int]$Vram, [int]$Ram, [switch]$All, [switch]$ApplyConfig, [switch]$DryRun, [switch]$Yes)
 $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -29,8 +30,10 @@ if ($Vram) { $env:OMP_LOCAL_VRAM_GB = "$Vram" }
 if ($Ram)  { $env:OMP_LOCAL_RAM_GB  = "$Ram" }
 $be = if ($Backend) { $Backend } else { "ollama" }
 
+$lvl = if ($Level) { $Level } elseif ($env:OMP_LOCAL_LEVEL) { $env:OMP_LOCAL_LEVEL } else { "smol" }
+
 Say "Detecting hardware and computing the model plan"
-$plan = & $Bun "$Here\extensions\local-llm.ts" --json --backend $be | ConvertFrom-Json
+$plan = & $Bun "$Here\extensions\local-llm.ts" --json --backend $be --level $lvl | ConvertFrom-Json
 $vramGB = [int]$plan.hardware.vramGB
 $ramGB  = [int]$plan.hardware.ramGB
 Write-Host "  Detected: ${vramGB}GB VRAM / ${ramGB}GB RAM (via $($plan.hardware.source))"
@@ -46,11 +49,21 @@ if ($vramGB -lt 8) {
 }
 
 if (-not $Backend) { $be = if (Ask "Use Ollama? (recommended; 'n' = llama.cpp)" 'Y') { "ollama" } else { "llama.cpp" } }
-$plan = & $Bun "$Here\extensions\local-llm.ts" --json --backend $be | ConvertFrom-Json
+
+if (-not $Level -and -not $env:OMP_LOCAL_LEVEL -and -not ([Console]::IsInputRedirected -or $Yes)) {
+  Write-Host "  How much should run on LOCAL models?"
+  Write-Host "    1) smol      — only cheap/high-volume roles local; task/default cloud (recommended)"
+  Write-Host "    2) balanced  — also task/slow local IF a strong model fits"
+  Write-Host "    3) max       — also default local IF a top model fits fully on the GPU"
+  Write-Host "    4) local-only— everything local (power users)"
+  $c = Read-Host "  Choice [1]"
+  $lvl = switch ($c) { '2' {'balanced'} '3' {'max'} '4' {'local-only'} default {'smol'} }
+}
+
+$plan = & $Bun "$Here\extensions\local-llm.ts" --json --backend $be --level $lvl | ConvertFrom-Json
 $rolesYaml = $plan.rolesYaml
-$roleIds = $plan.roles.PSObject.Properties.Value | Select-Object -Unique
-$pulls = if ($All) { $plan.pulls.pull | Select-Object -Unique }
-         else { ($plan.pulls | Where-Object { $roleIds -contains $_.id }).pull | Select-Object -Unique }
+$pulls = if ($All) { $plan.pullsAll } else { $plan.pulls }
+Write-Host "  Level: $lvl  ·  models to pull: $($pulls -join ' ')"
 
 if ($be -eq "ollama") {
   if (Have ollama) { Say "Ollama present" }

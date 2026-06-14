@@ -34,14 +34,22 @@ backend, pulls the role models, and appends the role wiring to
   re-runs detection and prints the plan + role YAML. The same file is the CLI
   (`bun extensions/local-llm.ts --json`) that drives the installer.
 
-## Roles
+## Roles — conservative by default (`--level`)
 
-| Role | Goes to |
-|---|---|
-| `plan`, `default` | cloud Opus (local can't match deep planning yet) |
-| `task` | best local agentic model that fits (e.g. GLM-4.7-Flash 30B-A3B) |
-| `smol`, `commit` | smallest fast local coder (e.g. Qwen2.5-Coder-7B) |
-| `slow` | highest-quality local (offload OK) · `vision` | local VLM |
+Local models take a role **only when they can do it well**. Default keeps local to
+the cheap/high-volume roles; you opt into more with `--level`:
+
+| `--level` | Local roles | Cloud roles |
+|---|---|---|
+| **`smol`** (default) | `smol`, `commit`, `vision` | `plan`, `default`, `task`, `slow` |
+| **`balanced`** | + `task`, `slow` (if a strong model fits, no spill) | `plan`, `default` |
+| **`max`** | + `default` (only if a top model fits *fully on the GPU*) | `plan` |
+| **`local-only`** | everything | — |
+
+The escalation is gated by real fit, not just the flag: on 16GB, `max` still keeps
+`default` on cloud (the 30B is expert-offloaded); on 24GB+ it promotes a top model
+to `default`. `plan` stays cloud except at `local-only`. Set the level with
+`--level=…` or `OMP_LOCAL_LEVEL`.
 
 ## Backends
 

@@ -38,14 +38,23 @@ backend choisi, télécharge les modèles de rôle, et ajoute le câblage des r�
   fichier est aussi le CLI (`bun extensions/local-llm.ts --json`) qui pilote
   l'installeur.
 
-## Rôles
+## Rôles — conservateur par défaut (`--level`)
 
-| Rôle | Vers |
-|---|---|
-| `plan`, `default` | Opus cloud (le local n'égale pas encore la planification profonde) |
-| `task` | meilleur modèle agentique local qui rentre (ex. GLM-4.7-Flash 30B-A3B) |
-| `smol`, `commit` | plus petit coder local rapide (ex. Qwen2.5-Coder-7B) |
-| `slow` | meilleure qualité locale (offload OK) · `vision` | VLM local |
+Un modèle local ne prend un rôle **que s'il sait bien le faire**. Par défaut, le
+local se limite aux rôles bon marché / à fort volume ; on en demande plus avec
+`--level` :
+
+| `--level` | Rôles locaux | Rôles cloud |
+|---|---|---|
+| **`smol`** (défaut) | `smol`, `commit`, `vision` | `plan`, `default`, `task`, `slow` |
+| **`balanced`** | + `task`, `slow` (si un modèle fort rentre, sans spill) | `plan`, `default` |
+| **`max`** | + `default` (seulement si un top modèle tient *entièrement sur le GPU*) | `plan` |
+| **`local-only`** | tout | — |
+
+L'escalade dépend du fit réel, pas seulement du flag : en 16GB, `max` garde quand
+même `default` sur le cloud (le 30B est en offload d'experts) ; en 24GB+, il promeut
+un top modèle en `default`. `plan` reste cloud sauf en `local-only`. Réglez le
+niveau avec `--level=…` ou `OMP_LOCAL_LEVEL`.
 
 ## Backends
 

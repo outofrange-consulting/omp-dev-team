@@ -11,12 +11,12 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0
+DRY=0; YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0; LEVEL=""
 for a in "$@"; do case "$a" in
   --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;;
-  --backend=*) BACKEND="${a#*=}" ;; --vram=*) VRAM="${a#*=}" ;; --ram=*) RAM="${a#*=}" ;;
-  --backend|--vram|--ram) echo "use $a=VALUE" >&2; exit 2 ;;
-  -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+  --backend=*) BACKEND="${a#*=}" ;; --vram=*) VRAM="${a#*=}" ;; --ram=*) RAM="${a#*=}" ;; --level=*) LEVEL="${a#*=}" ;;
+  --backend|--vram|--ram|--level) echo "use $a=VALUE" >&2; exit 2 ;;
+  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -42,7 +42,7 @@ compute_plan() { # compute_plan <backend>
   local ev=()
   [ -n "$VRAM" ] && ev+=("OMP_LOCAL_VRAM_GB=$VRAM")
   [ -n "$RAM" ] && ev+=("OMP_LOCAL_RAM_GB=$RAM")
-  env ${ev[@]+"${ev[@]}"} "$BUN" "$HERE/extensions/local-llm.ts" --json --backend "$1"
+  env ${ev[@]+"${ev[@]}"} "$BUN" "$HERE/extensions/local-llm.ts" --json --backend "$1" --level "${LEVEL:-smol}"
 }
 
 # --- compute the plan -------------------------------------------------------
@@ -69,14 +69,30 @@ fi
 if [ -z "$BACKEND" ]; then
   if ask "Use Ollama? (recommended; 'n' = llama.cpp, advanced)" "Y"; then BACKEND="ollama"; else BACKEND="llama.cpp"; fi
 fi
-# Recompute plan for the chosen backend (served ids differ).
+
+# --- how much to run locally (conservative by default) ----------------------
+if [ -z "$LEVEL" ]; then
+  if [ "$YES" = 1 ] || [ ! -r /dev/tty ]; then LEVEL="smol"
+  else
+    echo "  How much should run on LOCAL models?"
+    echo "    1) smol      — only cheap/high-volume roles local; task/default stay cloud (recommended)"
+    echo "    2) balanced  — also task/slow local IF a strong model fits"
+    echo "    3) max       — also default local IF a top model fits fully on the GPU (big config)"
+    echo "    4) local-only— everything local incl. default/plan (power users)"
+    read -r -p "  Choice [1]: " lv </dev/tty || lv=1
+    case "${lv:-1}" in 2) LEVEL=balanced;; 3) LEVEL=max;; 4) LEVEL=local-only;; *) LEVEL=smol;; esac
+  fi
+fi
+
+# Recompute plan for the chosen backend + level (served ids / wiring differ).
 PLAN="$(compute_plan "$BACKEND")"
 ROLES_YAML="$(field "process.stdout.write(j.rolesYaml)")"
 if [ "$ALL" = 1 ]; then
-  PULLS="$(field "process.stdout.write([...new Set(j.pulls.map(p=>p.pull))].join('\n'))")"
+  PULLS="$(field "process.stdout.write((j.pullsAll||[]).join('\n'))")"
 else
-  PULLS="$(field "const ids=new Set(Object.values(j.roles));process.stdout.write([...new Set(j.pulls.filter(p=>ids.has(p.id)).map(p=>p.pull))].join('\n'))")"
+  PULLS="$(field "process.stdout.write((j.pulls||[]).join('\n'))")"
 fi
+echo "  Level: ${LEVEL}  ·  models to pull: $(printf '%s' "$PULLS" | tr '\n' ' ')"
 
 # --- install backend --------------------------------------------------------
 if [ "$BACKEND" = "ollama" ]; then

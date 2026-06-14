@@ -5,7 +5,12 @@
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { detectHardware } from "./lib/detect.ts";
 import { buildPlan } from "./lib/selector.ts";
-import { type Backend, PROVIDER, planJson, planSummary, providerConfig, rolesYaml } from "./lib/emit.ts";
+import { type Backend, LEVELS, type Level, PROVIDER, planJson, planSummary, providerConfig, rolesYaml } from "./lib/emit.ts";
+
+function pickLevel(v?: string): Level {
+	const c = (v ?? process.env.OMP_LOCAL_LEVEL ?? "smol") as Level;
+	return LEVELS.includes(c) ? c : "smol";
+}
 
 async function probe(url: string): Promise<boolean> {
 	try {
@@ -34,6 +39,7 @@ async function apply(pi: ExtensionAPI): Promise<string> {
 		return `local-llm: no catalog model fits ${hw.vramGB}GB VRAM / ${hw.ramGB}GB RAM (≥8GB VRAM recommended). Nothing registered.`;
 	}
 	const backend = await pickBackend();
+	const level = pickLevel();
 	try {
 		// Register the fitting local models live (no reload). Older hosts without
 		// registerProvider just skip this; the role YAML below still works.
@@ -45,11 +51,11 @@ async function apply(pi: ExtensionAPI): Promise<string> {
 		/* provider registration optional */
 	}
 	return [
-		planSummary(plan, hw.source),
+		planSummary(plan, hw.source, { backend, level }),
 		"",
-		`Backend: ${backend}. Paste into ~/.omp/agent/config.yml to wire roles:`,
+		`Backend: ${backend} · level: ${level}. Paste into ~/.omp/agent/config.yml to wire roles:`,
 		"",
-		rolesYaml(plan, { backend }),
+		rolesYaml(plan, { backend, level }),
 	].join("\n");
 }
 
@@ -76,11 +82,12 @@ if (import.meta.main) {
 	const vram = arg("--vram") ? Number(arg("--vram")) : undefined;
 	const ram = arg("--ram") ? Number(arg("--ram")) : undefined;
 	const backend = (arg("--backend") as Backend) || "ollama";
+	const level = pickLevel(arg("--level"));
 	const hw = await detectHardware({ vram, ram });
 	const plan = buildPlan(hw);
 	if (args.includes("--json")) {
-		console.log(planJson(plan, backend));
+		console.log(planJson(plan, backend, level));
 	} else {
-		console.log(`${planSummary(plan, hw.source)}\n\n${rolesYaml(plan, { backend })}`);
+		console.log(`${planSummary(plan, hw.source, { backend, level })}\n\n${rolesYaml(plan, { backend, level })}`);
 	}
 }

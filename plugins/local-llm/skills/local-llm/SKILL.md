@@ -39,19 +39,26 @@ box — `oncard` / `moe-offload` / `dense-spill` / `no-fit` — scores quality×
 and assigns the best per role (`smol`/`commit` pick the cheapest fast fit). MoE
 models (GLM-4.7-Flash, Qwen3-Coder-30B-A3B) shine on 16GB via expert offload.
 
-## Role philosophy
+## Role policy — conservative by default (`--level`)
 
-| Role | Goes to |
-|---|---|
-| `plan`, `default` | **cloud** Opus (local can't match deep planning yet) |
-| `task` | best local agentic model that fits (e.g. GLM-4.7-Flash) |
-| `smol`, `commit` | smallest fast local coder (e.g. Qwen2.5-Coder-7B) |
-| `slow` | highest-quality local (offload OK) |
-| `vision` | local VLM (Ministral-3) |
+Local models are good at the cheap/high-volume roles long before they're good
+enough to be your everyday driver. So local **only takes a role when it can
+actually do it well** — controlled by `--level` (default `smol`):
 
-Set `--all` to pull every fitting model, `--vram=N --ram=N` to plan for another
-machine, `--backend=llama.cpp` to use llama.cpp. Override detection any time with
-`OMP_LOCAL_VRAM_GB` / `OMP_LOCAL_RAM_GB`; pick the backend with `OMP_LOCAL_BACKEND`.
+| `--level` | What goes local | Good for |
+|---|---|---|
+| **`smol`** (default) | `smol`, `commit`, `vision` only — `task`/`default`/`plan` stay cloud | any ≥8GB GPU |
+| **`balanced`** | + `task`, `slow` **if** a strong model fits (q≥78, no spill) | a 16GB box with a strong MoE (GLM-4.7-Flash) |
+| **`max`** | + `default` **only if** a top model fits *fully on the GPU* (oncard, q≥85) | 24GB+ / big unified memory |
+| **`local-only`** | everything local incl. `plan`/`default` | power users / offline |
+
+`plan` stays on cloud except at `local-only`. The escalation is gated by real
+fit: e.g. on 16GB, `max` still leaves `default` on cloud (the 30B is expert-
+offloaded, not fully resident); on 24GB it promotes Qwen3.6-27B to `default`.
+
+Flags: `--level=`, `--all` (pull every fitting model, not just the wired ones),
+`--vram=N --ram=N` (plan for another machine), `--backend=llama.cpp`. Env:
+`OMP_LOCAL_LEVEL`, `OMP_LOCAL_VRAM_GB`, `OMP_LOCAL_RAM_GB`, `OMP_LOCAL_BACKEND`.
 
 Pairs with **copilot-preset** (cheap cloud for plan/default) and **dev-team**
 (point its small tier at a `local-llm/…` model).
