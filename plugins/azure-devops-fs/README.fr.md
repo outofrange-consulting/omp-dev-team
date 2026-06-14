@@ -13,11 +13,19 @@ les chemins/réfs de première classe et comprend les URIs `ado://` / `adopr://`
 ## Capacités
 
 - **Lecture** (cache dans `~/.omp/cache/ado-cache.db`) : `repo_view`, `repo_ls`,
-  `repo_read`, `pr_view` (+threads), `pr_list`, `pr_files`, `pr_diff`,
-  `work_item`, `search_code`.
+  `repo_read`, `pr_view` (threads + statut de merge + relecteurs requis + work
+  items liés), `pr_list`, `pr_files`, `pr_diff`, `work_item`, `search_code`.
+- **Gates / CI** (spécificités Azure) : `pr_checks` (**évaluations** des stratégies
+  de branche + **statuts** PR externes + **builds de validation** + `mergeStatus`/
+  conflits — la porte de merge, comme les required checks GitHub), `pipeline_list`,
+  `build_list`, `build_logs`, `build_run` (déclenche), `pipeline_watch` (poll).
 - **Écriture** : `pr_create`, `pr_checkout` (clone la branche de la PR dans
-  `~/.omp/wt/...`), `pr_push`, `pr_comment`, `pr_vote`, `pr_abandon`,
-  `pipeline_watch`, création de `work_item`.
+  `~/.omp/wt/...`), `pr_push`, `pr_comment`, `pr_vote`, `pr_complete` (merge /
+  auto-complétion avec `mergeStrategy`), `pr_abandon`, création de `work_item`.
+- **Pagination** : `pr_files`/`pr_diff` paginent les changements d'itération de la
+  PR ($top/$skip) pour ne jamais tronquer les grosses PR (`pr_diff` 25 fichiers/page
+  via `skip=`) ; les listes builds/pipelines suivent `x-ms-continuationtoken`. Les
+  fichiers binaires des diffs sont ignorés.
 - **URIs** : `ado://{org}/{project}/{repo}/{path}@{ref}`,
   `adopr://{org}/{project}/{repo}/{id}[/diff[/path]]` (org/projet par défaut depuis l'env).
 - **Commandes** : `/ado`, `/ado-pr`, `/ado-review`, `/ado-pipeline`.

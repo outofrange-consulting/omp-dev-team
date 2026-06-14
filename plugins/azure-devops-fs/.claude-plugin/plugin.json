@@ -1,6 +1,6 @@
 {
   "name": "azure-devops-fs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Azure DevOps as a filesystem for Oh-My-Pi: read repos/files/PRs/diffs via ado:// URIs, create/checkout/push PRs, comment/vote, watch pipelines. Standalone, PAT-authenticated.",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",

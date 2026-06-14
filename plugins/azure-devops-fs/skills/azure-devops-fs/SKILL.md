@@ -25,14 +25,34 @@ discrete fields (`repo`, `path`, `ref`, `id`).
 ## Ops
 
 **Read** (cached ~120s): `repo_view`, `repo_ls` (tree), `repo_read` (file),
-`pr_view` (with threads), `pr_list`, `pr_files`, `pr_diff`, `work_item`,
-`search_code`.
+`pr_view` (threads + merge status + required reviewers + linked work items),
+`pr_list`, `pr_files`, `pr_diff`, `work_item`, `search_code`.
+
+**Gates / CI** (Azure specifics):
+
+- `pr_checks` — the merge gate picture: branch-policy **evaluations** (required
+  reviewers, min approvals, build validation, comment resolution, merge strategy),
+  external **PR statuses**, associated **build-validation runs**, and `mergeStatus`
+  (conflicts). The ADO equivalent of GitHub's required checks/reviews.
+- `pipeline_list` — list build pipelines/definitions.
+- `build_list` — runs (filter by `ref` branch, `status`, `definitionId`).
+- `build_logs` — tail the logs of `buildId`.
+- `build_run` — queue a build (`definitionId` [+ `ref`]); needs confirmation.
+- `pipeline_watch` — poll a running `buildId` to completion.
 
 **Write**: `pr_create` (title/source/target/description/draft), `pr_checkout`
 (clones the PR source branch under `~/.omp/wt/...`), `pr_push`, `pr_comment`
 (new thread or reply via `threadId`), `pr_vote` (approve / approve-suggestions /
-reset / waiting / reject), `pr_abandon`, `pipeline_watch` (poll a build),
+reset / waiting / reject), `pr_complete` (merge now or set auto-complete;
+`mergeStrategy` squash|rebase|rebaseMerge|noFastForward), `pr_abandon`,
 `work_item` create (`title` + `type`).
+
+## Pagination
+
+`pr_files` / `pr_diff` page the PR iteration changes ($top/$skip) so large PRs are
+never truncated; `pr_diff` shows 25 files per call — pass `skip=25`, `skip=50`, …
+for the next pages (it prints the next `skip`). Build/pipeline lists follow Azure
+continuation tokens. Binary files in a diff are detected and skipped.
 
 ## Examples
 
@@ -46,12 +66,19 @@ ado op=pr_create repo=myrepo title="Fix X" source=feature/x target=main draft=tr
 ado op=pr_checkout repo=myrepo id=4213
 ado op=pr_comment repo=myrepo id=4213 comment="LGTM, one nit on line 12"
 ado op=pr_vote  repo=myrepo id=4213 vote=approve
+ado op=pr_checks repo=myrepo id=4213            # gates: policies + statuses + builds
+ado op=pr_diff  repo=myrepo id=4213 skip=25      # next page of a large diff
+ado op=build_list repo=myrepo ref=main status=completed
+ado op=build_logs buildId=88123
+ado op=pr_complete repo=myrepo id=4213 mergeStrategy=squash      # merge (confirm)
+ado op=pr_complete repo=myrepo id=4213 autoComplete=true         # merge when green
 ```
 
 ## Setup
 
-Set `AZURE_DEVOPS_PAT` (Code R/W, PR R/W), `AZURE_DEVOPS_ORG`, and optionally
-`AZURE_DEVOPS_PROJECT`. Destructive ops (`pr_abandon`, `pr_vote reject`, force
-push) prompt for confirmation, or require `confirm: true` when headless.
+Set `AZURE_DEVOPS_PAT` (Code R/W, PR R/W, **Build R** for CI, **Policy R** for
+`pr_checks` gates), `AZURE_DEVOPS_ORG`, and optionally `AZURE_DEVOPS_PROJECT`.
+Side-effecting ops (`pr_abandon`, `pr_complete`, `build_run`, `pr_vote reject`,
+force push) prompt for confirmation, or require `confirm: true` when headless.
 
 Reads are cached in `~/.omp/cache/ado-cache.db` (disable with `OMP_ADO_CACHE=0`).

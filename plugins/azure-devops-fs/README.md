@@ -13,11 +13,18 @@ that makes paths/refs first-class and understands `ado://` / `adopr://` URIs.
 ## Capabilities
 
 - **Read** (cached in `~/.omp/cache/ado-cache.db`): `repo_view`, `repo_ls`,
-  `repo_read`, `pr_view` (+threads), `pr_list`, `pr_files`, `pr_diff`,
-  `work_item`, `search_code`.
+  `repo_read`, `pr_view` (threads + merge status + required reviewers + linked
+  work items), `pr_list`, `pr_files`, `pr_diff`, `work_item`, `search_code`.
+- **Gates / CI** (Azure specifics): `pr_checks` (branch-policy **evaluations** +
+  external **PR statuses** + **build-validation runs** + `mergeStatus`/conflicts —
+  the merge gate, à la GitHub required checks), `pipeline_list`, `build_list`,
+  `build_logs`, `build_run` (queue), `pipeline_watch` (poll).
 - **Write**: `pr_create`, `pr_checkout` (clones the PR branch into
-  `~/.omp/wt/...`), `pr_push`, `pr_comment`, `pr_vote`, `pr_abandon`,
-  `pipeline_watch`, `work_item` create.
+  `~/.omp/wt/...`), `pr_push`, `pr_comment`, `pr_vote`, `pr_complete` (merge /
+  auto-complete with `mergeStrategy`), `pr_abandon`, `work_item` create.
+- **Pagination**: `pr_files`/`pr_diff` page the PR iteration changes ($top/$skip)
+  so large PRs aren't truncated (`pr_diff` 25 files/page via `skip=`); build/pipeline
+  lists follow `x-ms-continuationtoken`. Binary files in diffs are skipped.
 - **URIs**: `ado://{org}/{project}/{repo}/{path}@{ref}`,
   `adopr://{org}/{project}/{repo}/{id}[/diff[/path]]` (org/project default from env).
 - **Commands**: `/ado`, `/ado-pr`, `/ado-review`, `/ado-pipeline`.

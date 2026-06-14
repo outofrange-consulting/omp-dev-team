@@ -14,9 +14,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cacheGet, cacheSet } from "./lib/cache.ts";
 import {
+	fmtBuilds,
 	fmtChanges,
+	fmtChecks,
 	fmtFile,
 	fmtItems,
+	fmtPipelines,
 	fmtPr,
 	fmtPrList,
 	fmtRepo,
@@ -27,7 +30,12 @@ import { isAdoUri, parseAdoUri } from "./lib/uri.ts";
 import { prCheckout, prPush, prWorktreePath } from "./lib/worktree.ts";
 
 const READ_TTL = 120; // seconds; reads are cached, mutations never are
-const DESTRUCTIVE = new Set(["pr_abandon"]);
+// Ops that mutate / have side effects and require confirmation when no UI.
+const CONFIRM = new Set(["pr_abandon", "pr_complete", "build_run"]);
+const READ_OPS = [
+	"repo_view", "repo_ls", "repo_read", "pr_view", "pr_list", "pr_files",
+	"pr_checks", "work_item", "build_list", "build_logs", "pipeline_list",
+];
 const VOTE: Record<string, number> = {
 	approve: 10,
 	"approve-suggestions": 5,
@@ -50,8 +58,9 @@ export default function ado(pi: ExtensionAPI) {
 		label: "Azure DevOps",
 		description:
 			"Azure DevOps as a filesystem. Reads accept ado:// / adopr:// URIs.\n" +
-			"Read ops: repo_view, repo_ls, repo_read, pr_view, pr_list, pr_files, pr_diff, work_item, search_code.\n" +
-			"Write ops: pr_create, pr_checkout, pr_push, pr_comment, pr_vote, pr_abandon, pipeline_watch.\n" +
+			"Read: repo_view, repo_ls, repo_read, pr_view, pr_list, pr_files, pr_diff (paginated, skip=), pr_checks (gates/policies/CI), work_item, search_code.\n" +
+			"CI: pipeline_list, build_list, build_logs, build_run, pipeline_watch.\n" +
+			"Write: pr_create, pr_checkout, pr_push, pr_comment, pr_vote, pr_abandon, pr_complete (merge/auto-complete).\n" +
 			"URIs: ado://{org}/{project}/{repo}/{path}@{ref}  ·  adopr://{org}/{project}/{repo}/{id}[/diff[/path]].\n" +
 			"org/project default from AZURE_DEVOPS_ORG/PROJECT. Needs AZURE_DEVOPS_PAT.",
 		parameters: z.object({
@@ -69,7 +78,13 @@ export default function ado(pi: ExtensionAPI) {
 				"pr_comment",
 				"pr_vote",
 				"pr_abandon",
+				"pr_complete",
+				"pr_checks",
 				"pipeline_watch",
+				"pipeline_list",
+				"build_list",
+				"build_logs",
+				"build_run",
 				"work_item",
 				"search_code",
 			]),
@@ -91,7 +106,11 @@ export default function ado(pi: ExtensionAPI) {
 			threadId: z.number().optional().describe("pr_comment: reply to this thread"),
 			vote: z.enum(["approve", "approve-suggestions", "reset", "waiting", "reject"]).optional(),
 			query: z.string().optional().describe("search_code query"),
-			buildId: z.number().optional().describe("pipeline_watch build id"),
+			buildId: z.number().optional().describe("pipeline_watch/build_logs build id"),
+			definitionId: z.number().optional().describe("build_run: pipeline/definition id to queue"),
+			skip: z.number().optional().describe("pagination offset (pr_diff files, lists)"),
+			mergeStrategy: z.enum(["squash", "rebase", "rebaseMerge", "noFastForward"]).optional().describe("pr_complete merge strategy"),
+			autoComplete: z.boolean().optional().describe("pr_complete: set auto-complete instead of completing now"),
 			type: z.string().optional().describe("work_item create type, e.g. Bug, Task"),
 			force: z.boolean().optional(),
 			confirm: z.boolean().optional().describe("required for destructive ops when no UI"),
@@ -123,16 +142,16 @@ export default function ado(pi: ExtensionAPI) {
 				const verDesc = (r?: string) =>
 					r ? { "versionDescriptor.version": r, "versionDescriptor.versionType": "branch" } : {};
 
-				// Confirmation gate for destructive ops.
-				if (DESTRUCTIVE.has(p.op) || (p.op === "pr_vote" && p.vote === "reject") || (p.op === "pr_push" && p.force)) {
+				// Confirmation gate for destructive / side-effecting ops.
+				if (CONFIRM.has(p.op) || (p.op === "pr_vote" && p.vote === "reject") || (p.op === "pr_push" && p.force)) {
 					const what = `${p.op}${p.vote ? ` (${p.vote})` : ""} on ${repo ?? "?"}${id ? ` !${id}` : ""}`;
 					const ok = ctx.hasUI ? await ctx.ui.confirm("Azure DevOps", `Confirm ${what}?`) : p.confirm === true;
 					if (!ok)
 						return text(`Aborted ${what}. ${ctx.hasUI ? "" : "Pass confirm:true to proceed without a UI."}`);
 				}
 
-				const cacheKey = JSON.stringify([p.op, env.org, env.project, repo, path, ref, id, p._diff, p.status, p.limit, p.query]);
-				if (["repo_view", "repo_ls", "repo_read", "pr_view", "pr_list", "pr_files", "work_item"].includes(p.op)) {
+				const cacheKey = JSON.stringify([p.op, env.org, env.project, repo, path, ref, id, p._diff, p.status, p.limit, p.skip, p.query, p.buildId, p.definitionId]);
+				if (READ_OPS.includes(p.op)) {
 					const hit = cacheGet(cacheKey, READ_TTL);
 					if (hit) return text(hit, { cached: true });
 				}
@@ -182,7 +201,13 @@ export default function ado(pi: ExtensionAPI) {
 						} catch {
 							/* threads optional */
 						}
-						const out = fmtPr(pr, threads);
+						let workItems: any[] | undefined;
+						try {
+							workItems = (await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/workitems`)).value;
+						} catch {
+							/* work-item links optional */
+						}
+						const out = fmtPr(pr, threads, { workItems });
 						cacheSet(cacheKey, out);
 						return text(out, { sourceUrl: pr._links?.web?.href });
 					}
@@ -202,10 +227,13 @@ export default function ado(pi: ExtensionAPI) {
 						const its = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations`);
 						const last = (its.value ?? []).at(-1);
 						if (!last) return text("(no iterations)");
-						const ch = await c.get<any>(
+						// Paginate the iteration changes ($top/$skip) so large PRs aren't truncated.
+						const changes = await c.listSkip<any>(
 							`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations/${last.id}/changes`,
+							{},
+							{ key: "changeEntries", top: 1000, cap: 5000 },
 						);
-						const out = fmtChanges(ch.changeEntries ?? []);
+						const out = fmtChanges(changes);
 						cacheSet(cacheKey, out);
 						return text(out);
 					}
@@ -218,12 +246,20 @@ export default function ado(pi: ExtensionAPI) {
 						const its = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations`);
 						const last = (its.value ?? []).at(-1);
 						const ch = last
-							? (await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations/${last.id}/changes`)).changeEntries ?? []
+							? await c.listSkip<any>(
+									`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/iterations/${last.id}/changes`,
+									{},
+									{ key: "changeEntries", top: 1000, cap: 5000 },
+								)
 							: [];
 						const want = p._diff?.path ?? path;
+						const PAGE = 25;
+						const skip = Math.max(0, p.skip ?? 0);
 						let files = ch.filter((e: any) => e.item?.path && !e.item.isFolder);
 						if (want) files = files.filter((e: any) => e.item.path === want || e.item.path === `/${want}`);
-						files = files.slice(0, want ? 1 : 25);
+						const total = files.length;
+						files = want ? files.slice(0, 1) : files.slice(skip, skip + PAGE);
+						const more = !want && skip + files.length < total;
 						const contentAt = async (commit: string | undefined, fp: string) => {
 							if (!commit) return "";
 							try {
@@ -238,12 +274,17 @@ export default function ado(pi: ExtensionAPI) {
 								return "";
 							}
 						};
+						const isBinary = (s: string) => s.includes("\u0000");
 						const dir = mkdtempSync(join(tmpdir(), "ado-diff-"));
 						const parts: string[] = [];
 						for (const e of files) {
 							const fp = e.item.path as string;
 							const a = await contentAt(base, fp);
 							const b = await contentAt(src, fp);
+							if (isBinary(a) || isBinary(b)) {
+								parts.push(`### ${fp} (${e.changeType})\n\n_(binary file — diff omitted)_`);
+								continue;
+							}
 							const af = join(dir, "a");
 							const bf = join(dir, "b");
 							writeFileSync(af, a);
@@ -256,7 +297,9 @@ export default function ado(pi: ExtensionAPI) {
 							}
 							parts.push(`### ${fp} (${e.changeType})\n\n\`\`\`diff\n${d.replace(new RegExp(dir + "/", "g"), "")}\n\`\`\``);
 						}
-						return text(`# PR !${id} diff (${files.length} file${files.length === 1 ? "" : "s"})\n\n${parts.join("\n\n")}`);
+						const range = want ? "" : ` ${skip + 1}-${skip + files.length} of ${total}`;
+						const hint = more ? `\n\n_More files: re-run with skip=${skip + PAGE}._` : "";
+						return text(`# PR !${id} diff (${files.length} file${files.length === 1 ? "" : "s"}${range})\n\n${parts.join("\n\n")}${hint}`);
 					}
 					case "pr_create": {
 						need(repo, "repo");
@@ -382,6 +425,111 @@ export default function ado(pi: ExtensionAPI) {
 							await new Promise((r) => setTimeout(r, 3000));
 						}
 						return text(`Build ${p.buildId} still running after 20m (last: ${last})`);
+					}
+					case "pr_checks": {
+						need(repo, "repo");
+						need(id, "id");
+						const pr = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}`);
+						// Branch-policy evaluations (the merge gates). Needs the project GUID
+						// in the artifactId, and Policy (read) on the PAT.
+						let policies: any[] = [];
+						try {
+							const pid = await c.projectId();
+							policies =
+								(await c.get<any>(`/_apis/policy/evaluations`, {
+									artifactId: `vstfs:///CodeReview/CodeReviewId/${pid}/${id}`,
+								})).value ?? [];
+						} catch {
+							/* policy read optional */
+						}
+						// External statuses posted to the PR.
+						let statuses: any[] = [];
+						try {
+							statuses = (await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}/statuses`)).value ?? [];
+						} catch {
+							/* statuses optional */
+						}
+						// Build-validation runs queued against the PR merge ref.
+						let builds: any[] = [];
+						try {
+							builds = await c.listToken<any>(`/_apis/build/builds`, { branchName: `refs/pull/${id}/merge` }, { cap: 50 });
+						} catch {
+							/* builds optional */
+						}
+						const out = fmtChecks(Number(id), { mergeStatus: pr.mergeStatus, policies, statuses, builds });
+						cacheSet(cacheKey, out);
+						return text(out, { sourceUrl: pr._links?.web?.href });
+					}
+					case "pr_complete": {
+						need(repo, "repo");
+						need(id, "id");
+						const pr = await c.get<any>(`/_apis/git/repositories/${repoEnc}/pullRequests/${id}`);
+						const completionOptions = {
+							mergeStrategy: p.mergeStrategy ?? "squash",
+							deleteSourceBranch: false,
+							bypassPolicy: false,
+						};
+						if (p.autoComplete) {
+							const me = await c.selfId();
+							await c.send("PATCH", `/_apis/git/repositories/${repoEnc}/pullRequests/${id}`, {
+								autoCompleteSetBy: { id: me.id },
+								completionOptions,
+							});
+							return text(`Set auto-complete on PR !${id} (${completionOptions.mergeStrategy}); it merges once policies pass.`);
+						}
+						await c.send("PATCH", `/_apis/git/repositories/${repoEnc}/pullRequests/${id}`, {
+							status: "completed",
+							lastMergeSourceCommit: pr.lastMergeSourceCommit,
+							completionOptions,
+						});
+						return text(`Completed (merged) PR !${id} via ${completionOptions.mergeStrategy}.`);
+					}
+					case "pipeline_list": {
+						const defs = await c.listToken<any>(
+							`/_apis/build/definitions`,
+							{ $top: Math.min(p.limit ?? 100, 1000) },
+							{ cap: p.limit ?? 300 },
+						);
+						const out = fmtPipelines(defs);
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "build_list": {
+						const q: Record<string, string | number> = {};
+						if (ref) q.branchName = String(ref).startsWith("refs/") ? ref : `refs/heads/${ref}`;
+						if (p.status) q.statusFilter = p.status; // inProgress|completed|notStarted|all
+						if (p.definitionId) q.definitions = p.definitionId;
+						const builds = await c.listToken<any>(
+							`/_apis/build/builds`,
+							{ ...q, $top: Math.min(p.limit ?? 20, 100) },
+							{ cap: p.limit ?? 50 },
+						);
+						const out = fmtBuilds(builds);
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "build_logs": {
+						need(p.buildId, "buildId");
+						const logs = (await c.get<any>(`/_apis/build/builds/${p.buildId}/logs`)).value ?? [];
+						if (!logs.length) return text(`Build ${p.buildId}: no logs yet`);
+						const lastLog = logs.at(-1);
+						const raw = await c.get<string>(`/_apis/build/builds/${p.buildId}/logs/${lastLog.id}`, {}, { raw: true });
+						const all = String(raw).split("\n");
+						const tail = all.slice(-200);
+						const out = `# Build ${p.buildId} — log ${lastLog.id} (last ${tail.length}/${all.length} lines)\n\n\`\`\`\n${tail.join("\n")}\n\`\`\``;
+						cacheSet(cacheKey, out);
+						return text(out);
+					}
+					case "build_run": {
+						need(p.definitionId, "definitionId");
+						const b = await c.send<any>("POST", `/_apis/build/builds`, {
+							definition: { id: p.definitionId },
+							...(ref ? { sourceBranch: String(ref).startsWith("refs/") ? ref : `refs/heads/${ref}` } : {}),
+						});
+						return text(
+							`Queued build #${b.id} (${b.definition?.name ?? p.definitionId}) on ${(b.sourceBranch ?? "").replace("refs/heads/", "")} — ${b._links?.web?.href ?? ""}`.trimEnd(),
+							{ buildId: b.id },
+						);
 					}
 					default:
 						return text(`Unknown op '${p.op}'`);
