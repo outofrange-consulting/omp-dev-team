@@ -68,6 +68,31 @@ guard/routing extensions resolve their data relative to the plugin (so they work
 whatever the consuming project's cwd is). Runtime state is written under the
 consuming project's `.omp/state/`.
 
+## Agent Package Manager (APM) & duplicate definitions
+
+If you use [Agent Package Manager](https://github.com/) and run `apm compile --all`,
+the same agents/skills/rules get written into `.claude`, `.copilot`, `.cursor`,
+`.agents`, … next to `.omp`. **OMP does not load them multiple times** — it
+de-duplicates by name (first match wins) *before* loading, so duplicates cost **no
+extra tokens** and are not double-registered:
+
+- **agents / commands / skills** are scanned only from `.omp` › `.claude` › `.codex`
+  › `.gemini` (project before user); identical skill files are additionally
+  realpath-deduped. `.copilot` and `.cursor` are **not** scanned for these.
+- **rules** are name-deduped across providers `native › agents › cursor › windsurf
+  › cline`; shadowed same-name rules are excluded from the active set.
+
+Notes:
+
+- **Don't delete the other directories.** `apm compile --all` creates `.claude` /
+  `.copilot` / `.cursor` on purpose for Claude Code / Copilot / Cursor, which need
+  them. Removing them to "de-dupe" would break those tools — and OMP already
+  ignores the extras.
+- OMP silently uses the **highest-precedence** copy and shadows the rest. To be
+  sure OMP uses a specific variant, keep the canonical one in `.omp/` (or
+  `.claude/`). For skills you can also pin/exclude with `skills.includeSkills` /
+  `skills.ignoredSkills` in your config.
+
 ## Tested
 
 Verified end-to-end on Linux: all `install.sh` pass `bash -n` + dry-run; all

@@ -62,6 +62,32 @@ plugins/
   azure-devops-fs/  extensions/ commands/ skills/ rules/ knowledge/ .mcp.json · install.{sh,ps1}
 ```
 
+## Agent Package Manager (APM) & définitions dupliquées
+
+Si vous utilisez Agent Package Manager et lancez `apm compile --all`, les mêmes
+agents/skills/rules sont écrits dans `.claude`, `.copilot`, `.cursor`, `.agents`, …
+à côté de `.omp`. **OMP ne les charge pas plusieurs fois** — il **déduplique par
+nom (le premier gagne)** *avant* le chargement, donc les doublons ne coûtent
+**aucun token supplémentaire** et ne sont pas enregistrés deux fois :
+
+- **agents / commands / skills** ne sont scannés que depuis `.omp` › `.claude` ›
+  `.codex` › `.gemini` (projet avant user) ; les fichiers de skill identiques sont
+  en plus dédupliqués par `realpath`. `.copilot` et `.cursor` **ne sont pas**
+  scannés pour ceux-ci.
+- **rules** : dédup par nom entre fournisseurs `native › agents › cursor ›
+  windsurf › cline` ; les rules de même nom masquées sont exclues du jeu actif.
+
+Notes :
+
+- **Ne supprimez pas les autres dossiers.** `apm compile --all` crée `.claude` /
+  `.copilot` / `.cursor` exprès pour Claude Code / Copilot / Cursor, qui en ont
+  besoin. Les effacer pour « dé-dupliquer » casserait ces outils — et OMP ignore
+  déjà les copies en trop.
+- OMP utilise silencieusement la copie **la plus prioritaire** et masque les
+  autres. Pour être sûr qu'OMP utilise une variante précise, gardez la version
+  canonique dans `.omp/` (ou `.claude/`). Pour les skills, vous pouvez aussi
+  cibler/exclure via `skills.includeSkills` / `skills.ignoredSkills` dans votre config.
+
 ## Testé
 
 Vérifié de bout en bout sous Linux et en intégration continue (Linux/macOS/Windows,
