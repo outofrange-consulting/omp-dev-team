@@ -39,7 +39,7 @@ grep+read round-trips (~96% fewer tokens on those tasks).
 ## When NOT to use it
 
 - Editing/reading a single known file → plain `Read` + `astEdit`.
-- Text/prose/config content (not symbols) → `grep` (ideally via `rtk grep`).
+- Text/prose/config content (not symbols) → `grep` (ctx-wire compresses its output automatically).
 - Languages not indexed → falls back to grep; check `codegraph_status`.
 
 Upstream: https://github.com/colbymchenry/codegraph

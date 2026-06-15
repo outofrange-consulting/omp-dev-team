@@ -2,7 +2,7 @@
 name: token-diet
 description: >-
   How this workspace minimizes LLM token spend. Use when the user asks how to
-  reduce tokens/cost, what RTK / CodeGraph / caveman are, how to set them up, or
+  reduce tokens/cost, what ctx-wire / CodeGraph / caveman / yagni are, how to set them up, or
   whether OMP already does X natively.
 ---
 
@@ -24,15 +24,15 @@ Three external layers on top of what OMP already does natively. Run
 
 | Tool | Fills the gap of… | Win |
 |---|---|---|
-| **RTK** (Rust Token Killer) | command **output** is dumped raw into context | 60–90% smaller `git/grep/find/test` output |
+| **ctx-wire** | command **output** is dumped raw into context (and may leak secrets) | filtered + secret-scrubbed `git/build/test/lint` output (full logs kept on disk) |
 | **CodeGraph** (MCP) | no persistent cross-file **symbol/call graph** | ~96% fewer tokens for "who calls X / impact / architecture" vs grep+read |
 | **caveman** (skill) | agent **output** is verbose prose | ~65% fewer output tokens, on demand |
 | **yagni** (skill) | agent writes **too much code** (bloat/over-engineering) | ~80–94% less code → fewer output now + fewer input tokens every future turn |
 
 ## Decision guide
 
-- Running shell commands? → they auto-route through `rtk` (see the always-on
-  rule) when it's installed.
+- Running shell commands? → output is transparently compressed + secret-scrubbed
+  by `ctx-wire` (no prefix; `ctx-wire gain` shows savings).
 - "Where is X / who calls X / what breaks if I change X / how does this module
   fit together?" → use `skill://codegraph` (the `codegraph_*` MCP tools).
 - Editing one known file / reading docs/prose → plain `Read` + `astEdit`.

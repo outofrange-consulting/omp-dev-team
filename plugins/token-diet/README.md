@@ -9,7 +9,7 @@ in place of it.
 
 | Layer | What | Win | Upstream |
 |---|---|---|---|
-| **RTK** | Rust Token Killer — CLI proxy that compresses command **output** | 60–90% on `git`/`grep`/`find`/`test` | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) |
+| **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk) | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **CodeGraph** | MCP symbol/call graph — query instead of grep+read | ~96% on "who calls X / impact / architecture" | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
@@ -18,7 +18,7 @@ in place of it.
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installs rtk + codegraph, then asks for your
+bash plugins/token-diet/install.sh   # installs ctx-wire + codegraph, then asks for your
                                      # sources ROOT and indexes EVERY git repo under it
 ```
 
@@ -30,10 +30,13 @@ any repo is ready the moment you open it. Then enable the CodeGraph MCP server
 
 ## How it's wired into OMP
 
-- **RTK** → an **always-on rule** (`rules/token-tools.md`) tells the agent to run
-  noisy shell commands as `rtk <cmd>`. RTK is CLI-only (no MCP); OMP isn't a
-  target of `rtk init`, so the rule is the integration. It degrades gracefully if
-  `rtk` isn't installed.
+- **ctx-wire** → installed by `install.sh` and wired with `ctx-wire init`; it's
+  **transparent** (PATH shims / hook for steering-only agents like OMP), so the
+  agent runs commands normally — **no prefix**. It filters verbose output and
+  scrubs secrets before they hit context, keeping full logs on disk. The always-on
+  rule (`rules/token-tools.md`) just tells the agent not to re-run for "full"
+  output. `ctx-wire gain` shows savings; `ctx-wire mcp-wrap` can also compress
+  MCP-server output. Replaces the earlier RTK integration.
 - **CodeGraph** → an MCP server (`.mcp.json`, `codegraph serve --mcp`) exposing
   `codegraph_search/node/callers/callees/explore/impact/files/status`. See
   `skill://codegraph`. Auto-syncs on file changes.

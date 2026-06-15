@@ -10,7 +10,7 @@ met en place OMP et vous guide à travers chacun d'eux.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | **Équipe de dev agentique** — un orchestrateur + 32 agents spécialistes/critiques, le workflow `/specs` → `/plan` → `/build` → `/pr`, **TDD strict** et points de contrôle humains, ~78 skills, et des extensions « garde-fou » bloquantes. Portage de [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). Tiers 100 % cloud ; gardez le tier « small » à haut volume bon marché. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
-| **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — RTK (sortie shell compressée), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), et un skill « caveman » de sortie laconique — par-dessus la compaction/`astGrep` natives d'OMP. |
+| **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), un skill « caveman » de sortie laconique, et un skill « yagni » de code minimal — par-dessus la compaction/`astGrep` natives d'OMP. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Authentifié par PAT, cache SQLite. |
 | **[`local-llm`](plugins/local-llm/)** | **Modèles locaux dimensionnés à votre matériel** — détecte VRAM/RAM, choisit les meilleurs GGUF par rôle, installe Ollama (ou llama.cpp), les télécharge, et enregistre le fournisseur `local-llm`. Hybride : planification cloud, exécution/rôles bon marché en local. |
 
@@ -59,7 +59,7 @@ du plugin dans leur dernière version) — voir son README :
 
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (vérif prérequis + config). 100 % cloud ; pas de backend local.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
-- **token-diet** → `bash plugins/token-diet/install.sh` (installe RTK + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
+- **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (assure Node, demande org/projet/**PAT**), puis activez le serveur MCP `azure-devops`.
 - **local-llm** → `bash plugins/local-llm/install.sh` (détecte VRAM/RAM, demande, installe Ollama/llama.cpp, télécharge les meilleurs modèles, câble les rôles).
 
@@ -108,12 +108,12 @@ Notes :
 Vérifié de bout en bout sous Linux et en intégration continue (Linux/macOS/Windows,
 voir `.github/workflows/installers.yml`) : tous les `install.sh` passent `bash -n` +
 dry-run ; tous les `install.ps1` se parsent sous PowerShell 7 ; tous les manifestes
-sont du JSON valide ; les 8 extensions de dev-team compilent sous `bun` ; RTK,
-CodeGraph et OMP s'installent via les commandes exactes des scripts ; et les quatre
+sont du JSON valide ; les 8 extensions de dev-team compilent sous `bun` ; ctx-wire,
+CodeGraph et OMP s'installent via les commandes exactes des scripts ; et les cinq
 plugins s'installent via le vrai OMP.
 
 ## Crédits
 
 - `dev-team` porte [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (MIT, Bryan Finster).
-- `token-diet` regroupe [rtk-ai/rtk](https://github.com/rtk-ai/rtk), [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) et [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman).
+- `token-diet` regroupe [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire), [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph), [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) et [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (yagni).
 - `azure-devops-fs` reprend l'idée « GitHub comme système de fichiers » de [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

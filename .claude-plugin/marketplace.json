@@ -34,7 +34,7 @@
     {
       "name": "token-diet",
       "source": "./token-diet",
-      "description": "Aggressive token reduction: RTK (Rust Token Killer) for compressed shell output, CodeGraph (MCP) for symbol/call-graph queries instead of grep+read, a caveman terse-output skill, and a yagni minimal-code skill (ponytail-style). Layers on OMP's native compaction + astGrep; ships an always-on routing rule, MCP config, skills, and a setup script.",
+      "description": "Aggressive token reduction: ctx-wire for transparently compressed + secret-scrubbed shell output, CodeGraph (MCP) for symbol/call-graph queries instead of grep+read, a caveman terse-output skill, and a yagni minimal-code skill (ponytail-style). Layers on OMP's native compaction + astGrep; ships an always-on routing rule, MCP config, skills, and a setup script.",
       "category": "productivity",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

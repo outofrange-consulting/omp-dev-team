@@ -9,7 +9,7 @@ prompts côté fournisseur), pas à la place.
 
 | Couche | Quoi | Gain | Amont |
 |---|---|---|---|
-| **RTK** | Rust Token Killer — proxy CLI qui compresse la **sortie** des commandes | 60–90 % sur `git`/`grep`/`find`/`test` | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) |
+| **ctx-wire** | proxy CLI transparent qui filtre la **sortie** des commandes + scrube les secrets (logs complets sur disque) | grosses coupes sur le bruit `git`/build/test/lint | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **CodeGraph** | graphe de symboles/appels via MCP — requête au lieu de grep+read | ~96 % sur « qui appelle X / impact / architecture » | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
 | **caveman** | **sortie** laconique en fragments (à la demande) | ~65 % de tokens de sortie | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | écrire **moins de code** — YAGNI / dev sénior le plus fainéant (à la demande) | ~80–94 % de code en moins ; moins de tokens maintenant **et** à chaque tour futur | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
@@ -18,7 +18,7 @@ prompts côté fournisseur), pas à la place.
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installe rtk + codegraph, puis demande votre
+bash plugins/token-diet/install.sh   # installe ctx-wire + codegraph, puis demande votre
                                      # RACINE de sources et indexe CHAQUE repo git dessous
 ```
 
@@ -30,10 +30,14 @@ dans votre `.mcp.json` fusionné.
 
 ## Comment c'est câblé dans OMP
 
-- **RTK** → une **règle toujours active** (`rules/token-tools.md`) dit à l'agent de
-  lancer les commandes shell verbeuses en `rtk <cmd>`. RTK est CLI seulement (pas de
-  MCP) ; OMP n'est pas une cible de `rtk init`, donc la règle est l'intégration.
-  Dégrade proprement si `rtk` n'est pas installé.
+- **ctx-wire** → installé par `install.sh` et activé par `ctx-wire init` ; il est
+  **transparent** (PATH shims / hook pour les agents « steering-only » comme OMP),
+  donc l'agent lance les commandes normalement — **sans préfixe**. Il filtre la
+  sortie verbeuse et scrube les secrets avant qu'ils n'atteignent le contexte, en
+  gardant les logs complets sur disque. La règle toujours active
+  (`rules/token-tools.md`) dit juste à l'agent de ne pas relancer pour « tout »
+  voir. `ctx-wire gain` montre les économies ; `ctx-wire mcp-wrap` peut aussi
+  compresser la sortie des serveurs MCP. Remplace l'ancienne intégration RTK.
 - **CodeGraph** → un serveur MCP (`.mcp.json`, `codegraph serve --mcp`) exposant
   `codegraph_search/node/callers/callees/explore/impact/files/status`. Voir
   `skill://codegraph`. Se resynchronise automatiquement aux changements de fichiers.

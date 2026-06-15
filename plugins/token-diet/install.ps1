@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
-  token-diet installer (Windows) — installs the LATEST RTK + CodeGraph and
-  indexes EVERY git repo under a sources root. caveman ships as an OMP skill.
+  token-diet installer (Windows) — installs the LATEST ctx-wire + CodeGraph and
+  indexes EVERY git repo under a sources root. caveman/yagni ship as OMP skills.
   Flags: -DryRun, -Update (refresh existing), -Yes (non-interactive),
          -SourcesRoot <path> (parent of your repos; every git repo under it is
          indexed; default cwd, asked if interactive), -Depth N (default 3).
@@ -18,20 +18,19 @@ function Run  ($cmd) { if ($DryRun) { Write-Host "  [dry-run] $cmd" } else { Inv
 $BinDir = Join-Path $HOME ".local\bin"
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
-# --- RTK (Rust Token Killer): prebuilt zip -> ~/.local/bin ------------------
-if ((Have rtk) -and -not $Update) {
-  Say "RTK present ($(rtk --version 2>$null)) — use -Update to refresh"
+# --- ctx-wire (transparent command-output compression + secret scrubbing) ----
+if ((Have ctx-wire) -and $Update) {
+  Say "Updating ctx-wire"; Run "ctx-wire update"
+} elseif (Have ctx-wire) {
+  Say "ctx-wire present — use -Update to refresh"
 } else {
-  Say "Installing latest RTK (Rust Token Killer)"
-  # Prebuilt zip is the most reliable path on CI; cargo is the fallback.
-  $zip = Join-Path $env:TEMP "rtk.zip"
-  try {
-    Run "Invoke-WebRequest -Uri 'https://github.com/rtk-ai/rtk/releases/latest/download/rtk-x86_64-pc-windows-msvc.zip' -OutFile '$zip'"
-    Run "Expand-Archive -Path '$zip' -DestinationPath '$BinDir' -Force"
-  } catch {
-    if (Have cargo) { Run "cargo install --git https://github.com/rtk-ai/rtk" }
-    else { Warn "could not install rtk (need network or cargo)" }
-  }
+  Say "Installing latest ctx-wire"
+  Run "irm https://ctx-wire.dev/install.ps1 | iex"
+}
+# Transparent (no command prefix); init sets up the agent hook / PATH shims.
+if ((Have ctx-wire) -or $DryRun) {
+  Say "Enabling ctx-wire interception (transparent; no command prefix)"
+  Run "ctx-wire init claude"
 }
 
 # --- CodeGraph (MCP) --------------------------------------------------------
@@ -83,8 +82,8 @@ Write-Host @"
 
 ==> token-diet tools ready. Final manual step: enable the CodeGraph MCP server.
     In your merged ~/.omp/agent .mcp.json set:  "codegraph": { ..., "enabled": true }
-    - Shell output auto-routes through `rtk` (always-on rule) when present.
+    - Command output is transparently compressed by ctx-wire (no prefix; run
+      'ctx-wire gain' for savings, 'ctx-wire doctor' to verify hooks).
     - skill://codegraph for symbol/caller/architecture queries.
-    - /caveman for terse output to save output tokens.
-    Note: on native Windows RTK filters work but auto-rewrite needs WSL.
+    - /caveman for terse output; /yagni to write less code.
 "@ -ForegroundColor Green

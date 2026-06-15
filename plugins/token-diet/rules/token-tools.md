@@ -1,15 +1,15 @@
 ---
 alwaysApply: true
-description: Token-saving tool routing (RTK + CodeGraph)
+description: Token-saving tool routing (ctx-wire + CodeGraph)
 ---
 
 # Token discipline
 
-- **Shell output via RTK.** If `rtk` is installed, run noisy inspection commands
-  through it: `rtk git status`, `rtk grep ...`, `rtk find ...`, `rtk cargo test`,
-  `rtk npm test`, `rtk ls -R`, etc. It compresses output 60–90% before it hits
-  context. If you get `rtk: command not found`, run the command normally and
-  carry on (don't loop).
+- **Command output is auto-compressed.** ctx-wire transparently filters noisy
+  command output (build/test/lint/git/search) and scrubs secrets *before* it
+  reaches context — just run commands normally, **no prefix or wrapper**. Full
+  logs are kept on disk; don't re-run a command to "see everything". (`ctx-wire
+  gain` shows the savings.) If ctx-wire isn't installed, nothing changes.
 - **Code structure via CodeGraph.** When the `codegraph_*` MCP tools are
   available, prefer them over `grep`/`glob`/`Read` for "who calls X", "what does
   X call", "where is symbol Y", "what's the impact of changing Z", and

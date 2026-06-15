@@ -12,8 +12,8 @@ description: >-
 > The best code is the code you never wrote.
 
 Ported from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail).
-This is the **write-less-code** layer of token-diet (caveman trims prose, RTK
-trims command output, CodeGraph reads less, **yagni writes less**).
+This is the **write-less-code** layer of token-diet (caveman trims prose,
+ctx-wire trims command output, CodeGraph reads less, **yagni writes less**).
 
 ## The ladder — climb it BEFORE writing code
 

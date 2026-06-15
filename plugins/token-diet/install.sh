@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# token-diet installer (Linux/macOS) — installs the LATEST RTK + CodeGraph and
-# indexes EVERY git repo under a sources root. caveman ships as an OMP skill.
+# token-diet installer (Linux/macOS) — installs the LATEST ctx-wire + CodeGraph and
+# indexes EVERY git repo under a sources root. caveman/yagni ship as OMP skills.
 # Flags:
 #   --sources-root=PATH  parent dir of your repos; every git repo under it is
 #                        indexed (default: cwd; asked if interactive). --project= is an alias.
 #   --depth=N            how deep to look for repos under the root (default 3)
-#   --update             refresh rtk/codegraph if already installed
+#   --update             refresh ctx-wire/codegraph if already installed
 #   --dry-run            print only
 #   -y, --yes            non-interactive (don't prompt for the sources root)
 set -euo pipefail
@@ -35,17 +35,22 @@ enable_insecure_tls() {
 }
 { [ "${INSECURE_TLS:-0}" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
 
-# --- RTK (Rust Token Killer) -------------------------------------------------
-if have rtk && [ "$UPDATE" = 0 ]; then
-  say "RTK present ($(rtk --version 2>/dev/null || echo '?')) — use --update to refresh"
+# --- ctx-wire (transparent command-output compression + secret scrubbing) ----
+if have ctx-wire && [ "$UPDATE" = 1 ]; then
+  say "Updating ctx-wire"; run "ctx-wire update || true"
+elif have ctx-wire; then
+  say "ctx-wire present — use --update to refresh"
 else
-  say "Installing latest RTK (Rust Token Killer)"
-  # curl installer is the official cross-platform path (linux + macOS); brew/cargo
-  # are fallbacks (brew has no guaranteed formula on all taps).
-  if have curl;  then run "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh"
-  elif have brew; then run "brew install rtk"
-  elif have cargo; then run "cargo install --git https://github.com/rtk-ai/rtk"
-  else warn "need curl, brew, or cargo to install rtk — skipping"; fi
+  say "Installing latest ctx-wire"
+  if have curl; then run "curl -fsSL https://ctx-wire.dev/install.sh | sh"
+  else warn "need curl to install ctx-wire — see https://ctx-wire.dev"; fi
+fi
+# Wire it into the agent's command path. ctx-wire is TRANSPARENT (PATH shims for
+# steering-only agents like OMP) — commands run normally, no prefix. `init claude`
+# sets up the shims that OMP's bash tool inherits.
+if have ctx-wire || [ "$DRY" = 1 ]; then
+  say "Enabling ctx-wire interception (transparent; no command prefix)"
+  run "ctx-wire init claude || ctx-wire init || true"
 fi
 
 # --- CodeGraph (MCP) ---------------------------------------------------------
@@ -99,7 +104,8 @@ cat <<'EOF'
     In your merged ~/.omp/agent .mcp.json set:  "codegraph": { ..., "enabled": true }
     (ships disabled so it never starts before the project is indexed).
 
-    - Shell output auto-routes through `rtk` (always-on rule) when present.
+    - Command output is transparently compressed by ctx-wire (no prefix; run
+      `ctx-wire gain` to see token savings). `ctx-wire doctor` to verify hooks.
     - `skill://codegraph` for symbol/caller/architecture queries.
-    - `/caveman` for terse output to save output tokens.
+    - `/caveman` for terse output; `/yagni` to write less code.
 EOF
