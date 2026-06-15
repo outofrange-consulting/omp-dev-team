@@ -1,8 +1,8 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "1.0.0",
-  "description": "Token-reduction toolkit for OMP: RTK + CodeGraph + caveman.",
+  "version": "1.1.0",
+  "description": "Token-reduction toolkit for OMP: RTK + CodeGraph + caveman + yagni.",
   "license": "MIT",
   "private": true,
-  "comment": "Ships an MCP server (CodeGraph), an always-on rule (rtk/codegraph routing), three skills, and a setup script. No omp.extensions — the heavy lifting is external binaries (rtk, codegraph) wired via .mcp.json + rules."
+  "comment": "Ships an MCP server (CodeGraph), an always-on rule (rtk/codegraph routing), four skills (codegraph, caveman, yagni, token-diet), and a setup script. No omp.extensions — the heavy lifting is external binaries (rtk, codegraph) wired via .mcp.json + rules."
 }

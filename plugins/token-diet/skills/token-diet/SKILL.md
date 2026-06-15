@@ -27,6 +27,7 @@ Three external layers on top of what OMP already does natively. Run
 | **RTK** (Rust Token Killer) | command **output** is dumped raw into context | 60–90% smaller `git/grep/find/test` output |
 | **CodeGraph** (MCP) | no persistent cross-file **symbol/call graph** | ~96% fewer tokens for "who calls X / impact / architecture" vs grep+read |
 | **caveman** (skill) | agent **output** is verbose prose | ~65% fewer output tokens, on demand |
+| **yagni** (skill) | agent writes **too much code** (bloat/over-engineering) | ~80–94% less code → fewer output now + fewer input tokens every future turn |
 
 ## Decision guide
 
@@ -37,6 +38,8 @@ Three external layers on top of what OMP already does natively. Run
 - Editing one known file / reading docs/prose → plain `Read` + `astEdit`.
 - Want terse, fragment-style replies to save output tokens → `/caveman`
   (`skill://caveman`).
+- Want the agent to **write minimal code** (YAGNI, no over-engineering) or to
+  review a diff for bloat → `/yagni` (`skill://yagni`).
 
 ## Setup (once per machine / project)
 

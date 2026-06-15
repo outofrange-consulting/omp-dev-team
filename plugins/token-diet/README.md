@@ -12,6 +12,7 @@ in place of it.
 | **RTK** | Rust Token Killer — CLI proxy that compresses command **output** | 60–90% on `git`/`grep`/`find`/`test` | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) |
 | **CodeGraph** | MCP symbol/call graph — query instead of grep+read | ~96% on "who calls X / impact / architecture" | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
+| **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 
 ## Install
 
@@ -38,6 +39,11 @@ any repo is ready the moment you open it. Then enable the CodeGraph MCP server
   `skill://codegraph`. Auto-syncs on file changes.
 - **caveman** → a native OMP skill (`/caveman`, levels lite/full/ultra) rather
   than the upstream installer, so it's first-class in OMP. See `skill://caveman`.
+- **yagni** → a native OMP skill (`/yagni`, levels lite/full/ultra/off) porting
+  the ponytail "laziest senior dev" YAGNI discipline: a *do-I-even-need-this*
+  ladder + review/audit/debt modes. Lazy ≠ negligent — security/validation/data-
+  loss/a11y/tests are never cut (and it won't edit `.feature` specs to dodge
+  work). See `skill://yagni`.
 
 ## What OMP already does (so you don't double up)
 
