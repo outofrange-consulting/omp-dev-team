@@ -40,6 +40,9 @@ proxy breaks certificate checks, the UNIX installers give you two options:
   and **Go tools (Ollama model pulls)** are pointed at your CA via
   `NODE_EXTRA_CA_CERTS`/`SSL_CERT_FILE`/`CURL_CA_BUNDLE`/`GIT_SSL_CAINFO`, and it's
   **persisted to your shell profile** so `omp` and `ollama pull` trust it later too.
+  On **WSL you don't even need the .pem** — `--ca-from-windows` exports the Windows
+  trust store (incl. the corporate roots) automatically, and the global installer
+  **offers it when it detects WSL**.
 - **Escape hatch — bypass:** `--insecure-tls` (or `OMP_INSECURE_TLS=1`) disables
   verification for that run (curl/wget incl. piped installers, git, node/bun/npm).
   It can't bypass Go/libcurl tools (Ollama, etc.) — use `--ca-file` for those.

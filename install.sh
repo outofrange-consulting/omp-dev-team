@@ -13,6 +13,9 @@
 #   --ca-file=PATH trust a corporate root CA (Zscaler/Trend) for node/bun/git/curl/Go
 #                  (Ollama) — the PROPER fix, keeps verification on; also OMP_CA_FILE.
 #                  Persisted to your shell profile. Prefer this over --insecure-tls.
+#   --ca-from-windows  on WSL, auto-export the Windows trust store (incl. corporate
+#                  CAs) and trust it — no need to find the .pem yourself. (Offered
+#                  automatically when WSL is detected and no CA is given.)
 #   --dry-run      print actions without executing (passed to plugin installers)
 #   -h, --help     this help
 #
@@ -23,11 +26,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0; CA_FILE="${OMP_CA_FILE:-}"
+DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0; CA_FROM_WIN=0; CA_FILE="${OMP_CA_FILE:-}"
 for a in "$@"; do case "$a" in
   -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;; --update) UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
-  --ca-file=*) CA_FILE="${a#*=}" ;;
-  -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+  --ca-file=*) CA_FILE="${a#*=}" ;; --ca-from-windows) CA_FROM_WIN=1 ;;
+  -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -56,7 +59,6 @@ enable_insecure_tls() {
 # for everything — node/bun (NODE_EXTRA_CA_CERTS), Go/Ollama + curl + python
 # (SSL_CERT_FILE/CURL_CA_BUNDLE/REQUESTS_CA_BUNDLE), git (GIT_SSL_CAINFO) — and
 # persist it to the shell profile so `omp` and `ollama pull` trust it later too.
-PROFILES=("$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc")
 trust_ca() {
   local f="$1" abs v p
   [ -f "$f" ] || { warn "CA file not found: $f (skipping)"; return 0; }
@@ -71,7 +73,24 @@ trust_ca() {
     { echo ""; echo "# omp-dev-team corporate CA"; for v in OMP_CA_FILE NODE_EXTRA_CA_CERTS SSL_CERT_FILE CURL_CA_BUNDLE GIT_SSL_CAINFO REQUESTS_CA_BUNDLE; do printf 'export %s=%q\n' "$v" "$abs"; done; } >> "$p"
   done
 }
-[ -n "$CA_FILE" ] && trust_ca "$CA_FILE"
+is_wsl() { grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null || [ -n "${WSL_DISTRO_NAME:-}" ]; }
+# Export the Windows trust store (incl. corporate Zscaler/Trend roots) as a PEM
+# bundle, combined with the Linux system roots, and point CA_FILE at it.
+ca_from_windows() {
+  local ps out bundle sys c
+  ps="$(command -v powershell.exe 2>/dev/null || true)"
+  [ -n "$ps" ] || { [ -x "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe" ] && ps="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"; }
+  [ -n "$ps" ] || { warn "powershell.exe not found — are you in WSL? Use --ca-file=PATH instead."; return 1; }
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] export Windows root store via powershell.exe -> ~/.omp/windows-ca-bundle.pem (+ Linux roots), then trust it"; return 1; fi
+  say "Exporting Windows root CAs via PowerShell…"
+  out="$("$ps" -NoProfile -Command 'Get-ChildItem Cert:\LocalMachine\Root, Cert:\CurrentUser\Root | %{ "-----BEGIN CERTIFICATE-----"; [Convert]::ToBase64String($_.RawData,"InsertLineBreaks"); "-----END CERTIFICATE-----" }' 2>/dev/null | tr -d '\r')"
+  printf '%s' "$out" | grep -q 'BEGIN CERTIFICATE' || { warn "could not read the Windows certificate store"; return 1; }
+  bundle="$HOME/.omp/windows-ca-bundle.pem"; mkdir -p "$(dirname "$bundle")"
+  sys=""; for c in /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/cert.pem; do [ -f "$c" ] && { sys="$c"; break; }; done
+  { [ -n "$sys" ] && cat "$sys"; printf '%s\n' "$out"; } > "$bundle"
+  say "Wrote CA bundle: $bundle ($(grep -c 'BEGIN CERTIFICATE' "$bundle") certs = Linux roots + Windows store)"
+  CA_FILE="$bundle"
+}
 
 # ask "Question?" default(Y/n) -> returns 0 for yes
 ask() {
@@ -148,6 +167,16 @@ ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
 
 bold "omp-dev-team installer"
 echo "Repo: $ROOT"
+
+# --- TLS / corporate CA -----------------------------------------------------
+# Explicit --ca-file/OMP_CA_FILE, explicit --ca-from-windows, or (on WSL with no
+# CA and no --insecure-tls) offer to import the Windows trust store automatically.
+if [ "$CA_FROM_WIN" = 1 ]; then
+  ca_from_windows || warn "Windows CA import failed — pass --ca-file=… or --insecure-tls"
+elif [ -z "$CA_FILE" ] && [ "$INSECURE_TLS" = 0 ] && is_wsl && [ "$YES" = 0 ] && [ -r /dev/tty ]; then
+  ask "WSL detected — import the Windows root CAs (covers corporate Zscaler/Trend)?" "Y" && { ca_from_windows || true; }
+fi
+[ -n "$CA_FILE" ] && trust_ca "$CA_FILE"
 
 # --- 0) Runtimes (bun, node) -----------------------------------------------
 if [ "$RUNTIMES" = 1 ]; then

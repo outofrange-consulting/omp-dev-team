@@ -41,6 +41,9 @@ offrent deux options :
   Python et les **outils Go (pulls de modèles Ollama)** sont pointés vers votre CA via
   `NODE_EXTRA_CA_CERTS`/`SSL_CERT_FILE`/`CURL_CA_BUNDLE`/`GIT_SSL_CAINFO`, et c'est
   **persisté dans votre profil shell** pour qu'`omp` et `ollama pull` en bénéficient ensuite.
+  Sous **WSL, pas besoin du .pem** — `--ca-from-windows` exporte automatiquement le
+  magasin de certificats Windows (avec les racines d'entreprise), et l'installeur
+  global le **propose dès qu'il détecte WSL**.
 - **Échappatoire — bypass :** `--insecure-tls` (ou `OMP_INSECURE_TLS=1`) désactive la
   vérification le temps du run (curl/wget incl. installeurs pi-pés, git, node/bun/npm).
   Ne peut pas bypasser les outils Go/libcurl (Ollama, etc.) — utilisez `--ca-file` pour ceux-là.
