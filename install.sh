@@ -16,21 +16,24 @@
 #   --ca-from-windows  on WSL, auto-export the Windows trust store (incl. corporate
 #                  CAs) and trust it — no need to find the .pem yourself. (Offered
 #                  automatically when WSL is detected and no CA is given.)
+#   --no-config    don't write/reset ~/.omp/agent/config.yml (keep your config as-is)
 #   --dry-run      print actions without executing (passed to plugin installers)
 #   -h, --help     this help
 #
-# Default policy for things already present: SKIP (idempotent, never asks, never
-# overwrites). Pass --update to refresh to the latest. Exception: bun is always
-# upgraded if it's below the version OMP requires.
+# DEFAULT BEHAVIOUR: works out of the box. Plugins are (re)installed to the latest
+# from the marketplace, and the managed model-roles/skills block in your OMP config
+# is RESET to sensible defaults (your old config is backed up first). Tools already
+# present are kept (pass --update to also refresh bun/node/omp). --no-config keeps
+# your config untouched.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0; CA_FROM_WIN=0; CA_FILE="${OMP_CA_FILE:-}"
+DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0; CA_FROM_WIN=0; NO_CONFIG=0; CA_FILE="${OMP_CA_FILE:-}"
 for a in "$@"; do case "$a" in
   -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;; --update) UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
-  --ca-file=*) CA_FILE="${a#*=}" ;; --ca-from-windows) CA_FROM_WIN=1 ;;
-  -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
+  --ca-file=*) CA_FILE="${a#*=}" ;; --ca-from-windows) CA_FROM_WIN=1 ;; --no-config) NO_CONFIG=1 ;;
+  -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -202,19 +205,16 @@ if have omp; then
   run "omp plugin marketplace add \"$ROOT\" || true"
 fi
 
-# helper: install a plugin + run its tool installer.
-# Already-installed policy: SKIP by default; with --update, reinstall (--force).
+# helper: (re)install a plugin to the latest + run its tool installer. Plugins are
+# always reinstalled (--force) so installed content is current ("works out of the box").
 plug() {  # plug <name> <dir>
   local name="$1" dir="$2" flags=""
   [ "$DRY" = 1 ] && flags="--dry-run"
   [ "$INSECURE_TLS" = 1 ] && flags="$flags --insecure-tls"
   [ "$UPDATE" = 1 ] && [ "$name" = token-diet ] && flags="$flags --update"
-  if have omp; then
-    if omp plugin list 2>/dev/null | grep -q "${name}@${MARKET}"; then
-      if [ "$UPDATE" = 1 ]; then run "omp plugin install --force ${name}@${MARKET} || true"
-      else ok "plugin ${name} already installed (skip; --update to refresh)"; fi
-    else run "omp plugin install ${name}@${MARKET} || true"; fi
-  fi
+  # the global write_config owns ~/.omp/agent/config.yml, so tell plugins not to.
+  [ "$name" = token-diet ] && flags="$flags --no-config"
+  if have omp; then run "omp plugin install --force ${name}@${MARKET} || true"; fi
   # A plugin's optional tooling failing must not abort the whole run; the doctor
   # reports the real end state.
   if [ -f "$dir/install.sh" ]; then
@@ -222,27 +222,66 @@ plug() {  # plug <name> <dir>
   fi
 }
 
+# Compose + RESET the managed model-roles/skills block in the OMP config so an
+# install works out of the box. Backs up the old config first. --no-config skips.
+write_config() {  # uses SEL_* set during the plugin prompts
+  [ "$NO_CONFIG" = 1 ] && { say "Keeping your OMP config as-is (--no-config)"; return 0; }
+  [ "${SEL_DEVTEAM:-0}${SEL_COPILOT:-0}${SEL_TOKENDIET:-0}" = "000" ] && return 0
+  local cfg="$HOME/.omp/agent/config.yml"
+  bold "OMP config"
+  say "Resetting model roles + skills in $cfg (out-of-the-box defaults)"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] back up $cfg then write the managed model-roles/skills block"; return 0; fi
+  mkdir -p "$(dirname "$cfg")"
+  if [ -s "$cfg" ]; then local b; b="$cfg.$(date -u +%Y%m%dT%H%M%SZ).bak"; cp "$cfg" "$b"; warn "previous config backed up to $b"; fi
+  {
+    echo "# Managed by omp-dev-team install.sh — re-run to regenerate (old config backed up)."
+    if [ "${SEL_COPILOT:-0}" = 1 ]; then
+      echo "# Models via GitHub Copilot. Run 'omp' -> /login -> GitHub Copilot first."
+      echo "enabledModels: [github-copilot/*]"
+      echo "modelProviderOrder: [github-copilot]"
+      echo "modelRoles:"
+      echo "  smol: github-copilot/claude-haiku-4.5"
+      echo "  task: github-copilot/claude-haiku-4.5"
+      echo "  default: github-copilot/claude-sonnet-4.6"
+      echo "  plan: github-copilot/claude-sonnet-4.6"
+      echo "  slow: github-copilot/claude-opus-4.8"
+    elif [ "${SEL_DEVTEAM:-0}" = 1 ]; then
+      echo "modelRoles:"
+      echo "  smol: claude-haiku-4-5"
+      echo "  task: claude-haiku-4-5"
+      echo "  default: claude-sonnet-4-6"
+      echo "  plan: claude-sonnet-4-6"
+      echo "  slow: claude-opus-4-8"
+    fi
+    if [ "${SEL_DEVTEAM:-0}" = 1 ] || [ "${SEL_TOKENDIET:-0}" = 1 ]; then
+      echo "skills:"
+      echo "  enabled: true"
+      echo "  enableSkillCommands: true"
+    fi
+    if [ "${SEL_DEVTEAM:-0}" = 1 ]; then
+      echo "task:"
+      echo "  maxRecursionDepth: 4"
+      echo "  simple: default"
+    fi
+  } > "$cfg"
+  ok "Wrote $cfg (default=Sonnet 4.6 orchestrator · smol/task=Haiku · slow=Opus$([ "${SEL_COPILOT:-0}" = 1 ] && echo ', via Copilot'))"
+}
+
 # --- 3) Per-plugin prompts --------------------------------------------------
 bold "Plugins"
+SEL_DEVTEAM=0; SEL_COPILOT=0; SEL_TOKENDIET=0
 
 if ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?"; then
-  plug dev-team "$ROOT/plugins/dev-team"
-  if ask "  Apply dev-team config to ~/.omp/agent/config.yml?"; then
-    run "bash \"$ROOT/plugins/dev-team/install.sh\" --apply-config ${DRY:+--dry-run}"
-  fi
+  plug dev-team "$ROOT/plugins/dev-team"; SEL_DEVTEAM=1
 fi
 
-if ask "Install copilot-preset (route models through GitHub Copilot)?" "N"; then
-  plug copilot-preset "$ROOT/plugins/copilot-preset"
-  if ask "  Apply copilot-preset config to ~/.omp/agent/config.yml?" "N"; then
-    run "bash \"$ROOT/plugins/copilot-preset/install.sh\" --apply-config ${DRY:+--dry-run}"
-  fi
+if ask "Install copilot-preset (route models through GitHub Copilot)?"; then
+  plug copilot-preset "$ROOT/plugins/copilot-preset"; SEL_COPILOT=1
   echo "  Reminder: run 'omp' then /login -> GitHub Copilot."
 fi
 
-if ask "Install token-diet (RTK + CodeGraph + caveman; token reduction)?" "N"; then
-  plug token-diet "$ROOT/plugins/token-diet"
-  echo "  Reminder: enable the 'codegraph' MCP server (enabled:true) once indexed."
+if ask "Install token-diet (ctx-wire + CodeGraph + caveman + yagni)?"; then
+  plug token-diet "$ROOT/plugins/token-diet"; SEL_TOKENDIET=1
 fi
 
 if ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" "N"; then
@@ -255,6 +294,9 @@ if ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" "N"; then
   plug azure-devops-fs "$ROOT/plugins/azure-devops-fs"
   echo "  Reminder: enable the 'azure-devops' MCP server (enabled:true) in your .mcp.json."
 fi
+
+# Compose + reset the OMP config so the selected plugins work out of the box.
+write_config
 
 # --- 4) Doctor (verify everything is present) ------------------------------
 bold "Doctor"

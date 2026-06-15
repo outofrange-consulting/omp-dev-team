@@ -1,6 +1,6 @@
 {
   "name": "copilot-preset",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Ready model configuration that routes Oh-My-Pi (and the dev-team) through GitHub Copilot, so teams run on their existing Copilot license instead of direct provider billing.",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",

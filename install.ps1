@@ -4,16 +4,18 @@
   Installs OMP, registers this marketplace, then interactively offers each plugin
   and its config. Updates the user PATH so everything works in new shells.
   Flags:
-    -Yes          non-interactive: install all plugins + apply default configs
-    -Update       refresh things already installed (otherwise: skip them)
+    -Yes          non-interactive: install all plugins + reset config
+    -Update       also refresh bun/node/omp (tools), not just plugins/config
     -NoRuntimes   skip installing bun/node (assume they're present)
+    -NoConfig     don't write/reset ~/.omp/agent/config.yml (keep yours as-is)
     -DryRun       print actions without executing
 
-  Already-present policy: SKIP by default (idempotent, never asks). Pass -Update
-  to refresh to latest. Exception: bun is upgraded if below the version OMP needs.
+  DEFAULT: works out of the box. Plugins are reinstalled to latest and the managed
+  model-roles/skills block in your OMP config is RESET (old config backed up first).
+  Tools already present are kept (-Update also refreshes them). -NoConfig keeps your config.
 #>
 [CmdletBinding()]
-param([switch]$Yes, [switch]$DryRun, [switch]$NoRuntimes, [switch]$Update)
+param([switch]$Yes, [switch]$DryRun, [switch]$NoRuntimes, [switch]$Update, [switch]$NoConfig)
 $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -86,47 +88,62 @@ if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this
 # --- 2) Register the marketplace -------------------------------------------
 if (Have omp) { Say "Registering marketplace ($Market) from local checkout"; Run "omp plugin marketplace add `"$Root`"" }
 
-# Already-installed policy: SKIP by default; with -Update, reinstall (--force).
+# Plugins are always reinstalled (--force) so installed content is current.
 function Plug ($name, $dir) {
-  if (Have omp) {
-    $installed = (omp plugin list 2>$null | Select-String "$name@$Market")
-    if ($installed) {
-      if ($Update) { Run "omp plugin install --force $name@$Market" } else { Ok "plugin $name already installed (skip; -Update to refresh)" }
-    } else { Run "omp plugin install $name@$Market" }
-  }
+  if (Have omp) { Run "omp plugin install --force $name@$Market" }
   $ps1 = Join-Path $dir 'install.ps1'
   if (Test-Path $ps1) {
     $a = @(); if ($DryRun) { $a += '-DryRun' }
     if ($Update -and $name -eq 'token-diet') { $a += '-Update' }
+    if ($name -eq 'token-diet') { $a += '-NoConfig' }  # global Write-Config owns config.yml
     if ($Yes -and ($name -eq 'token-diet' -or $name -eq 'azure-devops-fs')) { $a += '-Yes' }
     Run "& `"$ps1`" $($a -join ' ')"
   }
 }
 
-# --- 3) Per-plugin prompts --------------------------------------------------
-Bold "Plugins"
-
-if (Ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?") {
-  Plug 'dev-team' (Join-Path $Root 'plugins\dev-team')
-  if (Ask "  Apply dev-team config to ~/.omp/agent/config.yml?") {
-    $a = @('-ApplyConfig'); if ($DryRun) { $a += '-DryRun' }
-    Run "& `"$(Join-Path $Root 'plugins\dev-team\install.ps1')`" $($a -join ' ')"
+# Compose + RESET the managed model-roles/skills block so an install works out of
+# the box. Backs up the old config first. -NoConfig skips.
+function Write-Config {
+  if ($NoConfig) { Say "Keeping your OMP config as-is (-NoConfig)"; return }
+  if (-not ($SEL_DEVTEAM -or $SEL_COPILOT -or $SEL_TOKENDIET)) { return }
+  $cfg = Join-Path $HOME ".omp\agent\config.yml"
+  Bold "OMP config"; Say "Resetting model roles + skills in $cfg (out-of-the-box defaults)"
+  if ($DryRun) { Write-Host "  [dry-run] back up $cfg then write the managed block"; return }
+  New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
+  if ((Test-Path $cfg) -and (Get-Item $cfg).Length -gt 0) { $b = "$cfg.$((Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')).bak"; Copy-Item $cfg $b; Warn "previous config backed up to $b" }
+  $lines = @("# Managed by omp-dev-team install.ps1 — re-run to regenerate (old config backed up).")
+  if ($SEL_COPILOT) {
+    $lines += "# Models via GitHub Copilot. Run omp -> /login -> GitHub Copilot first.",
+      "enabledModels: [github-copilot/*]", "modelProviderOrder: [github-copilot]", "modelRoles:",
+      "  smol: github-copilot/claude-haiku-4.5", "  task: github-copilot/claude-haiku-4.5",
+      "  default: github-copilot/claude-sonnet-4.6", "  plan: github-copilot/claude-sonnet-4.6",
+      "  slow: github-copilot/claude-opus-4.8"
+  } elseif ($SEL_DEVTEAM) {
+    $lines += "modelRoles:", "  smol: claude-haiku-4-5", "  task: claude-haiku-4-5",
+      "  default: claude-sonnet-4-6", "  plan: claude-sonnet-4-6", "  slow: claude-opus-4-8"
   }
+  if ($SEL_DEVTEAM -or $SEL_TOKENDIET) { $lines += "skills:", "  enabled: true", "  enableSkillCommands: true" }
+  if ($SEL_DEVTEAM) { $lines += "task:", "  maxRecursionDepth: 4", "  simple: default" }
+  Set-Content -Path $cfg -Value $lines
+  Ok "Wrote $cfg (default=Sonnet 4.6 orchestrator; smol/task=Haiku; slow=Opus)"
 }
 
-if (Ask "Install copilot-preset (route models through GitHub Copilot)?" 'N') {
-  Plug 'copilot-preset' (Join-Path $Root 'plugins\copilot-preset')
-  if (Ask "  Apply copilot-preset config?" 'N') {
-    $a = @('-ApplyConfig'); if ($DryRun) { $a += '-DryRun' }
-    Run "& `"$(Join-Path $Root 'plugins\copilot-preset\install.ps1')`" $($a -join ' ')"
-  }
+# --- 3) Per-plugin prompts --------------------------------------------------
+Bold "Plugins"
+$SEL_DEVTEAM = $false; $SEL_COPILOT = $false; $SEL_TOKENDIET = $false
+
+if (Ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?") {
+  Plug 'dev-team' (Join-Path $Root 'plugins\dev-team'); $SEL_DEVTEAM = $true
+}
+
+if (Ask "Install copilot-preset (route models through GitHub Copilot)?") {
+  Plug 'copilot-preset' (Join-Path $Root 'plugins\copilot-preset'); $SEL_COPILOT = $true
   Write-Host "  Reminder: run omp then /login -> GitHub Copilot."
 }
 
-if (Ask "Install token-diet (RTK + CodeGraph + caveman)?" 'N') {
-  Plug 'token-diet' (Join-Path $Root 'plugins\token-diet')
+if (Ask "Install token-diet (ctx-wire + CodeGraph + caveman + yagni)?") {
+  Plug 'token-diet' (Join-Path $Root 'plugins\token-diet'); $SEL_TOKENDIET = $true
   Ensure-Path (Join-Path $HOME ".local\bin")
-  Write-Host "  Reminder: enable the codegraph MCP server once indexed."
 }
 
 if (Ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" 'N') {
@@ -139,6 +156,9 @@ if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
   Plug 'azure-devops-fs' (Join-Path $Root 'plugins\azure-devops-fs')
   Write-Host "  Reminder: enable the azure-devops MCP server (enabled:true) in your .mcp.json."
 }
+
+# Compose + reset the OMP config so the selected plugins work out of the box.
+Write-Config
 
 # --- 4) Doctor -------------------------------------------------------------
 Bold "Doctor"

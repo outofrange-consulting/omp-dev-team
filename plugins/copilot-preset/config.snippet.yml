@@ -19,17 +19,18 @@ enabledModels:
 modelProviderOrder:
   - github-copilot
 
-# Tier -> Copilot model. Tuned for "solid but cheap" to limit token spend.
-# (rates per 1M tokens, in/out — see pricing.md)
+# Tier -> Copilot model (out-of-the-box: cheap execution, Sonnet orchestration,
+# Opus for the hard stuff). rates per 1M tokens, in/out — see pricing.md.
 modelRoles:
-  # high-volume small tier (dev-team pattern/triage agents) — keep it cheap
-  smol: github-copilot/gpt-5-mini          # $0.25 / $2.00  (cheapest solid option today)
-  # everyday balanced work
+  # high-volume small tier + subagent execution — Haiku (cheap, fast)
+  smol: github-copilot/claude-haiku-4.5    # $0.80 / $4.00
+  task: github-copilot/claude-haiku-4.5
+  # everyday DEFAULT — Sonnet runs the dev-team orchestrator (non-trivial work ->
+  # research -> plan -> implement -> review).
   default: github-copilot/claude-sonnet-4.6 # $3.00 / $15.00
-  task: github-copilot/claude-sonnet-4.6
   plan: github-copilot/claude-sonnet-4.6
-  # deep reasoning, reserve for the hard stuff
-  slow: github-copilot/claude-opus-4.8     # $5.00 / $25.00  (Opus 4.6 is same price)
+  # deep reasoning / big-complex analysis — reserve Opus for it.
+  slow: github-copilot/claude-opus-4.8     # $5.00 / $25.00
 
 skills:
   enableSkillCommands: true

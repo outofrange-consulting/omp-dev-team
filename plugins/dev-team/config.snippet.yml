@@ -17,15 +17,16 @@
 # and checklist reviews that don't need Sonnet/Opus. Keep it on the cheapest
 # capable model to limit token spend.
 modelRoles:
-  # Small tier -> cheapest capable model. Default: Haiku. With the copilot-preset
-  # plugin you can point this at github-copilot/gpt-5-mini (or mai-code-1-flash)
-  # to run the whole high-volume tier on your Copilot license for less.
+  # high-volume small tier + subagent execution -> Haiku (cheap, fast).
   smol: claude-haiku-4-5
-  # Deep-reasoning tier alias (used by a few commands/agents via pi/slow).
+  task: claude-haiku-4-5
+  # everyday DEFAULT -> Sonnet runs the orchestrator (non-trivial -> research ->
+  # plan -> implement -> review).
+  default: claude-sonnet-4-6
+  plan: claude-sonnet-4-6
+  # deep reasoning / big-complex analysis.
   slow: claude-opus-4-8
-  # Subagent default for agents that don't pin a model:
-  task: claude-sonnet-4-6
-  # `default` is intentionally left to the user's interactive choice (--model).
+  # (With copilot-preset, the global installer wires these to github-copilot/* .)
 
 # ---------------------------------------------------------------------------
 # SKILLS

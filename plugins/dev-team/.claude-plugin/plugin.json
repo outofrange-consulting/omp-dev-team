@@ -1,6 +1,6 @@
 {
   "name": "dev-team",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Agentic dev team for Oh-My-Pi (ported from bdfinst/agentic-dev-team): orchestrator + 32 specialist/critic agents, the /specs -> /plan -> /build -> /pr workflow, strict TDD and human gates, and blocking guard extensions.",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",

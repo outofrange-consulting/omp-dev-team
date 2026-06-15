@@ -26,11 +26,15 @@ bash install.sh                 # Linux/macOS   (-y for non-interactive, --dry-r
 #   pwsh -File install.ps1      # Windows
 ```
 
-**Already-installed policy:** everything is idempotent and **skips** what's already
-present (it never overwrites and never re-prompts for it) — pass **`--update`**
-(`-Update` on Windows) to refresh tools/plugins to the latest. The one exception
-is **bun**, which is auto-upgraded if it's below the version OMP requires. Config
-files are only appended to once (re-runs detect the marker and skip).
+**Works out of the box / defaults:** the global installer **reinstalls the selected
+plugins to the latest** and **resets the managed model-roles + skills block** in
+`~/.omp/agent/config.yml` (your old config is backed up to `config.yml.<timestamp>.bak`
+first). With **copilot-preset** that wires, via GitHub Copilot: `smol`/`task` →
+**Haiku**, `default`/`plan` → **Sonnet 4.6** (runs the dev-team orchestrator —
+non-trivial work goes research → plan → implement → review), `slow` → **Opus**;
+without it, the same tiers on Anthropic ids. token-diet's ctx-wire + CodeGraph and
+the skills are enabled too. Tools already present are kept — pass **`--update`**
+(`-Update`) to also refresh bun/node/omp; **`--no-config`** to leave your config untouched.
 
 **Corporate proxies (Zscaler / Trend Micro under WSL):** if a TLS-intercepting
 proxy breaks certificate checks, the UNIX installers give you two options:
