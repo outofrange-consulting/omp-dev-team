@@ -132,12 +132,29 @@ version_ge() {
 MIN_BUN="1.3.14"
 ensure_bun() {  # OMP requires bun >= MIN_BUN
   if have bun && version_ge "$(bun --version 2>/dev/null || echo 0)" "$MIN_BUN" && [ "$UPDATE" = 0 ]; then
-    ok "bun $(bun --version) (skip; --update to refresh)"
-  else
-    say "Installing bun (>= $MIN_BUN; OMP requires it)"
-    run "curl -fsSL https://bun.sh/install | bash"
+    ok "bun $(bun --version) (skip; --update to refresh)"; ensure_path "$HOME/.bun/bin"; return
   fi
-  ensure_path "$HOME/.bun/bin"
+  say "Installing bun (>= $MIN_BUN; OMP requires it)"
+  if [ "$DRY" = 1 ]; then
+    echo "  [dry-run] brew install bun (macOS) / curl -fsSL https://bun.sh/install | bash"
+    ensure_path "$HOME/.bun/bin"; return
+  fi
+  # On macOS prefer Homebrew: the bun.sh installer pulls a zip straight from
+  # GitHub releases, which intermittently 403s on CI runners. brew avoids it.
+  if [ "$(uname -s)" = "Darwin" ] && have brew; then
+    brew install bun || brew upgrade bun || true
+    hash -r 2>/dev/null || true
+  fi
+  # Fall back to the official installer (with retries for transient 403/network).
+  if ! have bun || ! version_ge "$(bun --version 2>/dev/null || echo 0)" "$MIN_BUN"; then
+    local i
+    for i in 1 2 3; do
+      curl -fsSL https://bun.sh/install | bash && break
+      warn "bun download failed (attempt $i/3) — retrying…"; sleep $((i * 3))
+    done
+  fi
+  ensure_path "$HOME/.bun/bin"; hash -r 2>/dev/null || true
+  if have bun; then ok "bun $(bun --version)"; else warn "bun install failed — re-run, or install it manually (https://bun.sh)"; fi
 }
 ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
   if have node && [ "$UPDATE" = 0 ]; then ok "node $(node --version) (skip; --update to refresh)"; return; fi
