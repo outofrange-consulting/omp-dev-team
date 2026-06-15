@@ -1,8 +1,8 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Token-reduction toolkit for OMP: ctx-wire + CodeGraph + caveman + yagni.",
   "license": "MIT",
   "private": true,
-  "comment": "Ships an MCP server (CodeGraph), an always-on rule (codegraph routing + ctx-wire note), four skills (codegraph, caveman, yagni, token-diet), and a setup script. No omp.extensions — the heavy lifting is external binaries (ctx-wire, codegraph) wired via .mcp.json + rules; ctx-wire is transparent (PATH shims/hook, no prefix)."
+  "comment": "Ships the CodeGraph MCP server (enabled by default in .mcp.json), an always-on rule, a config.snippet.yml that enables skill commands, and four skills (codegraph, caveman, yagni, token-diet). ctx-wire (transparent command-output compression) is installed by install.sh via PATH shims in ~/.local/bin. No omp.extensions."
 }

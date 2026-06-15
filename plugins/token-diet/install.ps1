@@ -7,8 +7,9 @@
          indexed; default cwd, asked if interactive), -Depth N (default 3).
 #>
 [CmdletBinding()]
-param([switch]$DryRun, [switch]$Update, [switch]$Yes, [string]$SourcesRoot, [int]$Depth = 3)
+param([switch]$DryRun, [switch]$Update, [switch]$Yes, [string]$SourcesRoot, [int]$Depth = 3, [switch]$NoConfig)
 $ErrorActionPreference = 'Stop'
+$Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Say  ($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 function Warn ($m) { Write-Host "  ! $m" -ForegroundColor Yellow }
@@ -27,10 +28,11 @@ if ((Have ctx-wire) -and $Update) {
   Say "Installing latest ctx-wire"
   Run "irm https://ctx-wire.dev/install.ps1 | iex"
 }
-# Transparent (no command prefix); init sets up the agent hook / PATH shims.
+# Transparent PATH shims (no command prefix). 'init claude' only wires Claude Code;
+# 'shims install' puts shims on PATH so OMP's bash tool routes through ctx-wire.
 if ((Have ctx-wire) -or $DryRun) {
-  Say "Enabling ctx-wire interception (transparent; no command prefix)"
-  Run "ctx-wire init claude"
+  Say "Installing ctx-wire PATH shims (transparent; no command prefix)"
+  Run "ctx-wire shims install"
 }
 
 # --- CodeGraph (MCP) --------------------------------------------------------
@@ -78,12 +80,24 @@ if ((Have codegraph) -or $DryRun) {
   }
 }
 
+# --- Enable the bundled skills (caveman, yagni, codegraph, token-diet) -------
+if (-not $NoConfig) {
+  $cfg = Join-Path $HOME ".omp\agent\config.yml"
+  if ($DryRun) { Write-Host "  [dry-run] enable skills in $cfg" }
+  else {
+    New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
+    if ((Test-Path $cfg) -and (Select-String -Path $cfg -Pattern 'token-diet skills' -Quiet)) { Say "Skills already enabled in $cfg" }
+    else { "`n" + (Get-Content -Raw (Join-Path $Here 'config.snippet.yml')) | Add-Content -Path $cfg; Say "Enabled token-diet skills in $cfg" }
+  }
+}
+
 Write-Host @"
 
-==> token-diet tools ready. Final manual step: enable the CodeGraph MCP server.
-    In your merged ~/.omp/agent .mcp.json set:  "codegraph": { ..., "enabled": true }
-    - Command output is transparently compressed by ctx-wire (no prefix; run
-      'ctx-wire gain' for savings, 'ctx-wire doctor' to verify hooks).
-    - skill://codegraph for symbol/caller/architecture queries.
-    - /caveman for terse output; /yagni to write less code.
+==> token-diet is active:
+    - ctx-wire transparently compresses command output (PATH shims). 'ctx-wire gain'
+      shows savings; 'ctx-wire doctor' verifies. Re-run install after adding tools.
+    - CodeGraph MCP is enabled (.mcp.json) and your repos are indexed —
+      skill://codegraph for symbol/caller/architecture queries.
+    - /caveman (terse output) and /yagni (write less code) are enabled.
+    Restart omp so the MCP server + skills load.
 "@ -ForegroundColor Green

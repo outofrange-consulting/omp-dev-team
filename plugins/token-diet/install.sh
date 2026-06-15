@@ -6,16 +6,19 @@
 #                        indexed (default: cwd; asked if interactive). --project= is an alias.
 #   --depth=N            how deep to look for repos under the root (default 3)
 #   --update             refresh ctx-wire/codegraph if already installed
+#   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --dry-run            print only
 #   -y, --yes            non-interactive (don't prompt for the sources root)
 set -euo pipefail
 
-DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0
 for a in "$@"; do case "$a" in
   --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --sources-root=*|--project=*) SROOT="${a#*=}" ;;
   --depth=*) DEPTH="${a#*=}" ;;
-  -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+  --no-config) NO_CONFIG=1 ;;
+  -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -51,12 +54,12 @@ else
   if have curl; then run "curl -fsSL https://ctx-wire.dev/install.sh | sh"
   else warn "need curl to install ctx-wire — see https://ctx-wire.dev"; fi
 fi
-# Wire it into the agent's command path. ctx-wire is TRANSPARENT (PATH shims for
-# steering-only agents like OMP) — commands run normally, no prefix. `init claude`
-# sets up the shims that OMP's bash tool inherits.
+# Wire it into the command path TRANSPARENTLY via PATH shims in ~/.local/bin (which
+# is first on PATH, so OMP's bash tool inherits them — commands run normally, no
+# prefix, output filtered). `init claude` only wires Claude Code, not OMP.
 if have ctx-wire || [ "$DRY" = 1 ]; then
-  say "Enabling ctx-wire interception (transparent; no command prefix)"
-  run "ctx-wire init claude || ctx-wire init || true"
+  say "Installing ctx-wire PATH shims (transparent; no command prefix)"
+  run "ctx-wire shims install || true"
 fi
 
 # --- CodeGraph (MCP) ---------------------------------------------------------
@@ -104,14 +107,26 @@ EOF
   fi
 fi
 
+# --- Enable the bundled skills (caveman, yagni, codegraph, token-diet) -------
+# Plugin-provider skills only surface as /commands when skills.enableSkillCommands
+# is on; append it unless --no-config. (codegraph MCP ships enabled in .mcp.json.)
+CFG="$HOME/.omp/agent/config.yml"
+if [ "$NO_CONFIG" = 0 ]; then
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] enable skills in $CFG (skills.enabled + enableSkillCommands)"
+  else
+    mkdir -p "$(dirname "$CFG")"; touch "$CFG"
+    if grep -q "token-diet skills" "$CFG" 2>/dev/null; then say "Skills already enabled in $CFG"
+    else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; say "Enabled token-diet skills in $CFG"; fi
+  fi
+fi
+
 cat <<'EOF'
 
-==> token-diet tools ready. Final manual step: enable the CodeGraph MCP server.
-    In your merged ~/.omp/agent .mcp.json set:  "codegraph": { ..., "enabled": true }
-    (ships disabled so it never starts before the project is indexed).
-
-    - Command output is transparently compressed by ctx-wire (no prefix; run
-      `ctx-wire gain` to see token savings). `ctx-wire doctor` to verify hooks.
-    - `skill://codegraph` for symbol/caller/architecture queries.
-    - `/caveman` for terse output; `/yagni` to write less code.
+==> token-diet is active:
+    - ctx-wire transparently compresses command output (PATH shims). `ctx-wire gain`
+      shows savings; `ctx-wire doctor` verifies. Re-run install after adding tools.
+    - CodeGraph MCP is enabled (.mcp.json) and the repos above are indexed —
+      `skill://codegraph` for symbol/caller/architecture queries.
+    - `/caveman` (terse output) and `/yagni` (write less code) are enabled.
+    Restart `omp` so the MCP server + skills load.
 EOF

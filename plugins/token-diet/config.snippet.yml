@@ -1,0 +1,8 @@
+# token-diet skills — appended to ~/.omp/agent/config.yml by install.sh.
+# Plugin-provider skills (caveman, yagni, codegraph, token-diet) only surface as
+# /commands and via skill:// when skill commands are enabled. (ctx-wire works via
+# PATH shims and the CodeGraph MCP server is enabled in the plugin's .mcp.json —
+# neither needs config here.)
+skills:
+  enabled: true            # token-diet skills
+  enableSkillCommands: true

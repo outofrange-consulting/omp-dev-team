@@ -44,9 +44,11 @@ Three external layers on top of what OMP already does natively. Run
 ## Setup (once per machine / project)
 
 ```sh
-bash plugins/token-diet/install.sh
+bash plugins/token-diet/install.sh   # active by default afterwards — restart omp
 ```
 
-Then enable the CodeGraph MCP server (it ships `enabled: false`): set
-`enabled: true` for `codegraph` in your merged `.mcp.json`, after the project is
-indexed (`codegraph init && codegraph index`).
+Everything is on after that: ctx-wire PATH shims compress command output
+transparently, the CodeGraph MCP server is **enabled** in `.mcp.json` (binary +
+index from the installer), and the skills (`/caveman`, `/yagni`, `skill://codegraph`)
+are enabled in `~/.omp/agent/config.yml`. Pass `--no-config` to skip the skills
+toggle; `--insecure-tls` / `--ca-file=…` for corporate proxies.

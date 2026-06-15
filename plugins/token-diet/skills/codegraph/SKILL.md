@@ -17,7 +17,8 @@ grep+read round-trips (~96% fewer tokens on those tasks).
 
 - Installed + indexed: `bash plugins/token-diet/install.sh`, or manually
   `codegraph init && codegraph index`.
-- `codegraph` MCP server set `enabled: true` in `.mcp.json` (ships disabled).
+- `codegraph` MCP server is **enabled by default** in this plugin's `.mcp.json`
+  (it just needs the `codegraph` binary on PATH + an index, both from install.sh).
 - The server auto-syncs the graph on file changes (file watcher, ~2s debounce).
 
 ## Tools
