@@ -8,7 +8,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY=0; APPLY=0; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; --apply-config) APPLY=1 ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;;
+  --dry-run) DRY=1 ;; --apply-config) APPLY=1 ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   -h|--help) sed -n '2,6p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
@@ -29,6 +29,12 @@ enable_insecure_tls() {
   export CURL_HOME="$d" WGETRC="$d/.wgetrc"
 }
 { [ "${INSECURE_TLS:-0}" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
+# Corporate root CA (optional): trust a custom CA this run (node/bun/git/curl/Go).
+CA_FILE="${CA_FILE:-${OMP_CA_FILE:-}}"
+if [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ]; then
+  export OMP_CA_FILE="$CA_FILE" NODE_EXTRA_CA_CERTS="$CA_FILE" SSL_CERT_FILE="$CA_FILE" CURL_CA_BUNDLE="$CA_FILE" GIT_SSL_CAINFO="$CA_FILE" REQUESTS_CA_BUNDLE="$CA_FILE"
+  warn "Trusting corporate CA: $CA_FILE"
+fi
 
 # --- Required: OMP ----------------------------------------------------------
 if have omp; then ok "omp ($(omp --version 2>/dev/null | head -1))"

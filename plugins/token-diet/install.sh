@@ -12,7 +12,7 @@ set -euo pipefail
 
 DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
+  --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --sources-root=*|--project=*) SROOT="${a#*=}" ;;
   --depth=*) DEPTH="${a#*=}" ;;
   -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
@@ -34,6 +34,12 @@ enable_insecure_tls() {
   export CURL_HOME="$d" WGETRC="$d/.wgetrc"
 }
 { [ "${INSECURE_TLS:-0}" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
+# Corporate root CA (optional): trust a custom CA this run (node/bun/git/curl/Go).
+CA_FILE="${CA_FILE:-${OMP_CA_FILE:-}}"
+if [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ]; then
+  export OMP_CA_FILE="$CA_FILE" NODE_EXTRA_CA_CERTS="$CA_FILE" SSL_CERT_FILE="$CA_FILE" CURL_CA_BUNDLE="$CA_FILE" GIT_SSL_CAINFO="$CA_FILE" REQUESTS_CA_BUNDLE="$CA_FILE"
+  warn "Trusting corporate CA: $CA_FILE"
+fi
 
 # --- ctx-wire (transparent command-output compression + secret scrubbing) ----
 if have ctx-wire && [ "$UPDATE" = 1 ]; then

@@ -13,7 +13,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY=0; YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0; LEVEL=""; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
+  --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --backend=*) BACKEND="${a#*=}" ;; --vram=*) VRAM="${a#*=}" ;; --ram=*) RAM="${a#*=}" ;; --level=*) LEVEL="${a#*=}" ;;
   --backend|--vram|--ram|--level) echo "use $a=VALUE" >&2; exit 2 ;;
   -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
@@ -35,6 +35,12 @@ enable_insecure_tls() {
   export CURL_HOME="$d" WGETRC="$d/.wgetrc"
 }
 { [ "${INSECURE_TLS:-0}" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
+# Corporate root CA (optional): trust a custom CA this run (node/bun/git/curl/Go — incl. Ollama pulls).
+CA_FILE="${CA_FILE:-${OMP_CA_FILE:-}}"
+if [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ]; then
+  export OMP_CA_FILE="$CA_FILE" NODE_EXTRA_CA_CERTS="$CA_FILE" SSL_CERT_FILE="$CA_FILE" CURL_CA_BUNDLE="$CA_FILE" GIT_SSL_CAINFO="$CA_FILE" REQUESTS_CA_BUNDLE="$CA_FILE"
+  warn "Trusting corporate CA: $CA_FILE"
+fi
 ask() { # ask "Q" default(Y/n)
   local q="$1" def="${2:-Y}" ans
   [ "$YES" = 1 ] && return 0

@@ -33,13 +33,19 @@ is **bun**, which is auto-upgraded if it's below the version OMP requires. Confi
 files are only appended to once (re-runs detect the marker and skip).
 
 **Corporate proxies (Zscaler / Trend Micro under WSL):** if a TLS-intercepting
-proxy breaks certificate checks, run the UNIX installers with **`--insecure-tls`**
-(or export `OMP_INSECURE_TLS=1`) to disable verification for that run — it covers
-curl/wget (including the piped upstream installers), git, and node/bun/npm,
-and the global installer propagates it to the plugin installers. (Ollama *model*
-pulls use Go's own trust store — if those still fail, import your corporate root CA
-into the system store, or set `SSL_CERT_FILE`.) Prefer importing the corp CA when
-you can; this flag is the get-unblocked escape hatch.
+proxy breaks certificate checks, the UNIX installers give you two options:
+
+- **Preferred — trust the corporate CA:** `--ca-file=/path/to/corp-root-ca.pem`
+  (or `OMP_CA_FILE=…`). Verification stays **on**; node/bun, git, curl/wget, Python
+  and **Go tools (Ollama model pulls)** are pointed at your CA via
+  `NODE_EXTRA_CA_CERTS`/`SSL_CERT_FILE`/`CURL_CA_BUNDLE`/`GIT_SSL_CAINFO`, and it's
+  **persisted to your shell profile** so `omp` and `ollama pull` trust it later too.
+- **Escape hatch — bypass:** `--insecure-tls` (or `OMP_INSECURE_TLS=1`) disables
+  verification for that run (curl/wget incl. piped installers, git, node/bun/npm).
+  It can't bypass Go/libcurl tools (Ollama, etc.) — use `--ca-file` for those.
+
+The global installer propagates either choice to the plugin installers. Run the
+installers **without `sudo`** (everything is per-user: `~/.bun`, `~/.local/bin`, `~/.omp`).
 
 ## Manual install
 

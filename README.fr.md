@@ -33,15 +33,20 @@ présent (jamais d'écrasement, jamais de nouvelle question) — passez **`--upd
 fichiers de config ne sont ajoutés qu'une fois (les relances détectent le marqueur).
 
 **Proxys d'entreprise (Zscaler / Trend Micro sous WSL) :** si un proxy qui
-intercepte le TLS casse la vérification des certificats, lancez les installeurs
-UNIX avec **`--insecure-tls`** (ou exportez `OMP_INSECURE_TLS=1`) pour désactiver la
-vérification le temps du run — ça couvre curl/wget (y compris les installeurs
-pi-pés), git, et node/bun/npm, et l'installeur global le propage aux
-installeurs de plugins. (Les téléchargements de *modèles* Ollama utilisent le
-magasin de certificats de Go — si ça échoue encore, importez la CA racine de votre
-entreprise dans le magasin système, ou définissez `SSL_CERT_FILE`.) Préférez
-importer la CA d'entreprise quand c'est possible ; ce flag est l'échappatoire pour
-se débloquer.
+intercepte le TLS casse la vérification des certificats, les installeurs UNIX
+offrent deux options :
+
+- **Préféré — faire confiance à la CA d'entreprise :** `--ca-file=/chemin/corp-root-ca.pem`
+  (ou `OMP_CA_FILE=…`). La vérification reste **active** ; node/bun, git, curl/wget,
+  Python et les **outils Go (pulls de modèles Ollama)** sont pointés vers votre CA via
+  `NODE_EXTRA_CA_CERTS`/`SSL_CERT_FILE`/`CURL_CA_BUNDLE`/`GIT_SSL_CAINFO`, et c'est
+  **persisté dans votre profil shell** pour qu'`omp` et `ollama pull` en bénéficient ensuite.
+- **Échappatoire — bypass :** `--insecure-tls` (ou `OMP_INSECURE_TLS=1`) désactive la
+  vérification le temps du run (curl/wget incl. installeurs pi-pés, git, node/bun/npm).
+  Ne peut pas bypasser les outils Go/libcurl (Ollama, etc.) — utilisez `--ca-file` pour ceux-là.
+
+L'installeur global propage le choix aux installeurs de plugins. Lancez les
+installeurs **sans `sudo`** (tout est par-utilisateur : `~/.bun`, `~/.local/bin`, `~/.omp`).
 
 ## Installation manuelle
 

@@ -10,6 +10,9 @@
 #   --no-runtimes  skip installing bun/node (assume they're present)
 #   --insecure-tls disable TLS cert verification (corporate Zscaler/Trend MITM under
 #                  WSL); also via OMP_INSECURE_TLS=1 — propagates to plugin installers
+#   --ca-file=PATH trust a corporate root CA (Zscaler/Trend) for node/bun/git/curl/Go
+#                  (Ollama) — the PROPER fix, keeps verification on; also OMP_CA_FILE.
+#                  Persisted to your shell profile. Prefer this over --insecure-tls.
 #   --dry-run      print actions without executing (passed to plugin installers)
 #   -h, --help     this help
 #
@@ -20,10 +23,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0
+DRY=0; YES=0; RUNTIMES=1; UPDATE=0; INSECURE_TLS=0; CA_FILE="${OMP_CA_FILE:-}"
 for a in "$@"; do case "$a" in
   -y|--yes) YES=1 ;; --dry-run) DRY=1 ;; --no-runtimes) RUNTIMES=0 ;; --update) UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
-  -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+  --ca-file=*) CA_FILE="${a#*=}" ;;
+  -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -47,6 +51,27 @@ enable_insecure_tls() {
   export CURL_HOME="$d" WGETRC="$d/.wgetrc"
 }
 { [ "$INSECURE_TLS" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
+
+# Corporate root CA (optional, PREFERRED over --insecure-tls): trust a custom CA
+# for everything — node/bun (NODE_EXTRA_CA_CERTS), Go/Ollama + curl + python
+# (SSL_CERT_FILE/CURL_CA_BUNDLE/REQUESTS_CA_BUNDLE), git (GIT_SSL_CAINFO) — and
+# persist it to the shell profile so `omp` and `ollama pull` trust it later too.
+PROFILES=("$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc")
+trust_ca() {
+  local f="$1" abs v p
+  [ -f "$f" ] || { warn "CA file not found: $f (skipping)"; return 0; }
+  abs="$(cd "$(dirname "$f")" && pwd)/$(basename "$f")"
+  say "Trusting corporate CA: $abs"
+  for v in OMP_CA_FILE NODE_EXTRA_CA_CERTS SSL_CERT_FILE CURL_CA_BUNDLE GIT_SSL_CAINFO REQUESTS_CA_BUNDLE; do export "$v=$abs"; done
+  [ "$DRY" = 1 ] && { echo "  [dry-run] persist CA env vars to your shell profile"; return 0; }
+  [ -e "$HOME/.profile" ] || : > "$HOME/.profile"
+  for p in "${PROFILES[@]}"; do
+    [ -e "$p" ] || continue
+    grep -qsF "OMP_CA_FILE=" "$p" && continue
+    { echo ""; echo "# omp-dev-team corporate CA"; for v in OMP_CA_FILE NODE_EXTRA_CA_CERTS SSL_CERT_FILE CURL_CA_BUNDLE GIT_SSL_CAINFO REQUESTS_CA_BUNDLE; do printf 'export %s=%q\n' "$v" "$abs"; done; } >> "$p"
+  done
+}
+[ -n "$CA_FILE" ] && trust_ca "$CA_FILE"
 
 # ask "Question?" default(Y/n) -> returns 0 for yes
 ask() {
