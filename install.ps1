@@ -6,7 +6,7 @@
   Flags:
     -Yes          non-interactive: install all plugins + apply default configs
     -Update       refresh things already installed (otherwise: skip them)
-    -NoRuntimes   skip installing node/bun/cargo (assume they're present)
+    -NoRuntimes   skip installing bun/node (assume they're present)
     -DryRun       print actions without executing
 
   Already-present policy: SKIP by default (idempotent, never asks). Pass -Update
@@ -61,21 +61,12 @@ function Ensure-Node {
   if (Have winget) { Run "winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements" }
   else { Warn "could not install Node.js automatically — see https://nodejs.org" }
 }
-function Ensure-Cargo {
-  if ((Have cargo) -and -not $Update) { Ok "cargo $((cargo --version) -split ' ' | Select-Object -Index 1) (skip; -Update to refresh)"; return }
-  if ((Have rustup) -and $Update) { Say "Updating Rust"; Run "rustup update"; return }
-  if (Have cargo) { Ok "cargo present"; return }
-  Say "Installing Rust (rustup)"
-  if (Have winget) { Run "winget install --id Rustlang.Rustup -e --accept-source-agreements --accept-package-agreements" }
-  else { Warn "install Rust from https://rustup.rs" }
-  Ensure-Path (Join-Path $HOME ".cargo\bin")
-}
 
 Bold "omp-dev-team installer"
 Write-Host "Repo: $Root"
 
-# --- 0) Runtimes (node, bun, cargo) ----------------------------------------
-if (-not $NoRuntimes) { Say "Ensuring runtimes"; Ensure-Bun; Ensure-Node; Ensure-Cargo }
+# --- 0) Runtimes (bun, node) -----------------------------------------------
+if (-not $NoRuntimes) { Say "Ensuring runtimes"; Ensure-Bun; Ensure-Node }
 else { Say "Skipping runtime install (-NoRuntimes)" }
 
 # --- 1) OMP ----------------------------------------------------------------
@@ -153,7 +144,7 @@ if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
 Bold "Doctor"
 if ($DryRun) { Write-Host "(dry-run — skipping verification)"; return }
 # Refresh PATH for dirs created during plugin installs.
-foreach ($d in @((Join-Path $HOME '.local\bin'), (Join-Path $HOME '.bun\bin'), (Join-Path $HOME '.cargo\bin'))) { Ensure-Path $d }
+foreach ($d in @((Join-Path $HOME '.local\bin'), (Join-Path $HOME '.bun\bin'))) { Ensure-Path $d }
 if ($OnWindows) { foreach ($d in @((Join-Path $env:LOCALAPPDATA 'omp'), (Join-Path $env:LOCALAPPDATA 'codegraph\current\bin'))) { Ensure-Path $d } }
 $fail = $false
 function Check ($t, $req, $vc) {
@@ -166,9 +157,8 @@ function Check ($t, $req, $vc) {
 Check git       'required'    'git --version'
 Check bun       $(if ($OnWindows) { 'optional' } else { 'required' }) 'bun --version'
 Check node      'recommended' 'node --version'
-Check cargo     'recommended' 'cargo --version'
 Check omp       'required'    'omp --version'
-Check rtk       'optional'    'rtk --version'
+Check ctx-wire  'optional'    'ctx-wire --version'
 Check codegraph 'optional'    'codegraph --version'
 
 Bold "OMP launch check"

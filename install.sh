@@ -7,7 +7,7 @@
 #   -y, --yes      non-interactive: install all plugins + apply default configs
 #                  (skips the Azure PAT prompt unless env vars are already set)
 #   --update       refresh things that are already installed (otherwise: skip them)
-#   --no-runtimes  skip installing node/bun/cargo (assume they're present)
+#   --no-runtimes  skip installing bun/node (assume they're present)
 #   --insecure-tls disable TLS cert verification (corporate Zscaler/Trend MITM under
 #                  WSL); also via OMP_INSECURE_TLS=1 — propagates to plugin installers
 #   --dry-run      print actions without executing (passed to plugin installers)
@@ -120,24 +120,15 @@ ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
   fi
   rm -rf "$tmp" 2>/dev/null || true
 }
-ensure_cargo() {  # Rust toolchain (rtk fallback build; generally useful)
-  if have cargo && [ "$UPDATE" = 0 ]; then ok "cargo $(cargo --version 2>/dev/null | awk '{print $2}') (skip; --update to refresh)"; return; fi
-  if have rustup && [ "$UPDATE" = 1 ]; then say "Updating Rust"; run "rustup update"; return; fi
-  if have cargo; then ok "cargo present"; return; fi
-  say "Installing Rust (rustup)"
-  run "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path"
-  ensure_path "$HOME/.cargo/bin"
-}
 
 bold "omp-dev-team installer"
 echo "Repo: $ROOT"
 
-# --- 0) Runtimes (node, bun, cargo) ----------------------------------------
+# --- 0) Runtimes (bun, node) -----------------------------------------------
 if [ "$RUNTIMES" = 1 ]; then
   say "Ensuring runtimes"
   ensure_bun
   ensure_node
-  ensure_cargo
 else
   say "Skipping runtime install (--no-runtimes)"
 fi
@@ -148,7 +139,7 @@ elif have omp; then say "Updating OMP"; run "bun add -g @oh-my-pi/pi-coding-agen
 else say "Installing OMP (latest)"; run "curl -fsSL https://omp.sh/install | sh"; fi
 # Make omp + tool dirs available now and in future shells. Create them first so
 # ensure_path adds them even before later steps drop binaries in (e.g. rtk).
-for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do mkdir -p "$d" 2>/dev/null || true; ensure_path "$d"; done
+for d in "$HOME/.local/bin" "$HOME/.bun/bin"; do mkdir -p "$d" 2>/dev/null || true; ensure_path "$d"; done
 have omp || warn "omp not on PATH yet — open a new shell or 'source ~/.profile' after this"
 
 # --- 2) Register the marketplace -------------------------------------------
@@ -215,7 +206,7 @@ fi
 bold "Doctor"
 [ "$DRY" = 1 ] && { echo "(dry-run — skipping verification)"; exit 0; }
 # Refresh PATH for dirs that may have been created during plugin installs.
-for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do ensure_path "$d"; done
+for d in "$HOME/.local/bin" "$HOME/.bun/bin"; do ensure_path "$d"; done
 hash -r 2>/dev/null || true
 fail=0
 check() {  # check <tool> <required|optional> <version-cmd>
@@ -229,9 +220,8 @@ check() {  # check <tool> <required|optional> <version-cmd>
 check git      required "git --version"
 check bun      required "bun --version"
 check node     recommended "node --version"
-check cargo    recommended "cargo --version"
 check omp      required "omp --version"
-check rtk      optional "rtk --version"
+check ctx-wire optional "ctx-wire --version"
 check codegraph optional "codegraph --version"
 
 bold "OMP launch check"

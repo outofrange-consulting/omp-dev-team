@@ -36,7 +36,7 @@ fichiers de config ne sont ajoutés qu'une fois (les relances détectent le marq
 intercepte le TLS casse la vérification des certificats, lancez les installeurs
 UNIX avec **`--insecure-tls`** (ou exportez `OMP_INSECURE_TLS=1`) pour désactiver la
 vérification le temps du run — ça couvre curl/wget (y compris les installeurs
-pi-pés), git, node/bun/npm et rustup, et l'installeur global le propage aux
+pi-pés), git, et node/bun/npm, et l'installeur global le propage aux
 installeurs de plugins. (Les téléchargements de *modèles* Ollama utilisent le
 magasin de certificats de Go — si ça échoue encore, importez la CA racine de votre
 entreprise dans le magasin système, ou définissez `SSL_CERT_FILE`.) Préférez
