@@ -95,23 +95,30 @@ ensure_bun() {  # OMP requires bun >= MIN_BUN
 ensure_node() {  # needed by azure-devops-fs (npx) and handy generally
   if have node && [ "$UPDATE" = 0 ]; then ok "node $(node --version) (skip; --update to refresh)"; return; fi
   say "Installing Node.js (LTS)"
-  if have brew; then run "brew install node"
-  elif have curl; then
-    run "curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell"
-    ensure_path "$HOME/.local/share/fnm"; hash -r 2>/dev/null || true
-    if have fnm; then
-      run 'eval "$(fnm env --shell bash)"; fnm install --lts && fnm use lts-latest'
-      # fnm's multishell bin is per-process/ephemeral — symlink the REAL node/npm/npx
-      # into ~/.local/bin so they persist to new shells.
-      mkdir -p "$HOME/.local/bin"
-      if have node; then
-        local rn bd b
-        rn="$(readlink -f "$(command -v node)" 2>/dev/null || true)"
-        if [ -n "$rn" ]; then bd="$(dirname "$rn")"; for b in node npm npx; do [ -e "$bd/$b" ] && ln -sf "$bd/$b" "$HOME/.local/bin/$b"; done; fi
-        ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
-      fi
-    fi
-  else warn "could not install Node.js automatically — see https://nodejs.org"; fi
+  if have brew; then run "brew install node"; return; fi
+  # Official prebuilt LTS tarball -> ~/.local, symlinked into ~/.local/bin. No
+  # version manager (fnm/nvm) — deterministic and persists to new shells.
+  have curl || { warn "need curl or brew to install Node — see https://nodejs.org"; return; }
+  local os arch ver file url tmp dir b
+  case "$(uname -s)" in Linux) os=linux ;; Darwin) os=darwin ;; *) warn "auto Node unsupported on $(uname -s)"; return ;; esac
+  case "$(uname -m)" in x86_64|amd64) arch=x64 ;; aarch64|arm64) arch=arm64 ;; armv7l) arch=armv7l ;; *) warn "auto Node unsupported on $(uname -m)"; return ;; esac
+  # Resolve the latest LTS version from the dist index (newest-first; first entry
+  # whose "lts" is a name, not false). No jq/node/python needed.
+  ver="$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null | tr '}' '\n' | grep -m1 '"lts":"' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+  [ -n "$ver" ] || { warn "could not resolve a Node LTS version (nodejs.org/dist)"; return; }
+  file="node-${ver}-${os}-${arch}.tar.gz"
+  url="https://nodejs.org/dist/${ver}/${file}"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] curl $url | tar -xz -> ~/.local; symlink node/npm/npx into ~/.local/bin"; ensure_path "$HOME/.local/bin"; return; fi
+  tmp="$(mktemp -d)"; mkdir -p "$HOME/.local/bin"
+  if curl -fsSL "$url" -o "$tmp/node.tgz" && tar -xzf "$tmp/node.tgz" -C "$HOME/.local"; then
+    dir="$HOME/.local/${file%.tar.gz}"
+    for b in node npm npx; do [ -e "$dir/bin/$b" ] && ln -sf "$dir/bin/$b" "$HOME/.local/bin/$b"; done
+    ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
+    have node && ok "node $(node --version)" || warn "Node installed to $dir but not on PATH"
+  else
+    warn "Node download/extract failed — install manually from https://nodejs.org"
+  fi
+  rm -rf "$tmp" 2>/dev/null || true
 }
 ensure_cargo() {  # Rust toolchain (rtk fallback build; generally useful)
   if have cargo && [ "$UPDATE" = 0 ]; then ok "cargo $(cargo --version 2>/dev/null | awk '{print $2}') (skip; --update to refresh)"; return; fi

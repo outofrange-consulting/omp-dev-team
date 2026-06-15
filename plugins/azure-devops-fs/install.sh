@@ -37,15 +37,30 @@ enable_insecure_tls() {
 NEED_NODE=20
 if have node && [ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)" -ge "$NEED_NODE" ]; then
   say "Node.js present ($(node --version))"
+elif have brew; then
+  say "Installing Node.js (brew)"; run "brew install node"
 else
-  say "Installing latest LTS Node.js"
-  if have brew; then run "brew install node"
-  elif have fnm; then run "fnm install --lts && fnm use lts-latest"
-  elif have nvm; then run "nvm install --lts"
-  elif have curl; then
-    run "curl -fsSL https://fnm.vercel.app/install | bash"
-    run 'export PATH="$HOME/.local/share/fnm:$PATH"; eval "$(fnm env)"; fnm install --lts'
-  else warn "install Node.js >= ${NEED_NODE} from https://nodejs.org"; fi
+  # Official prebuilt LTS tarball -> ~/.local + symlinks in ~/.local/bin (no fnm/nvm).
+  say "Installing Node.js (LTS, official tarball)"
+  if have curl; then
+    case "$(uname -s)" in Linux) NOS=linux ;; Darwin) NOS=darwin ;; *) NOS="" ;; esac
+    case "$(uname -m)" in x86_64|amd64) NARCH=x64 ;; aarch64|arm64) NARCH=arm64 ;; armv7l) NARCH=armv7l ;; *) NARCH="" ;; esac
+    NVER=""; [ -n "$NOS" ] && [ -n "$NARCH" ] && NVER="$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null | tr '}' '\n' | grep -m1 '"lts":"' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+    NFILE=""; [ -n "$NVER" ] && NFILE="node-${NVER}-${NOS}-${NARCH}.tar.gz"
+    if [ -z "$NFILE" ]; then warn "could not resolve a Node LTS tarball for ${NOS:-?}-${NARCH:-?} — see https://nodejs.org"
+    elif [ "$DRY" = 1 ]; then echo "  [dry-run] curl nodejs.org/dist/${NVER}/$NFILE | tar -xz -> ~/.local; symlink node/npm/npx into ~/.local/bin"
+    else
+      NTMP="$(mktemp -d)"; mkdir -p "$HOME/.local/bin"
+      if curl -fsSL "https://nodejs.org/dist/${NVER}/${NFILE}" -o "$NTMP/node.tgz" && tar -xzf "$NTMP/node.tgz" -C "$HOME/.local"; then
+        NDIR="$HOME/.local/${NFILE%.tar.gz}"
+        for b in node npm npx; do [ -e "$NDIR/bin/$b" ] && ln -sf "$NDIR/bin/$b" "$HOME/.local/bin/$b"; done
+        case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+        hash -r 2>/dev/null || true
+        have node && say "Node.js $(node --version) installed" || warn "Node in $NDIR — add ~/.local/bin to PATH"
+      else warn "Node download/extract failed — install from https://nodejs.org"; fi
+      rm -rf "$NTMP" 2>/dev/null || true
+    fi
+  else warn "install Node.js >= ${NEED_NODE} from https://nodejs.org (need curl or brew)"; fi
 fi
 
 # --- Pre-warm the Azure DevOps MCP server (latest) --------------------------
