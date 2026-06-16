@@ -89,9 +89,18 @@ ado op=pr_complete repo=myrepo id=4213 autoComplete=true         # merge when gr
 
 ## Setup
 
-Set `AZURE_DEVOPS_PAT` (Code R/W, PR R/W, **Build R** for CI, **Policy R** for
-`pr_checks` gates), `AZURE_DEVOPS_ORG`, and optionally `AZURE_DEVOPS_PROJECT`.
-Side-effecting ops (`pr_abandon`, `pr_complete`, `build_run`, `pr_vote reject`,
-force push) prompt for confirmation, or require `confirm: true` when headless.
+Backed by the **Azure CLI** (`az` + the `azure-devops` extension), so it inherits
+the OS certificate store and proxy — it works behind corporate TLS-intercepting
+proxies (Zscaler / Trend Micro under WSL) where a raw HTTP client fails. The
+installer (`bash plugins/azure-devops-fs/install.sh`) installs `az` + the
+extension and runs `az devops login` (PAT mode).
+
+Set `AZURE_DEVOPS_ORG` (org **name**, e.g. `contoso`), optionally
+`AZURE_DEVOPS_PROJECT`, and `AZURE_DEVOPS_PAT` (Code R/W, PR R/W, **Build R** for
+CI, **Policy R** for `pr_checks` gates) — exported to the CLI as
+`AZURE_DEVOPS_EXT_PAT`, so no interactive login is needed at runtime. `git` is
+needed for `pr_checkout` / `pr_push`. Side-effecting ops (`pr_abandon`,
+`pr_complete`, `build_run`, `pr_vote reject`, force push) prompt for confirmation,
+or require `confirm: true` when headless.
 
 Reads are cached in `~/.omp/cache/ado-cache.db` (disable with `OMP_ADO_CACHE=0`).

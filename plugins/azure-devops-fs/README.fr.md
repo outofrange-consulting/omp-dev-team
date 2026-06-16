@@ -59,12 +59,17 @@ export AZURE_DEVOPS_PAT=xxxxxxxx             # Code R/W, PR R/W (+ Build R pour 
 - `pr_diff` reconstruit un diff unifié via `git diff --no-index` sur les blobs base
   vs source (ADO n'a pas d'endpoint de diff unifié unique).
 
-## Complément MCP optionnel
+## Backend
 
-`.mcp.json` fournit le serveur officiel Microsoft `@azure-devops/mcp` (désactivé par
-défaut ; mettez `enabled: true`). L'outil natif `ado` ajoute ce que le serveur MCP
-ne fait pas : le modèle de système de fichiers `ado://`, un cache de lecture, des
-worktrees de PR, et le flux `/ado-review`.
+L'outil `ado` pilote l'**Azure CLI** (`az` + l'extension `azure-devops`) :
+commandes haut-niveau `az repos`/`az pipelines`/`az boards` quand elles existent,
+et `az devops invoke` pour les endpoints bruts (items, itérations, threads,
+statuts, évaluations de policy, logs). Comme il passe par `az`, il hérite du
+magasin de certificats et du proxy de l'OS — donc il fonctionne derrière les
+proxys TLS d'entreprise (Zscaler / Trend Micro sous WSL). Auth par PAT (exporté
+en `AZURE_DEVOPS_EXT_PAT`, ou `az devops login`). Par-dessus, `ado` ajoute le
+modèle de système de fichiers `ado://`, un cache de lecture, des worktrees de PR,
+et le flux `/ado-review`.
 
 Voir [`knowledge/ado-api-reference.md`](knowledge/ado-api-reference.md) pour le
 mapping op → REST.

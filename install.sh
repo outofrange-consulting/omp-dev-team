@@ -326,10 +326,11 @@ if ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" "N
 fi
 
 if ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" "N"; then
-  # The plugin installer ensures Node, pre-warms the MCP server, and (when
-  # interactive) prompts for the org/project/PAT and persists them.
+  # The plugin installer installs the Azure CLI + azure-devops extension (the
+  # `ado` tool's backend) and, when interactive, prompts for org/project/PAT and
+  # runs `az devops login`.
   plug azure-devops-fs "$ROOT/plugins/azure-devops-fs"
-  echo "  Reminder: enable the 'azure-devops' MCP server (enabled:true) in your .mcp.json."
+  echo "  Reminder: restart omp so the 'ado' tool loads; set AZURE_DEVOPS_ORG/PAT if you skipped the prompt."
 fi
 
 # Compose + reset the OMP config so the selected plugins work out of the box.

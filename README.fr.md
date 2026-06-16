@@ -11,7 +11,7 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`dev-team`](plugins/dev-team/)** | **Équipe de dev agentique** — un orchestrateur + 32 agents spécialistes/critiques, le workflow `/specs` → `/plan` → `/build` → `/pr`, **TDD strict** et points de contrôle humains, ~78 skills, et des extensions « garde-fou » bloquantes. Portage de [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). Tiers 100 % cloud ; gardez le tier « small » à haut volume bon marché. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
 | **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), un skill « caveman » de sortie laconique, et un skill « yagni » de code minimal — par-dessus la compaction/`astGrep` natives d'OMP. |
-| **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Authentifié par PAT, cache SQLite. |
+| **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Propulsé par l'**Azure CLI** (`az` + extension azure-devops), auth PAT, cache SQLite ; fonctionne derrière les proxys TLS d'entreprise. |
 | **[`local-llm`](plugins/local-llm/)** | **Modèles locaux dimensionnés à votre matériel** — détecte VRAM/RAM, choisit les meilleurs GGUF par rôle, installe Ollama (ou llama.cpp), les télécharge, et enregistre le fournisseur `local-llm`. Hybride : planification cloud, exécution/rôles bon marché en local. |
 
 ## Démarrage rapide (recommandé)
@@ -86,7 +86,7 @@ du plugin dans leur dernière version) — voir son README :
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (vérif prérequis + config). 100 % cloud ; pas de backend local.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
 - **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
-- **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (assure Node, demande org/projet/**PAT**), puis activez le serveur MCP `azure-devops`.
+- **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installe l'Azure CLI + l'extension azure-devops, demande org/projet/**PAT**, lance `az devops login`), puis redémarrez `omp` pour charger l'outil `ado`.
 - **local-llm** → `bash plugins/local-llm/install.sh` (détecte VRAM/RAM, demande, installe Ollama/llama.cpp, télécharge les meilleurs modèles, câble les rôles).
 
 ## Disposition
@@ -99,7 +99,7 @@ plugins/
                     config.snippet.yml · install.sh · install.ps1
   copilot-preset/   config.snippet.yml · pricing.md · skills/ · install.{sh,ps1}
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
-  azure-devops-fs/  extensions/ commands/ skills/ rules/ knowledge/ .mcp.json · install.{sh,ps1}
+  azure-devops-fs/  extensions/ (ado.ts + lib/az.ts) commands/ skills/ rules/ knowledge/ · install.{sh,ps1}
   local-llm/        extensions/ (catalog/selector/detect/emit) · skills/ · install.{sh,ps1}
 ```
 

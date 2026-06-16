@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# azure-devops-fs installer (Linux/macOS) — ensures Node.js (for the
-# `npx @azure-devops/mcp` server), pre-warms the LATEST MCP package, and (when
-# interactive) prompts for the Azure DevOps org/project/PAT and persists them.
+# azure-devops-fs installer (Linux/macOS) — installs the Azure CLI (`az`) + the
+# `azure-devops` extension (the `ado` tool's backend), mirrors the extension into
+# OMP's native dir, and (when interactive) prompts for the org/project/PAT,
+# persists them, and runs `az devops login` (PAT mode).
 # Flags:
 #   --configure   force the org/project/PAT prompt
 #   --no-config   never prompt for credentials
@@ -39,51 +40,50 @@ if [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ]; then
   warn "Trusting corporate CA: $CA_FILE"
 fi
 
-# --- Node.js (provides npx) -------------------------------------------------
-NEED_NODE=20
-if have node && [ "$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)" -ge "$NEED_NODE" ]; then
-  say "Node.js present ($(node --version))"
-elif have brew; then
-  say "Installing Node.js (brew)"; run "brew install node"
+# --- Azure CLI (az) + azure-devops extension --------------------------------
+# The `ado` tool drives `az` so it inherits the OS cert store + proxy (works
+# behind Zscaler/Trend under WSL). Everything is per-user (no sudo).
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+if have az; then
+  say "Azure CLI present ($(az version --query '"azure-cli"' -o tsv 2>/dev/null || echo ok))"
 else
-  # Official prebuilt LTS tarball -> ~/.local + symlinks in ~/.local/bin (no fnm/nvm).
-  say "Installing Node.js (LTS, official tarball)"
-  if have curl; then
-    case "$(uname -s)" in Linux) NOS=linux ;; Darwin) NOS=darwin ;; *) NOS="" ;; esac
-    case "$(uname -m)" in x86_64|amd64) NARCH=x64 ;; aarch64|arm64) NARCH=arm64 ;; armv7l) NARCH=armv7l ;; *) NARCH="" ;; esac
-    NVER=""; [ -n "$NOS" ] && [ -n "$NARCH" ] && NVER="$(curl -fsSL https://nodejs.org/dist/index.json 2>/dev/null | tr '}' '\n' | grep -m1 '"lts":"' | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
-    NFILE=""; [ -n "$NVER" ] && NFILE="node-${NVER}-${NOS}-${NARCH}.tar.gz"
-    if [ -z "$NFILE" ]; then warn "could not resolve a Node LTS tarball for ${NOS:-?}-${NARCH:-?} — see https://nodejs.org"
-    elif [ "$DRY" = 1 ]; then echo "  [dry-run] curl nodejs.org/dist/${NVER}/$NFILE | tar -xz -> ~/.local; symlink node/npm/npx into ~/.local/bin"
-    else
-      NTMP="$(mktemp -d)"; mkdir -p "$HOME/.local/bin"
-      if curl -fsSL "https://nodejs.org/dist/${NVER}/${NFILE}" -o "$NTMP/node.tgz" && tar -xzf "$NTMP/node.tgz" -C "$HOME/.local"; then
-        NDIR="$HOME/.local/${NFILE%.tar.gz}"
-        for b in node npm npx; do [ -e "$NDIR/bin/$b" ] && ln -sf "$NDIR/bin/$b" "$HOME/.local/bin/$b"; done
-        case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
-        hash -r 2>/dev/null || true
-        have node && say "Node.js $(node --version) installed" || warn "Node in $NDIR — add ~/.local/bin to PATH"
-      else warn "Node download/extract failed — install from https://nodejs.org"; fi
-      rm -rf "$NTMP" 2>/dev/null || true
-    fi
-  else warn "install Node.js >= ${NEED_NODE} from https://nodejs.org (need curl or brew)"; fi
+  say "Installing Azure CLI (per-user, no sudo)"
+  if have brew; then run "brew install azure-cli"
+  elif have pipx; then run "pipx install azure-cli"
+  elif have pip3; then run "pip3 install --user azure-cli"
+  elif have python3 && python3 -m pip --version >/dev/null 2>&1; then run "python3 -m pip install --user azure-cli"
+  else warn "could not install Azure CLI without sudo — install it from https://aka.ms/azcli (e.g. 'pip install --user azure-cli'), then re-run"; fi
+  hash -r 2>/dev/null || true
 fi
-
-# --- Pre-warm the Azure DevOps MCP server (latest) --------------------------
-if have npx || [ "$DRY" = 1 ]; then
-  say "Caching latest @azure-devops/mcp"
-  run "npx -y @azure-devops/mcp@latest --help >/dev/null 2>&1 || true"
-fi
+# azure-devops extension (per-user, lands in ~/.azure — no sudo)
+if have az; then
+  if az extension show --name azure-devops >/dev/null 2>&1; then say "azure-devops CLI extension present"
+  else say "Adding the azure-devops CLI extension"; run "az extension add --name azure-devops --only-show-errors || true"; fi
+elif [ "$DRY" = 1 ]; then echo "  [dry-run] az extension add --name azure-devops"; fi
+have git || warn "git not found — pr_checkout / pr_push need it (install git)"
 
 # --- Configure org / project / PAT ------------------------------------------
+# Persist org/project (profile) + PAT (secrets.env, chmod 600) for the `ado`
+# tool, and run `az devops login` (PAT mode) for direct `az` use.
+az_login() {  # az_login <org-name> <project> <pat>
+  have az || return 0
+  local orgurl="https://dev.azure.com/$1"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] az devops configure --defaults organization=$orgurl${2:+ project=$2}; az devops login"; return 0; fi
+  az devops configure --defaults "organization=$orgurl" ${2:+"project=$2"} --only-show-errors >/dev/null 2>&1 || true
+  if [ -n "$3" ]; then
+    printf '%s' "$3" | az devops login --organization "$orgurl" --only-show-errors >/dev/null 2>&1 \
+      && echo "  az devops login OK ($orgurl)" || warn "az devops login failed — the PAT env still works for the ado tool"
+  fi
+}
 configure_ado() {
   local org proj pat secrets="$HOME/.omp/secrets.env" p
   local profiles=("$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc")
-  printf '    AZURE_DEVOPS_ORG (e.g. https://dev.azure.com/<org>): '; read -r org </dev/tty || org=""
+  printf '    AZURE_DEVOPS_ORG (org NAME only, e.g. contoso — not the URL): '; read -r org </dev/tty || org=""
   [ -z "$org" ] && { warn "no org entered — skipping ADO credential write"; return; }
+  org="${org#https://dev.azure.com/}"; org="${org%/}"   # tolerate a pasted URL
   printf '    AZURE_DEVOPS_PROJECT (optional default): '; read -r proj </dev/tty || proj=""
-  printf '    AZURE_DEVOPS_PAT (hidden; Code R/W, PR R/W, +Build R): '; read -r -s pat </dev/tty || pat=""; echo
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] write ORG/PROJECT to ~/.profile, PAT to $secrets (chmod 600)"; return; fi
+  printf '    AZURE_DEVOPS_PAT (hidden; Code R/W, PR R/W, Build R, Policy R): '; read -r -s pat </dev/tty || pat=""; echo
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] write ORG/PROJECT to ~/.profile, PAT to $secrets (chmod 600), az devops login"; return; fi
   [ -e "$HOME/.profile" ] || : > "$HOME/.profile"
   for p in "${profiles[@]}"; do [ -e "$p" ] || continue
     grep -qsF AZURE_DEVOPS_ORG "$p" || printf '\nexport AZURE_DEVOPS_ORG=%q\n' "$org" >> "$p"
@@ -96,13 +96,16 @@ configure_ado() {
     echo "  PAT stored in $secrets (chmod 600), sourced from your profile."
   fi
   echo "  org/project written to your shell profile."
+  az_login "$org" "$proj" "$pat"
 }
 
 if [ -n "${AZURE_DEVOPS_ORG:-}" ] && [ -n "${AZURE_DEVOPS_PAT:-}" ]; then
-  say "Azure DevOps already configured via environment — skipping prompt"
+  say "Azure DevOps already configured via environment — running az devops login"
+  AZ_ORG="${AZURE_DEVOPS_ORG#https://dev.azure.com/}"; AZ_ORG="${AZ_ORG%/}"
+  az_login "$AZ_ORG" "${AZURE_DEVOPS_PROJECT:-}" "$AZURE_DEVOPS_PAT"
 elif [ "$CONFIG" = skip ] || { [ "$CONFIG" = auto ] && { [ "$YES" = 1 ] || [ ! -r /dev/tty ]; }; }; then
   say "Skipping ADO credential prompt (non-interactive)"
-  echo "    Set later:  AZURE_DEVOPS_ORG / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT"
+  echo "    Set later:  AZURE_DEVOPS_ORG (org name) / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT,  then: az devops login"
 else
   say "Configure Azure DevOps credentials"
   configure_ado
@@ -125,12 +128,10 @@ fi
 
 cat <<'EOF'
 
-==> azure-devops-fs ready. The `ado` tool is now loaded by OMP.
-    Set AZURE_DEVOPS_ORG / AZURE_DEVOPS_PAT (above) and use it, e.g.:
+==> azure-devops-fs ready. The `ado` tool is loaded by OMP and backed by `az`.
+    Restart omp, then use it, e.g.:
       ado op=pr_view  uri=adopr://myrepo/4213
       ado op=pr_checks repo=myrepo id=4213
     Note: Azure DevOps PRs are NOT pr:// (that's GitHub). Use the `ado` tool
     with adopr:// URIs or repo/id fields.
-    Optional: the Microsoft `azure-devops` MCP server (enabled:false) in the
-    merged .mcp.json is an alternative backend; the PAT is injected per-request.
 EOF

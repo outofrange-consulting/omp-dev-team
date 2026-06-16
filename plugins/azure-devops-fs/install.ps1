@@ -1,8 +1,9 @@
 #requires -Version 5.1
 <#
-  azure-devops-fs installer (Windows) — ensures Node.js (for `npx
-  @azure-devops/mcp`), pre-warms the LATEST MCP package, and (when interactive)
-  prompts for the Azure DevOps org/project/PAT and persists them to the User env.
+  azure-devops-fs installer (Windows) — installs the Azure CLI (`az`) + the
+  azure-devops extension (the `ado` tool's backend), mirrors the extension into
+  OMP's native dir, and (when interactive) prompts for the org/project/PAT,
+  persists them to the User env, and runs `az devops login` (PAT mode).
   Flags: -DryRun, -Yes (non-interactive), -Configure (force prompt), -NoConfig.
 #>
 [CmdletBinding()]
@@ -14,45 +15,55 @@ function Warn ($m) { Write-Host "  ! $m" -ForegroundColor Yellow }
 function Have ($c) { [bool](Get-Command $c -ErrorAction SilentlyContinue) }
 function Run  ($cmd) { if ($DryRun) { Write-Host "  [dry-run] $cmd" } else { Invoke-Expression $cmd } }
 
-# --- Node.js (provides npx) -------------------------------------------------
-$needNode = 20
-$haveNode = $false
-if (Have node) {
-  try { $maj = [int]((node -p 'process.versions.node.split(".")[0]')); $haveNode = ($maj -ge $needNode) } catch {}
-}
-if ($haveNode) {
-  Say "Node.js present ($(node --version))"
+# --- Azure CLI (az) + azure-devops extension --------------------------------
+if (Have az) {
+  Say "Azure CLI present"
 } else {
-  Say "Installing latest LTS Node.js"
-  if (Have winget) { Run "winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements" }
-  else { Warn "install Node.js >= $needNode from https://nodejs.org" }
+  Say "Installing Azure CLI"
+  if (Have winget) { Run "winget install --id Microsoft.AzureCLI -e --accept-source-agreements --accept-package-agreements" }
+  else { Warn "install the Azure CLI from https://aka.ms/installazurecliwindows, then re-run" }
 }
+if (Have az) {
+  az extension show --name azure-devops *> $null
+  if ($LASTEXITCODE -eq 0) { Say "azure-devops CLI extension present" }
+  else { Say "Adding the azure-devops CLI extension"; Run "az extension add --name azure-devops --only-show-errors" }
+} elseif ($DryRun) { Write-Host "  [dry-run] az extension add --name azure-devops" }
+if (-not (Have git)) { Warn "git not found — pr_checkout / pr_push need it" }
 
-# --- Pre-warm the Azure DevOps MCP server (latest) --------------------------
-if ((Have npx) -or $DryRun) {
-  Say "Caching latest @azure-devops/mcp"
-  Run "npx -y @azure-devops/mcp@latest --help *> `$null"
+function Az-Login ($orgName, $proj, $pat) {
+  if (-not (Have az)) { return }
+  $orgUrl = "https://dev.azure.com/$orgName"
+  if ($DryRun) { Write-Host "  [dry-run] az devops configure --defaults organization=$orgUrl; az devops login"; return }
+  az devops configure --defaults "organization=$orgUrl" $(if ($proj) { "project=$proj" }) --only-show-errors *> $null
+  if ($pat) {
+    $pat | az devops login --organization $orgUrl --only-show-errors *> $null
+    if ($LASTEXITCODE -eq 0) { Write-Host "  az devops login OK ($orgUrl)" } else { Warn "az devops login failed — the PAT env still works for the ado tool" }
+  }
 }
 
 # --- Configure org / project / PAT ------------------------------------------
 $interactive = (-not $Yes) -and (-not [Console]::IsInputRedirected)
 if ($env:AZURE_DEVOPS_ORG -and $env:AZURE_DEVOPS_PAT) {
-  Say "Azure DevOps already configured via environment — skipping prompt"
+  Say "Azure DevOps already configured via environment — running az devops login"
+  $azOrg = ($env:AZURE_DEVOPS_ORG -replace '^https://dev\.azure\.com/', '').TrimEnd('/')
+  Az-Login $azOrg $env:AZURE_DEVOPS_PROJECT $env:AZURE_DEVOPS_PAT
 } elseif ($NoConfig -or (-not $Configure -and -not $interactive)) {
   Say "Skipping ADO credential prompt (non-interactive)"
-  Write-Host "    Set later (User env): AZURE_DEVOPS_ORG / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT"
+  Write-Host "    Set later (User env): AZURE_DEVOPS_ORG (org name) / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT,  then: az devops login"
 } else {
   Say "Configure Azure DevOps credentials"
-  $org  = Read-Host "    AZURE_DEVOPS_ORG (e.g. https://dev.azure.com/<org>)"
+  $org  = Read-Host "    AZURE_DEVOPS_ORG (org NAME only, e.g. contoso — not the URL)"
   if ($org) {
+    $org  = ($org -replace '^https://dev\.azure\.com/', '').TrimEnd('/')
     $proj = Read-Host "    AZURE_DEVOPS_PROJECT (optional)"
-    $pat  = Read-Host "    AZURE_DEVOPS_PAT (Code R/W, PR R/W, +Build R)" -AsSecureString
-    if ($DryRun) { Write-Host "  [dry-run] setx AZURE_DEVOPS_ORG/PROJECT/PAT (User)" }
+    $pat  = Read-Host "    AZURE_DEVOPS_PAT (Code R/W, PR R/W, Build R, Policy R)" -AsSecureString
+    if ($DryRun) { Write-Host "  [dry-run] setx AZURE_DEVOPS_ORG/PROJECT/PAT (User); az devops login" }
     else {
       [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_ORG', $org, 'User')
       if ($proj) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PROJECT', $proj, 'User') }
       $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pat))
       if ($plain) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PAT', $plain, 'User'); Write-Host "  PAT stored in User environment." }
+      Az-Login $org $proj $plain
     }
   } else { Warn "no org entered — skipping ADO credential write" }
 }
@@ -77,12 +88,10 @@ if (Test-Path $src) {
 
 Write-Host @"
 
-==> azure-devops-fs ready. The `ado` tool is now loaded by OMP.
-    Set AZURE_DEVOPS_ORG / AZURE_DEVOPS_PAT and use it, e.g.:
+==> azure-devops-fs ready. The `ado` tool is loaded by OMP and backed by `az`.
+    Restart omp, then use it, e.g.:
       ado op=pr_view  uri=adopr://myrepo/4213
       ado op=pr_checks repo=myrepo id=4213
     Note: Azure DevOps PRs are NOT pr:// (that's GitHub). Use the `ado` tool with
     adopr:// URIs or repo/id fields.
-    Optional: the Microsoft azure-devops MCP server (enabled:false) is an
-    alternative backend; the PAT is injected per-request, never written to remotes.
 "@ -ForegroundColor Green
