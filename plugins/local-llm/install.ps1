@@ -97,6 +97,23 @@ if ($ApplyConfig -or (Ask "Append the role wiring to $cfg?" 'Y')) {
   }
 }
 
+# --- Load the provider extension --------------------------------------------
+# OMP does NOT load extension modules (package.json omp.extensions) from
+# marketplace cache installs, so the local-llm provider would otherwise never
+# register. Mirror it into OMP's native user-extension dir.
+$src = Join-Path $Here 'extensions'
+if (Test-Path $src) {
+  $dest = Join-Path $HOME ".omp\agent\extensions\local-llm"
+  if ($DryRun) { Write-Host "  [dry-run] mirror local-llm extension -> $dest (OMP native ext dir)" }
+  else {
+    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
+    $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
+    Say "local-llm provider loaded into $dest"
+  }
+}
+
 Write-Host @"
 
 ==> local-llm ready (backend: $be).

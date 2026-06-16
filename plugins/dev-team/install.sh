@@ -63,6 +63,20 @@ if [ "$APPLY" = 1 ]; then
   fi
 fi
 
+# --- Load the guard/routing extensions --------------------------------------
+# OMP does NOT load extension modules (package.json `omp.extensions`) from
+# marketplace cache installs, so the blocking guards + model-routing would
+# otherwise never run. Mirror them into OMP's native user-extension dir.
+if [ -d "$HERE/extensions" ]; then
+  DEST="$HOME/.omp/agent/extensions/dev-team"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror dev-team extensions -> $DEST (OMP native ext dir)"
+  else
+    rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
+    [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
+    say "guards + model-routing loaded into $DEST"
+  fi
+fi
+
 cat <<'EOF'
 
 ==> dev-team ready. Next:

@@ -67,6 +67,19 @@ omp plugin install azure-devops-fs@omp-dev-team
 omp plugin install local-llm@omp-dev-team
 ```
 
+> **Important — modules d'extension.** OMP ne charge **pas** les modules
+> d'extension (le champ `omp.extensions` du `package.json` d'un plugin) depuis une
+> installation via le cache marketplace — seuls skills/commands/agents/rules/MCP
+> y sont exposés. Les plugins dont le cœur *est* une extension —
+> **azure-devops-fs** (l'outil `ado`), **dev-team** (les garde-fous bloquants +
+> le routage de modèles) et **local-llm** (le fournisseur) — ont donc besoin que
+> leur installeur tourne aussi. Le `install.sh` global et chaque
+> `install.sh`/`install.ps1` de plugin recopient ces modules dans le dossier natif
+> d'OMP `~/.omp/agent/extensions/<plugin>/` (toujours découvert, survit aux resets
+> de config), pour que l'outil `ado` / les garde-fous / le fournisseur se chargent
+> réellement. Un simple `omp plugin install <nom>@omp-dev-team` affichera le skill
+> mais **n'enregistrera pas** l'outil.
+
 Chaque plugin fournit son propre `install.sh` + `install.ps1` (installe les outils
 du plugin dans leur dernière version) — voir son README :
 

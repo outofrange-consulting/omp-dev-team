@@ -160,6 +160,20 @@ if [ "$APPLY" = 1 ] || ask "Append the role wiring to $CFG?" "Y"; then
   fi
 fi
 
+# --- Load the provider extension --------------------------------------------
+# OMP does NOT load extension modules (package.json `omp.extensions`) from
+# marketplace cache installs, so the local-llm provider would otherwise never
+# register. Mirror it into OMP's native user-extension dir.
+if [ -d "$HERE/extensions" ]; then
+  DEST="$HOME/.omp/agent/extensions/local-llm"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror local-llm extension -> $DEST (OMP native ext dir)"
+  else
+    rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
+    [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
+    say "local-llm provider loaded into $DEST"
+  fi
+fi
+
 cat <<EOF
 
 ==> local-llm ready (backend: ${BACKEND}).

@@ -57,9 +57,32 @@ if ($env:AZURE_DEVOPS_ORG -and $env:AZURE_DEVOPS_PAT) {
   } else { Warn "no org entered — skipping ADO credential write" }
 }
 
+# --- Load the `ado` tool ----------------------------------------------------
+# OMP does NOT load extension modules (package.json omp.extensions) from
+# marketplace cache installs, so the `ado` tool would otherwise never appear.
+# Mirror it into OMP's native user-extension dir, which is always discovered.
+$Here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$src = Join-Path $Here 'extensions'
+if (Test-Path $src) {
+  $dest = Join-Path $HOME ".omp\agent\extensions\azure-devops-fs"
+  if ($DryRun) { Write-Host "  [dry-run] mirror ado extension -> $dest (OMP native ext dir)" }
+  else {
+    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
+    $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
+    Say "ado tool loaded into $dest"
+  }
+}
+
 Write-Host @"
 
-==> azure-devops-fs ready. Final step:
-    Enable the azure-devops MCP server (enabled:true) in your merged .mcp.json.
-    The PAT is injected per-request; it is never written to remotes.
+==> azure-devops-fs ready. The `ado` tool is now loaded by OMP.
+    Set AZURE_DEVOPS_ORG / AZURE_DEVOPS_PAT and use it, e.g.:
+      ado op=pr_view  uri=adopr://myrepo/4213
+      ado op=pr_checks repo=myrepo id=4213
+    Note: Azure DevOps PRs are NOT pr:// (that's GitHub). Use the `ado` tool with
+    adopr:// URIs or repo/id fields.
+    Optional: the Microsoft azure-devops MCP server (enabled:false) is an
+    alternative backend; the PAT is injected per-request, never written to remotes.
 "@ -ForegroundColor Green

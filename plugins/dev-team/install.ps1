@@ -43,6 +43,23 @@ if ($ApplyConfig) {
   }
 }
 
+# --- Load the guard/routing extensions --------------------------------------
+# OMP does NOT load extension modules (package.json omp.extensions) from
+# marketplace cache installs, so the guards + model-routing would otherwise
+# never run. Mirror them into OMP's native user-extension dir.
+$src = Join-Path $Here 'extensions'
+if (Test-Path $src) {
+  $dest = Join-Path $HOME ".omp\agent\extensions\dev-team"
+  if ($DryRun) { Write-Host "  [dry-run] mirror dev-team extensions -> $dest (OMP native ext dir)" }
+  else {
+    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
+    $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
+    Say "guards + model-routing loaded into $dest"
+  }
+}
+
 Write-Host @"
 
 ==> dev-team ready. Next:

@@ -222,6 +222,24 @@ if have omp; then
   run "omp plugin marketplace add \"$ROOT\" || true"
 fi
 
+# OMP does NOT load extension modules (package.json `omp.extensions`) from
+# marketplace cache installs — only from npm/linked plugins or the native
+# extension dirs. So a marketplace install of a plugin that ships a tool/guard
+# extension (azure-devops-fs `ado`, dev-team guards/routing, local-llm provider)
+# would surface its skills/commands but silently NOT its extension. We fix that
+# by mirroring the plugin's extension modules into the user native dir
+# (~/.omp/agent/extensions/<name>/), which OMP always discovers — independent of
+# the repo location and surviving config resets.
+install_extensions() {  # install_extensions <name> <dir>
+  local name="$1" dir="$2" dest="$HOME/.omp/agent/extensions/$name"
+  [ -d "$dir/extensions" ] || return 0          # nothing to mirror
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror $name extensions -> $dest (OMP native ext dir)"; return 0; fi
+  rm -rf "$dest"; mkdir -p "$dest"
+  cp -R "$dir/extensions" "$dest/"
+  [ -f "$dir/package.json" ] && cp "$dir/package.json" "$dest/"   # carries omp.extensions
+  ok "$name extension loaded into $dest"
+}
+
 # helper: (re)install a plugin to the latest + run its tool installer. Plugins are
 # always reinstalled (--force) so installed content is current ("works out of the box").
 plug() {  # plug <name> <dir>
@@ -232,6 +250,8 @@ plug() {  # plug <name> <dir>
   # the global write_config owns ~/.omp/agent/config.yml, so tell plugins not to.
   [ "$name" = token-diet ] && flags="$flags --no-config"
   if have omp; then run "omp plugin install --force ${name}@${MARKET} || true"; fi
+  # Marketplace installs skip extension modules — mirror them into the native dir.
+  install_extensions "$name" "$dir"
   # A plugin's optional tooling failing must not abort the whole run; the doctor
   # reports the real end state.
   if [ -f "$dir/install.sh" ]; then

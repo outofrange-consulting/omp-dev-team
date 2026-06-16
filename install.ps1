@@ -88,9 +88,27 @@ if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this
 # --- 2) Register the marketplace -------------------------------------------
 if (Have omp) { Say "Registering marketplace ($Market) from local checkout"; Run "omp plugin marketplace add `"$Root`"" }
 
+# OMP does NOT load extension modules (package.json omp.extensions) from
+# marketplace cache installs — only from npm/linked plugins or the native
+# extension dirs. Mirror a plugin's extension modules into the user native dir
+# (~/.omp/agent/extensions/<name>/) so its tool/guard/provider actually loads.
+function Install-Extensions ($name, $dir) {
+  $src = Join-Path $dir 'extensions'
+  if (-not (Test-Path $src)) { return }
+  $dest = Join-Path $HOME ".omp\agent\extensions\$name"
+  if ($DryRun) { Write-Host "  [dry-run] mirror $name extensions -> $dest (OMP native ext dir)"; return }
+  if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+  New-Item -ItemType Directory -Force -Path $dest | Out-Null
+  Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
+  $pkg = Join-Path $dir 'package.json'
+  if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }   # carries omp.extensions
+  Ok "$name extension loaded into $dest"
+}
+
 # Plugins are always reinstalled (--force) so installed content is current.
 function Plug ($name, $dir) {
   if (Have omp) { Run "omp plugin install --force $name@$Market" }
+  Install-Extensions $name $dir
   $ps1 = Join-Path $dir 'install.ps1'
   if (Test-Path $ps1) {
     $a = @(); if ($DryRun) { $a += '-DryRun' }

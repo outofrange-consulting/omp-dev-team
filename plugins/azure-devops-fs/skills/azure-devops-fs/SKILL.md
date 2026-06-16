@@ -8,9 +8,22 @@ description: >-
 
 # Azure DevOps as a filesystem
 
-The `ado` tool exposes Azure DevOps the way OMP exposes GitHub via `pr://` /
-`issue://`: paths and refs are first-class, reads are cached, mutations are
-explicit.
+The `ado` tool exposes Azure DevOps the way OMP exposes GitHub: paths and refs
+are first-class, reads are cached, mutations are explicit.
+
+> ⚠️ **Azure DevOps PRs are NOT `pr://`.** `pr://` and `issue://` are OMP's
+> **GitHub** schemes (they shell out to the GitHub CLI `gh` and will fail with
+> "GitHub CLI (gh) is not installed" on an Azure DevOps URL). For anything on
+> `dev.azure.com` use the **`ado` tool** with the `adopr://` URI (or the discrete
+> `repo`/`id` fields) — never `pr://`. A pasted
+> `https://dev.azure.com/{org}/{project}/_git/{repo}/pullrequest/{id}` maps to
+> `ado op=pr_view repo={repo} id={id}` (org/project from env), or
+> `ado op=pr_view uri=adopr://{org}/{project}/{repo}/{id}`.
+
+If the `ado` tool isn't in your inventory, the plugin's extension didn't load —
+run its installer (`bash plugins/azure-devops-fs/install.sh`) or the global
+`install.sh`, which mirrors it into `~/.omp/agent/extensions/` (OMP doesn't load
+extension modules from marketplace cache installs).
 
 ## URI sugar
 
