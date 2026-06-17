@@ -69,6 +69,7 @@ export default function ado(pi: ExtensionAPI) {
 			"CI: pipeline_list, build_list, build_logs, build_run, pipeline_watch.\n" +
 			"Write: pr_create, pr_checkout, pr_push, pr_comment, pr_vote, pr_abandon, pr_complete (merge/auto-complete).\n" +
 			"URIs: ado://{org}/{project}/{repo}/{path}@{ref}  ·  adopr://{org}/{project}/{repo}/{id}[/diff[/path]].\n" +
+			"Diagnostics: selftest (checks az + extension + auth).\n" +
 			"org/project default from AZURE_DEVOPS_ORG/PROJECT. Auth: AZURE_DEVOPS_PAT (or `az devops login`). NOTE: Azure DevOps PRs are NOT pr:// (that's GitHub).",
 		parameters: z.object({
 			op: z.enum([
@@ -94,6 +95,7 @@ export default function ado(pi: ExtensionAPI) {
 				"build_run",
 				"work_item",
 				"search_code",
+				"selftest",
 			]),
 			uri: z.string().optional().describe("ado:// or adopr:// shortcut; fills org/project/repo/path/ref/id"),
 			org: z.string().optional(),
@@ -143,6 +145,40 @@ export default function ado(pi: ExtensionAPI) {
 						if (t.diff) p._diff = t.diff;
 					}
 				}
+				// selftest: diagnose the toolchain (az + extension + auth) without
+				// needing a repo/PR. Runs before env resolution so it can report a
+				// missing org/PAT instead of throwing.
+				if (p.op === "selftest") {
+					const L: string[] = ["# ado selftest"];
+					const az = (args: string[]) => execFileSync("az", args, { encoding: "utf8" });
+					try {
+						L.push(`✓ Azure CLI present (az ${JSON.parse(az(["version", "-o", "json"]))["azure-cli"]})`);
+					} catch {
+						L.push("✗ Azure CLI 'az' not found — run the azure-devops-fs installer (installs az + the extension).");
+						return text(L.join("\n"), { ok: false });
+					}
+					try {
+						az(["extension", "show", "--name", "azure-devops", "-o", "none"]);
+						L.push("✓ azure-devops extension installed");
+					} catch {
+						L.push("✗ azure-devops extension missing — run: az extension add --name azure-devops");
+					}
+					let ok = true;
+					try {
+						const env = resolveAzEnv({ org, project });
+						L.push(`• org=${env.org}  project=${env.project || "(unset)"}  PAT=${env.pat ? "set" : "(unset; relying on `az devops login`)"}`);
+						const c = makeAz(env, signal ?? undefined);
+						const projs = c.cli<any>(["devops", "project", "list", "--top", "1"], { project: false });
+						const n = projs?.count ?? projs?.value?.length;
+						L.push(`✓ API reachable & authenticated (devops project list ok${n != null ? `, ${n}+ project(s)` : ""})`);
+					} catch (e: any) {
+						ok = false;
+						L.push(`✗ API/auth check failed: ${e instanceof Error ? e.message : String(e)}`);
+						L.push("  Hints: set AZURE_DEVOPS_ORG (org name) + AZURE_DEVOPS_PAT (Code R, Build R, Policy R), or run: az devops login");
+					}
+					return text(L.join("\n"), { ok });
+				}
+
 				const env = resolveAzEnv({ org, project });
 				const c = makeAz(env, signal ?? undefined);
 				// versionDescriptor.* query for the git/items endpoint
