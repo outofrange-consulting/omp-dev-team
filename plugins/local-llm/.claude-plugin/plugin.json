@@ -1,6 +1,6 @@
 {
   "name": "local-llm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Run OMP roles on LOCAL models sized to your hardware: detects VRAM/RAM, picks the best-fit GGUF models per role, installs Ollama (or llama.cpp), pulls the models, and registers them as the 'local-llm' provider. Hybrid by default — planning stays on cloud, execution/cheap roles go local.",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",

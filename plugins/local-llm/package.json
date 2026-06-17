@@ -1,6 +1,6 @@
 {
   "name": "@omp-dev-team/local-llm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Hardware-aware local LLM setup for OMP (Ollama / llama.cpp).",
   "license": "MIT",
   "private": true,
