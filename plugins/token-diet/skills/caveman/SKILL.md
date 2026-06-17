@@ -19,6 +19,8 @@ unpredictable, factual content. Style only — never sacrifice technical accurac
 - **Keep verbatim and unabridged**: code, commands, file paths, identifiers,
   error strings, numbers, API names. Compression applies to prose, NOT to
   technical tokens.
+- **Keep the user's language** — compress the *style*, not the language. Reply in
+  whatever language they used; caveman trims grammar, not meaning.
 - Keep correctness, ordering, and caveats. Terse ≠ wrong or vague.
 
 ## Levels (user can pick)

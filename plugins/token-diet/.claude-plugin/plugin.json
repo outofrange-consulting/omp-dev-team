@@ -1,6 +1,6 @@
 {
   "name": "token-diet",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Aggressive token reduction for OMP dev teams: ctx-wire for transparently compressed + secret-scrubbed shell output, CodeGraph (MCP) for symbol/call-graph queries instead of grep+read, a caveman terse-output skill, and a yagni minimal-code skill (ponytail-style). Layers on top of OMP's native compaction + astGrep/summarizeCode.",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",

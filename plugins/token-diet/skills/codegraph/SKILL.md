@@ -34,7 +34,8 @@ grep+read round-trips (~96% fewer tokens on those tasks).
 | `codegraph_files` | indexed file structure |
 | `codegraph_status` | index health/metrics |
 
-(If only the first few tools appear, the rest are gated behind the
+(1.0 exposes only four by default — `codegraph_search`, `codegraph_node`,
+`codegraph_callers`, `codegraph_explore`; the rest are gated behind the
 `CODEGRAPH_MCP_TOOLS` env var on the server.)
 
 ## When NOT to use it
