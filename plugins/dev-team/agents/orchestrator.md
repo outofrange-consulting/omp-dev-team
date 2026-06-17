@@ -120,7 +120,7 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
 - **Agents**: Architect (primary), Product Manager (if requirements unclear), Orchestrator
 - **Input**: Research progress file from Phase 1 + approved design doc (if produced in Phase 1)
 - **Output**: An implementation plan with explicit file changes, test expectations, and acceptance criteria
-- **Automated plan review**: Before the human gate, dispatch **four plan review personas in parallel** as sub-agents via the `task` tool. Each reviewer independently challenges the plan from a different critical perspective:
+- **Automated plan review**: Before the human gate, dispatch **five plan review personas in parallel** as sub-agents via the `task` tool. Each reviewer independently challenges the plan from a different critical perspective:
 
   | Reviewer | Template | Model | What it challenges |
   |----------|----------|-------|--------------------|
@@ -128,10 +128,11 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
   | Design & Architecture Critic | `prompts/plan-review-design.md` | `sonnet` | Coupling, abstraction quality, structural risks, pattern consistency |
   | UX Critic | `prompts/plan-review-ux.md` | `sonnet` | User journey, error experience, cognitive load, accessibility |
   | Strategic Critic | `prompts/plan-review-strategic.md` | `sonnet` | Problem-solution fit, scope, risk, opportunity cost |
+  | Parallelization Critic | `prompts/plan-review-parallelization.md` | `sonnet` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition |
 
   Each returns a `verdict` of `approve` or `needs-revision`. If **any** reviewer returns `needs-revision`, address the blocker issues before presenting to the human. Aggregate all findings (including warnings from approving reviewers) into the plan review summary.
 
-  The UX Critic self-skips for plans with no user-facing changes. The remaining three always run.
+  The UX Critic self-skips for plans with no user-facing changes; the Parallelization Critic approves trivially when every wave has one slice. The remaining three always run.
 - **Human gate**: Human reviews the plan and the aggregated review findings. This is the primary review artifact — 200 lines of plan is far more reviewable than 2,000 lines of code. If the plan is wrong, fix it here, not in code.
 - **Context**: Compact after this phase — write progress file, start fresh context for Phase 3
 

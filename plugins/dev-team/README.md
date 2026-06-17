@@ -32,11 +32,12 @@ bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, can app
 
 1. **`/specs`** — capture a feature as Intent + BDD scenarios + Architecture +
    Acceptance Criteria. Human approves.
-2. **`/plan`** — turn the approved spec into a TDD step-plan. Four **plan-review
-   critics** (acceptance-test, design, UX, strategic) challenge it in parallel
-   *before* you see it.
+2. **`/plan`** — turn the approved spec into a TDD step-plan, with per-slice
+   `Depends-on` metadata grouping slices into build **waves**. Five **plan-review
+   critics** (acceptance-test, design, UX, strategic, parallelization) challenge
+   it in parallel *before* you see it.
 3. **`/build`** — execute the approved plan under **RED → GREEN → REFACTOR** hard
-   gates (`tdd-guard`).
+   gates (`tdd-guard`), building independent slices concurrently wave by wave.
 4. **`/pr`** — run the quality gates and open the pull request.
 
 For complex work the **orchestrator** runs **Research → Plan → Implement** with a

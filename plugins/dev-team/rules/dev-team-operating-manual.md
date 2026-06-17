@@ -78,9 +78,11 @@ context per phase (write a progress file to `memory/` to onboard the next phase)
    a design doc to `docs/specs/`. (`/specs`, Design Doc, Domain Analysis skills.)
 2. **Human gate.**
 3. **Plan** — decompose into vertical slices, author each slice's Gherkin
-   scenarios, specify files/snippets/TDD steps/verification. Before the human
-   gate, run the **four plan-review personas** in parallel (acceptance, design,
-   UX, strategic). (`/plan`.) The plan is the primary review artifact.
+   scenarios, specify files/snippets/TDD steps/verification. Each slice declares
+   `Depends-on` so independent slices group into build waves. Before the human
+   gate, run the **five plan-review personas** in parallel (acceptance, design,
+   UX, strategic, parallelization). (`/plan`.) The plan is the primary review
+   artifact.
 4. **Human gate.**
 5. **Implement** — execute the plan with **RED-GREEN-REFACTOR**. Parallel
    independent units use `isolation: "worktree"` on `task`. After each unit run

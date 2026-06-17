@@ -60,7 +60,20 @@ If any criteria are flagged:
 
 ### 4. Implement each step
 
-Work the plan slice by slice, in order. For each step within a slice, dispatch implementation following the implementer template (`${CLAUDE_PLUGIN_ROOT}/prompts/implementer.md`). Pass the implementer its step **and the slice's Gherkin scenario(s)** — the scenarios are the behavioral contract the step's test must satisfy.
+Work the plan **wave by wave** using the `## Parallelization` section (the waves derived from each slice's `Depends-on`). Within a wave, independent slices may build concurrently; a barrier holds the next wave until the current one is reconciled green.
+
+**Resolve effective concurrency first.** The effective number of slices to build at once is `min(slices in the wave, DEV_TEAM_MAX_PARALLEL_BUILDS)` — default max **2**; a non-positive or non-integer value clamps to **1**.
+
+- **Sequential fallback (effective concurrency = 1):** a fully-dependent plan (every wave has one slice), `DEV_TEAM_MAX_PARALLEL_BUILDS=1`, or a harness without parallel `task` fan-out → build slices one at a time in dependency order in a single worktree. No worktree fan-out, no reconcile step.
+- **Concurrent dispatch (effective concurrency > 1):**
+  1. Dispatch each independent slice in the wave to its **own** git worktree via the `task` tool (`isolation: "worktree"`), up to the effective concurrency. Each slice's changes stay isolated until reconcile, and each slice still runs its full RED-GREEN-REFACTOR and inline review gates.
+  2. **Report the concrete level and cost**, e.g. *"building wave 2 — 2 slices concurrently; faster wall-clock but burns token budget faster."*
+  3. **Barrier + reconcile** once the wave's slices finish: merge the slice worktrees into the integration branch order-independently and run the full test suite before any next-wave slice starts.
+  4. **Loud halt, never silent:**
+     - A **failing slice** → stop the wave, name the failing slice, list which same-wave slices succeeded and where their (preserved) worktrees are, and start no next-wave slice. Resume rebuilds only the incomplete slice.
+     - A **reconcile conflict** (two same-wave diffs touch one file — the Parallelization Critic should have caught this at plan time) → stop, name the file, pick no side, and start no next-wave slice.
+
+For each step within a slice, dispatch implementation following the implementer template (`${CLAUDE_PLUGIN_ROOT}/prompts/implementer.md`). Pass the implementer its step **and the slice's Gherkin scenario(s)** — the scenarios are the behavioral contract the step's test must satisfy.
 
 1. **RED** — Write the failing test described in the step, covering the slice scenario it traces to. Run the test suite. **Hard gate: the new test must fail.** Paste the failing output. If the test passes without new code, the behavior already exists — pick a different test. Do NOT proceed to GREEN without pasted failing output.
 2. **GREEN** — Write the minimum implementation to make the failing test pass. Do not add behavior beyond what the test requires. Run the test suite. **Hard gate: all tests must pass.** Paste the passing output. Do NOT proceed without pasted passing output.

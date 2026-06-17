@@ -86,6 +86,9 @@ Steps are numbered `<slice>.<step>` (1.1, 1.2, 2.1, …).
 
 ### Slice 1: <Slice Name>
 
+**Depends-on:** none
+**Files:** `path/to/file.ts`, `path/to/file.test.ts`
+
 **Behavior:**
 
 ```gherkin
@@ -119,6 +122,9 @@ Feature: <feature name>
 
 ### Slice 2: <Slice Name>
 
+**Depends-on:** 1
+**Files:** `path/to/other.ts`
+
 **Behavior:**
 
 ```gherkin
@@ -130,6 +136,32 @@ Feature: <feature name>
 #### Step 2.1: <Description>
 
 ...
+
+## Parallelization
+
+Each slice declares `Depends-on` (slice ids it must follow, or `none`) and its
+`Files` surface. The build **waves** are derived from those declarations:
+a slice's wave is one greater than the latest wave of any slice it depends on
+(slices with `Depends-on: none` are wave 1). Independent slices in the same wave
+can be built concurrently — `/build` dispatches them to isolated worktrees via
+the `task` tool (`isolation: "worktree"`).
+
+```mermaid
+graph TD
+  S1[Slice 1] --> S2[Slice 2]
+```
+
+| Wave | Slices (parallel) |
+|------|-------------------|
+| 1 | 1 |
+| 2 | 2 |
+
+Two slices may share a wave **only if their `Files` lists are disjoint** and
+neither consumes the other's runtime output. A `Depends-on` cycle, an unknown
+reference, or a same-wave file collision (two slices in one wave declaring the
+same file) breaks safe concurrent delivery — fix the plan before the human gate.
+A plan whose slices are all sequential (each wave has one slice) is valid; the
+waves simply degrade to in-order execution.
 
 ## Complexity Classification
 
@@ -159,11 +191,14 @@ When in doubt, classify up (standard rather than trivial, complex rather than st
 
 This section is the machine-parseable recovery handle. `/build` updates checkboxes here via Edit tool so progress survives a `/clear` or session restart. `/continue` reads this section to determine the resume point.
 
-### Slices
+### Slices (grouped by wave)
 
+#### Wave 1
 - [ ] Slice 1: <title>
   - [ ] Step 1.1: <title>
   - [ ] Step 1.2: <title>
+
+#### Wave 2
 - [ ] Slice 2: <title>
   - [ ] Step 2.1: <title>
 
@@ -178,9 +213,11 @@ This section is the machine-parseable recovery handle. `/build` updates checkbox
 
 Create `plans/` if it doesn't exist. When writing the plan file, populate the `## Build Progress` section by copying slice and step titles from `## Slices` and criteria from `## Acceptance Criteria`. These are the checkboxes `/build` will update on disk as each step completes — a slice is checked off once all its steps are.
 
+Derive the waves from each slice's `Depends-on`: a slice's wave is one greater than the latest wave of any slice it depends on; slices with `Depends-on: none` are wave 1. Render the `## Parallelization` DAG + wave table and group `## Build Progress` slices by wave from that derivation. If the `Depends-on` declarations form a cycle, reference an unknown slice, or place two slices that share a `Files` entry in the same wave, fix the plan before the human gate — those defeat safe concurrent build.
+
 ### 5. Run plan review personas
 
-Before presenting to the user, dispatch **four plan review personas in parallel** as sub-agents. Each critically challenges the plan from a different perspective:
+Before presenting to the user, dispatch **five plan review personas in parallel** as sub-agents. Each critically challenges the plan from a different perspective:
 
 | Reviewer | Template | Model | Focus |
 |----------|----------|-------|-------|
@@ -188,12 +225,13 @@ Before presenting to the user, dispatch **four plan review personas in parallel*
 | Design & Architecture Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-design.md` | `sonnet` | Coupling, abstractions, structural risks, pattern adherence |
 | UX Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-ux.md` | `sonnet` | User journey, error UX, cognitive load, accessibility |
 | Strategic Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-strategic.md` | `sonnet` | Problem fit, scope, slice boundaries, risk, opportunity cost |
+| Parallelization Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-parallelization.md` | `sonnet` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition for parallelism |
 
-Pass each reviewer the full plan content. Each returns a structured verdict (`approve` or `needs-revision`) with issues. The Acceptance Test Critic is the gate for the scenarios authored in step 2 — it validates the per-slice Gherkin the same way `feature-file-validation` would, so no separate scenario-review pass is needed before the human gate.
+Pass each reviewer the full plan content; also pass the Parallelization Critic the derived `## Parallelization` waves so it can intersect same-wave `Files`. Each returns a structured verdict (`approve` or `needs-revision`) with issues. The Acceptance Test Critic is the gate for the scenarios authored in step 2 — it validates the per-slice Gherkin the same way `feature-file-validation` would, so no separate scenario-review pass is needed before the human gate. A `needs-revision` from the Parallelization Critic triggers plan revision (re-wave the colliding slices) before the human sees the plan.
 
 **If any reviewer returns `needs-revision`**: Address all `blocker` issues by revising the plan. Re-run only the reviewers that flagged blockers. Repeat until all pass (max 2 iterations — escalate to user if still failing).
 
-**After all pass**: Append a `## Plan Review Summary` section to the plan file with the aggregated findings (warnings and observations from all four reviewers).
+**After all pass**: Append a `## Plan Review Summary` section to the plan file with the aggregated findings (warnings and observations from all five reviewers).
 
 ### 6. Present for approval
 
