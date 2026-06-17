@@ -59,11 +59,11 @@ export const CATALOG: ModelSpec[] = [
 		note: "Non-thinking; fast tool calling on Ollama new engine.",
 	},
 	{
-		id: "devstral-2-24b", name: "Devstral-2-Small-24B", arch: "dense",
-		vramFullGB: 15, vramMinGB: 15, ramOffloadGB: 0, quality: 68,
-		roles: ["code", "task"], reasoning: false, contextWindow: 131072,
-		input: ["text"], pull: "devstral-2:24b",
-		note: "Mistral tool-id/result quirks (set in emit compat).",
+		id: "devstral-small-2-24b", name: "Devstral-Small-2-24B", arch: "dense",
+		vramFullGB: 15, vramMinGB: 15, ramOffloadGB: 0, quality: 80,
+		roles: ["code", "task", "default", "vision"], reasoning: false, contextWindow: 262144,
+		input: ["text", "image"], pull: "devstral-small-2:24b",
+		note: "★ Best coding pick on 24GB: SWE-bench Verified ~68 (above larger generalists), Apache-2.0, 256K ctx, image input. Dense 24B → oncard on an RTX 4090/32GB Mac, spills on 16GB. Mistral tool-id/result quirks (set in emit compat).",
 	},
 	{
 		id: "gpt-oss-20b", name: "GPT-OSS-20B", arch: "moe",
