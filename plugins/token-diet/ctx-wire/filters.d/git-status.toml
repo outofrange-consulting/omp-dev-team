@@ -1,0 +1,83 @@
+# git-status (EN + FR) — token-diet multilingual override for ctx-wire.
+# Overrides the bundled English-only `git-status` filter so the same compaction
+# fires when git emits French (LANG/LC_MESSAGES=fr_*). git ships no Romanian
+# translation, so a French + English pack covers every locale git can produce.
+# Loaded into ~/.config/ctx-wire/filters.toml by token-diet install.sh.
+# match_command is copied verbatim from upstream so the override matches the
+# exact same invocations (user precedence wins the tie).
+schema_version = 1
+
+[filters.git-status]
+description = "Compact git status output (EN+FR) - remove blanks and advisory hints"
+match_command = "^git\\s+(?:(--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-replace-objects|--bare|-C\\s+\\S+|-c\\s+\\S+|--git-dir(?:=\\S+|\\s+\\S+)|--work-tree(?:=\\S+|\\s+\\S+))\\s+)*status\\b"
+strip_ansi = true
+strip_lines_matching = [
+  "^\\s*$",
+  # advisory hint block — EN: (use "git ...")   FR: (utilisez "git ...")
+  "^\\s*\\(use \"git ",
+  "^\\s*\\(utilisez \"git ",
+  # "nothing added to commit but untracked files present"
+  "^nothing added to commit but untracked files present",
+  "^aucune modification ajoutée à la validation mais des fichiers non suivis",
+  # "no changes added to commit"
+  "^no changes added to commit",
+  "^aucune modification (n'a été ajoutée|ajoutée) à la validation",
+]
+truncate_lines_at = 140
+max_lines = 50
+
+# --- English (parity with upstream) ---
+[[tests.git-status]]
+name = "EN: strips status hints and blanks"
+input = '''
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	AGENTS.md
+	README.md
+
+nothing added to commit but untracked files present (use "git add" to track)
+'''
+expected = '''
+On branch main
+No commits yet
+Untracked files:
+	AGENTS.md
+	README.md
+'''
+
+[[tests.git-status]]
+name = "EN: clean tree preserved"
+input = "On branch main\nYour branch is up to date with 'origin/main'.\nnothing to commit, working tree clean"
+expected = "On branch main\nYour branch is up to date with 'origin/main'.\nnothing to commit, working tree clean"
+
+# --- French (the new coverage) ---
+[[tests.git-status]]
+name = "FR: strips status hints and blanks"
+input = '''
+Sur la branche main
+
+Aucun commit
+
+Fichiers non suivis :
+  (utilisez "git add <fichier>..." pour inclure dans ce qui sera validé)
+	AGENTS.md
+	README.md
+
+aucune modification ajoutée à la validation mais des fichiers non suivis sont présents (utilisez "git add" pour les suivre)
+'''
+expected = '''
+Sur la branche main
+Aucun commit
+Fichiers non suivis :
+	AGENTS.md
+	README.md
+'''
+
+[[tests.git-status]]
+name = "FR: clean tree preserved"
+input = "Sur la branche main\nVotre branche est à jour avec 'origin/main'.\nrien à valider, la copie de travail est propre"
+expected = "Sur la branche main\nVotre branche est à jour avec 'origin/main'.\nrien à valider, la copie de travail est propre"

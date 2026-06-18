@@ -7,18 +7,20 @@
 #   --depth=N            how deep to look for repos under the root (default 3)
 #   --update             refresh ctx-wire/codegraph if already installed
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
+#   --no-context-mode    don't install the context-mode OMP plugin
 #   --dry-run            print only
 #   -y, --yes            non-interactive (don't prompt for the sources root)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0
+DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0
 for a in "$@"; do case "$a" in
   --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --sources-root=*|--project=*) SROOT="${a#*=}" ;;
   --depth=*) DEPTH="${a#*=}" ;;
   --no-config) NO_CONFIG=1 ;;
-  -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+  --no-context-mode) NO_CTXMODE=1 ;;
+  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -60,6 +62,65 @@ fi
 if have ctx-wire || [ "$DRY" = 1 ]; then
   say "Installing ctx-wire PATH shims (transparent; no command prefix)"
   run "ctx-wire shims install || true"
+fi
+
+# --- Multilingual ctx-wire filters (EN+FR) -----------------------------------
+# ctx-wire's bundled filters key on English output; merge our EN+FR overrides
+# (git-status, dotnet-build, dotnet-test) into the user filters file so the same
+# compaction fires under fr_* locales. See plugins/token-diet/ctx-wire/README.md
+# for why only git+dotnet (other tools emit English in any locale) and why no
+# Romanian (git/.NET ship no ro translation — context-mode covers ro *data*).
+PACK_DIR="$HERE/ctx-wire/filters.d"
+CTXW_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ctx-wire"
+CTXW_FILTERS="$CTXW_DIR/filters.toml"
+BLOCK_BEGIN="# >>> token-diet multilingual filters (managed) >>>"
+BLOCK_END="# <<< token-diet multilingual filters (managed) <<<"
+if [ -d "$PACK_DIR" ]; then
+  say "Installing multilingual ctx-wire filters (EN+FR: git-status, dotnet-build, dotnet-test)"
+  if [ "$DRY" = 0 ]; then
+    mkdir -p "$CTXW_DIR"
+    blk="$(mktemp)"; tmp="$(mktemp)"
+    printf '%s\n' "$BLOCK_BEGIN" > "$blk"
+    # Concatenate pack tables, stripping per-file schema_version (declared once
+    # at the top of the target instead — TOML allows top-level keys only before
+    # the first table header).
+    for f in "$PACK_DIR"/*.toml; do
+      awk '/^schema_version[[:space:]]*=/{next} {print}' "$f" >> "$blk"
+      printf '\n' >> "$blk"
+    done
+    printf '%s\n' "$BLOCK_END" >> "$blk"
+    # Drop any prior managed block, keep the rest of the user's file verbatim.
+    if [ -f "$CTXW_FILTERS" ]; then
+      awk -v b="$BLOCK_BEGIN" -v e="$BLOCK_END" \
+        'index($0,b){skip=1;next} index($0,e){skip=0;next} !skip{print}' \
+        "$CTXW_FILTERS" > "$tmp"
+    fi
+    # Guarantee a single schema_version header at the very top.
+    if ! grep -q '^schema_version' "$tmp" 2>/dev/null; then
+      printf 'schema_version = 1\n' | cat - "$tmp" > "$tmp.h" && mv "$tmp.h" "$tmp"
+    fi
+    printf '\n' >> "$tmp"; cat "$blk" >> "$tmp"
+    mv "$tmp" "$CTXW_FILTERS"; rm -f "$blk"
+  fi
+  # Verify: ctx-wire's own runner if present, else the bundled offline checker.
+  if have ctx-wire; then run "ctx-wire verify || true"
+  elif have python3; then run "python3 '$HERE/ctx-wire/scripts/verify-filters.py' '$PACK_DIR' || true"
+  fi
+fi
+
+# --- context-mode (locale-agnostic output sandbox; complements ctx-wire) ------
+# Native OMP plugin (tool_call/tool_result/session_start/session_before_compact):
+# sandboxes tool output and indexes it (FTS5/BM25, language-independent), so
+# non-English output — including Romanian, which git/.NET never localize — is
+# reduced without per-language regex, and survives compaction. Layers on top of
+# ctx-wire's deterministic build/test/git collapses, not in place of them.
+if [ "$NO_CTXMODE" = 0 ]; then
+  if have omp; then
+    say "Installing context-mode OMP plugin (locale-agnostic output sandbox + session continuity)"
+    run "omp plugin install context-mode || true"
+  else
+    warn "omp CLI not found — skip context-mode (run later: omp plugin install context-mode)"
+  fi
 fi
 
 # --- CodeGraph (MCP) ---------------------------------------------------------
@@ -181,6 +242,10 @@ cat <<'EOF'
 ==> token-diet is active:
     - ctx-wire transparently compresses command output (PATH shims). `ctx-wire gain`
       shows savings; `ctx-wire doctor` verifies. Re-run install after adding tools.
+    - Multilingual filters (EN+FR) for git-status / dotnet-build / dotnet-test are
+      merged into ~/.config/ctx-wire/filters.toml so compaction fires in fr_* locales.
+    - context-mode plugin: locale-agnostic output sandbox (handles ro/any-language
+      output + survives compaction). Layers on top of ctx-wire; --no-context-mode to skip.
     - CodeGraph MCP is enabled and repos above are indexed —
       `skill://codegraph` for symbol/caller/architecture queries.
     - context7 CLI enabled (`ctx7 library` / `ctx7 docs` via bash) — no MCP process.
