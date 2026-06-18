@@ -8,19 +8,21 @@
 #   --update             refresh ctx-wire/codegraph if already installed
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --no-context-mode    don't install the context-mode OMP plugin
+#   --no-acli            don't install the Atlassian CLI (acli)
 #   --dry-run            print only
 #   -y, --yes            non-interactive (don't prompt for the sources root)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0
+DRY=0; UPDATE=0; YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0
 for a in "$@"; do case "$a" in
   --dry-run) DRY=1 ;; --update) UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --sources-root=*|--project=*) SROOT="${a#*=}" ;;
   --depth=*) DEPTH="${a#*=}" ;;
   --no-config) NO_CONFIG=1 ;;
   --no-context-mode) NO_CTXMODE=1 ;;
-  -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+  --no-acli) NO_ACLI=1 ;;
+  -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -137,6 +139,27 @@ if [ "$NO_CTXMODE" = 0 ]; then
     fi
   else
     warn "omp CLI not found — skip context-mode (run later: omp plugin install context-mode)"
+  fi
+fi
+
+# --- acli (official Atlassian CLI: Jira / Confluence / Bitbucket) -------------
+# Complements the Atlassian MCP (use MCP for structured reads; acli for bulk/
+# scripted writes and what MCP doesn't expose). Output is English tables/JSON ->
+# the bundled ctx-wire `acli.toml` is a structural filter (no localization) that
+# also redacts bare ATATT tokens. The URL serves the LATEST build, so re-running
+# updates it (acli versions are supported only ~6 months). Installs to
+# ~/.local/bin (no sudo; already first on PATH via the ctx-wire shims).
+if [ "$NO_ACLI" = 0 ]; then
+  if have acli && [ "$UPDATE" = 0 ]; then
+    say "acli present — use --update to refresh"
+  else
+    say "Installing Atlassian CLI (acli)"
+    if have curl; then
+      ACLI_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"   # linux | darwin
+      case "$(uname -m)" in x86_64|amd64) ACLI_ARCH=amd64 ;; arm64|aarch64) ACLI_ARCH=arm64 ;; *) ACLI_ARCH=amd64 ;; esac
+      ACLI_URL="https://acli.atlassian.com/${ACLI_OS}/latest/acli_${ACLI_OS}_${ACLI_ARCH}/acli"
+      run "mkdir -p \"$HOME/.local/bin\" && curl -fsSL -o \"$HOME/.local/bin/acli\" \"$ACLI_URL\" && chmod +x \"$HOME/.local/bin/acli\" || true"
+    else warn "need curl to install acli — see https://developer.atlassian.com/cloud/acli/"; fi
   fi
 fi
 
@@ -264,7 +287,10 @@ cat <<'EOF'
       restore/run/tool are merged into ~/.config/ctx-wire/filters.toml so compaction
       fires in fr_* locales.
     - context-mode plugin: locale-agnostic output sandbox (handles ro/any-language
-      output + survives compaction). Layers on top of ctx-wire; --no-context-mode to skip.
+      output + survives compaction) — also compresses MCP tool output. Layers on top
+      of ctx-wire; --no-context-mode to skip.
+    - acli (Atlassian CLI) installed to ~/.local/bin — `acli jira auth login` to set up.
+      Prefer the Atlassian MCP for reads; acli for bulk/scripted writes. --no-acli to skip.
     - CodeGraph MCP is enabled and repos above are indexed —
       `skill://codegraph` for symbol/caller/architecture queries.
     - context7 CLI enabled (`ctx7 library` / `ctx7 docs` via bash) — no MCP process.

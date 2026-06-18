@@ -49,16 +49,54 @@ That long-tail, locale-agnostic case is handled by the **context-mode** layer
 (`omp plugin install context-mode`), whose FTS5/BM25 indexing is
 language-independent — not by per-language regex here.
 
-## Azure DevOps CLI / Jira / Miro
+## Azure DevOps CLI / Jira / Miro / acli
 
 These are **not** localized-CLI-output problems:
 
-- **`az devops`** emits JSON / tables with English, language-neutral keys; `az`
-  is not translated. ctx-wire localization is N/A.
-- **Jira / Miro** are **MCP servers** (JSON payloads, English field names), not
-  shell commands — ctx-wire's command filters never see them. Compress those via
-  `ctx-wire mcp-wrap` and/or the context-mode sandbox; their *values* may be
-  fr/ro but are data to keep, not chrome to strip.
+- **`az devops`** and **`acli`** (the official Atlassian CLI) emit JSON / tables
+  with English, language-neutral keys; neither is translated. ctx-wire
+  localization is N/A — the bundled `acli.toml` is a **structural** filter (strip
+  blanks, cap, truncate) like `grep`/`jira`, plus a secret `replace` (below).
+- **Jira / Miro** are also reachable as **MCP servers** (JSON payloads, English
+  field names), not shell commands — ctx-wire's command filters never see them.
+  See "Compressing MCP output" below; their *values* may be fr/ro but are data to
+  keep, not chrome to strip.
+
+## Secret scrubbing (what's covered, and the ATATT gap)
+
+ctx-wire scrubs secrets from **all** command output via a built-in (non
+user-configurable) pass. It already redacts: PEM private keys; JWTs; AWS
+(`AKIA`/`ASIA`), Google (`AIza`), **GitHub** (`ghp_/gho_/ghu_/ghs_/ghr_/
+github_pat_`), Slack, Stripe, OpenAI/Anthropic, Vault, PyPI tokens;
+`Authorization: <scheme> <secret>` headers; `scheme://user:password@host` URLs;
+and secret-ish `key=value` / `--secret-flag value` pairs.
+
+So **GitHub tokens** and **Azure DevOps PATs / Atlassian tokens in the usual auth
+forms** (Basic header, `https://user:pat@…` URL, `token=…` assignment) are
+already scrubbed. The one shape it doesn't know is a **bare `ATATT…` Atlassian
+API token** (no matching prefix). Since the scrub rules aren't user-extensible,
+`acli.toml` adds a filter `replace` that redacts `ATATT…` from acli output. To
+scrub bare ATATT tokens everywhere (not just acli output), upstream an `ATATT`
+entry to ctx-wire's `internal/scrub/scrub.go` token alternation + literal anchors.
+
+## Compressing MCP output
+
+ctx-wire's PATH shims only see **shell commands**, not MCP traffic. The big
+JSON from the Atlassian / Miro / GitHub MCP servers is compressed by two
+mechanisms here:
+
+- **context-mode** (installed by `install.sh`) registers on `tool_result`, so it
+  sandboxes and indexes **MCP output** the same as shell output — locale-agnostic,
+  no per-server config. This covers the environment-managed servers (Atlassian,
+  Miro, GitHub) that are **not** in any MCP config file we control, so they can't
+  be wrapped directly.
+- **`ctx-wire mcp-wrap`** for servers you *do* define (e.g. a self-hosted server
+  in a project `.mcp.json`): `ctx-wire mcp-wrap install --compress -- <server cmd>`
+  rewrites that entry to relay through ctx-wire (measures per-tool token cost and,
+  with `--compress`, trims verbose snapshots). Revert with `mcp-wrap uninstall`.
+  We deliberately do **not** route CodeGraph through it by default — that would
+  couple CodeGraph to a ctx-wire install (which may be unavailable); opt in
+  manually if wanted.
 
 ## Escape hatch: pin the locale
 

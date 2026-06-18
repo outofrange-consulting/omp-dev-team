@@ -57,7 +57,16 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   sandboxes tool output and indexes it with language-agnostic FTS5/BM25 — the
   locale-agnostic safety net for any-language output (incl. Romanian) and for
   session continuity across compaction. Layers on top of ctx-wire's deterministic
-  collapses, not in place of them.
+  collapses, not in place of them. It also compresses **MCP** tool output (it hooks
+  `tool_result`), so the verbose Atlassian/Miro/GitHub MCP JSON is reduced too —
+  the ctx-wire shims only see shell commands, not MCP. For self-defined MCP servers
+  you can additionally use `ctx-wire mcp-wrap --compress`; see `ctx-wire/README.md`.
+- **acli** → the official **Atlassian CLI** (Jira/Confluence/Bitbucket), installed to
+  `~/.local/bin` by `install.sh` (`--no-acli` to skip; re-run to update — versions are
+  supported ~6 months). Prefer the **Atlassian MCP** for structured reads; use `acli`
+  for bulk/scripted writes. Its output is English/structural — the bundled
+  `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…` API tokens
+  (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/`key=value` form).
 - **CodeGraph** → an MCP server (`.mcp.json`, `codegraph serve --mcp`, **enabled by
   default**) exposing `codegraph_search/node/callers/callees/explore/impact/files/status`.
   See `skill://codegraph`. Auto-syncs on file changes.

@@ -1,17 +1,26 @@
 #!/usr/bin/env python3
 """Minimal faithful simulation of ctx-wire's filter pipeline to validate the
-token-diet multilingual override filters' embedded tests without the binary.
-Stages modelled (per upstream FILTERS.md), in order: strip_ansi, match_output
-(gated off on failed exit, matching upstream dotnet behaviour), then
+token-diet override filters' embedded tests without the binary. Stages modelled
+(per upstream FILTERS.md), in order: strip_ansi, replace, match_output (gated
+off on failed exit, matching upstream dotnet behaviour), then
 strip_lines_matching, truncate_lines_at, max_lines."""
 import re, sys, tomllib, pathlib
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
+def _go_repl(s):
+    # Go RE2 replacements use $1 / ${1}; Python re.sub uses \1. Convert.
+    s = re.sub(r"\$\{(\d+)\}", r"\\\1", s)
+    s = re.sub(r"\$(\d+)", r"\\\1", s)
+    return s
+
 def apply_filter(f, inp, failed):
     out = inp
     if f.get("strip_ansi"):
         out = ANSI.sub("", out)
+    # stage 2: replace (line-wise regex substitution)
+    for rp in f.get("replace", []):
+        out = re.sub(rp["pattern"], _go_repl(rp["replacement"]), out)
     # stage 3: match_output (whole-output replace). Upstream suppresses these
     # success-collapses on a failed exit (see dotnet failed-exit tests).
     if not failed:
