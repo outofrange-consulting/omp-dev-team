@@ -3,6 +3,17 @@
 # (~/.claude, ~/.codex, ~/.gemini, ~/.cursor, ~/.codeium/windsurf, ~/.copilot,
 # ~/.config/opencode) so OMP only loads its own plugins and project-level files.
 # (ctx-wire: PATH shims; CodeGraph + context7 MCPs: plugin's .mcp.json)
+
+# Lean tool surface — token-diet's biggest startup-context win. OMP loads every
+# tool's JSON schema into the system prompt on every request; with dev-team that
+# "System tools" block is ~18K tokens. discoveryMode: all hides all non-essential
+# tools behind the built-in on-demand discovery tool (search_tool_bm25) and keeps
+# only essentialOverride always loaded, dropping System tools to ~10K (startup
+# context ~29K -> ~20K). Nothing is lost — hidden tools are one discovery call
+# away. Add any tool you reach for constantly (e.g. ast_grep) to essentialOverride.
+tools:
+  discoveryMode: all
+  essentialOverride: [read, bash, edit, write, find, search, task, todo]
 skills:
   enabled: true
   enableSkillCommands: true

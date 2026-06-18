@@ -37,6 +37,23 @@ ctx-wire + CodeGraph de token-diet et les skills sont aussi activés. Les outils
 présents sont conservés — `--update` (`-Update`) pour aussi rafraîchir bun/node/omp ;
 `--no-config` pour ne pas toucher à votre config.
 
+**Contexte de démarrage allégé (par défaut).** OMP charge le schéma JSON de *chaque*
+outil dans le system prompt à *chaque* requête : une install dev-team complète
+démarrait donc autour de ~29K tokens de surcharge fixe (dont ~18K de « System
+tools »). La config générée réduit ça sans perdre de fonctionnalité :
+
+- **dev-team** désactive l'outil `debug` (DAP) et l'outil `eval` (Python/JS) —
+  aucun agent ni commande dev-team ne les utilise (ils passent par `bash` + le
+  skill `systematic-debugging`).
+- **token-diet** pose `tools.discoveryMode: all` : les schémas des outils non
+  essentiels sont masqués derrière l'outil de découverte à la demande d'OMP, et
+  seul le chemin chaud reste chargé (`read, bash, edit, write, find, search,
+  task, todo`). Les outils masqués restent à un appel de découverte près.
+
+Au total le contexte de démarrage tombe à **~20K (-31%)**. Ajustez l'ensemble
+toujours-chargé via `tools.essentialOverride`, ou revenez en arrière avec
+`--no-config` / en éditant `~/.omp/agent/config.yml`.
+
 **Proxys d'entreprise (Zscaler / Trend Micro sous WSL) :** si un proxy qui
 intercepte le TLS casse la vérification des certificats, les installeurs UNIX
 offrent deux options :

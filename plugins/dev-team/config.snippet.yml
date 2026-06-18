@@ -39,6 +39,22 @@ skills:
   enableSkillCommands: true
 
 # ---------------------------------------------------------------------------
+# TOOL SURFACE (drop tools the team never uses -> smaller context)
+# ---------------------------------------------------------------------------
+# Every enabled tool's JSON schema is loaded into the system prompt on every
+# request. dev-team agents work exclusively through read/bash/edit/find/search/
+# task (see each agent's `tools:` frontmatter) plus the systematic-debugging
+# skill — none declare the DAP `debug` tool or the Python/JS `eval` code-exec
+# tool. Turning them off removes their schemas from startup context (~3K) with
+# no loss of capability. (Paired with token-diet's discoveryMode they would be
+# hidden anyway; disabling them keeps them out of the discovery set too.)
+debug:
+  enabled: false
+eval:
+  py: false
+  js: false
+
+# ---------------------------------------------------------------------------
 # EXTENSIONS (the "blocking scripts" — ported from the Claude Code shell hooks)
 # ---------------------------------------------------------------------------
 # Note: the guard/routing extensions load automatically from the plugin

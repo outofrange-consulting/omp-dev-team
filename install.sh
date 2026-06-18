@@ -295,13 +295,36 @@ write_config() {  # uses SEL_* set during the plugin prompts
       echo "  enabled: true"
       echo "  enableSkillCommands: true"
     fi
+    # dev-team drives everything through read/bash/edit/find/search/task and the
+    # systematic-debugging skill — never the DAP `debug` tool or the Python/JS
+    # `eval` code-exec tool (no agent or command declares them). Dropping their
+    # schemas trims the startup tool surface (~3K of context with discovery off,
+    # and a smaller on-demand discovery set with it on).
+    if [ "${SEL_DEVTEAM:-0}" = 1 ]; then
+      echo "debug:"
+      echo "  enabled: false"
+      echo "eval:"
+      echo "  py: false"
+      echo "  js: false"
+    fi
+    # token-diet = aggressive token reduction. Hide non-essential tool schemas
+    # behind OMP's on-demand discovery tool (search_tool_bm25) and keep only the
+    # hot-path tools always loaded. Cuts startup "System tools" from ~18K to ~10K
+    # (total startup context ~29K -> ~20K) with no loss of capability — hidden
+    # tools stay one discovery call away. Widen the always-loaded set via
+    # tools.essentialOverride if a tool you use constantly sits behind discovery.
+    if [ "${SEL_TOKENDIET:-0}" = 1 ]; then
+      echo "tools:"
+      echo "  discoveryMode: all"
+      echo "  essentialOverride: [read, bash, edit, write, find, search, task, todo]"
+    fi
     if [ "${SEL_DEVTEAM:-0}" = 1 ]; then
       echo "task:"
       echo "  maxRecursionDepth: 4"
       echo "  simple: default"
     fi
   } > "$cfg"
-  ok "Wrote $cfg (default=Sonnet 4.6 orchestrator · smol/task=Haiku · slow=Opus$([ "${SEL_COPILOT:-0}" = 1 ] && echo ', via Copilot'))"
+  ok "Wrote $cfg (default=Sonnet 4.6 orchestrator · smol/task=Haiku · slow=Opus$([ "${SEL_COPILOT:-0}" = 1 ] && echo ', via Copilot')$([ "${SEL_TOKENDIET:-0}" = 1 ] && echo ' · lean tool surface (on-demand discovery)'))"
 }
 
 # --- 3) Per-plugin prompts --------------------------------------------------

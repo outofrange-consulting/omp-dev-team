@@ -36,6 +36,23 @@ without it, the same tiers on Anthropic ids. token-diet's ctx-wire + CodeGraph a
 the skills are enabled too. Tools already present are kept — pass **`--update`**
 (`-Update`) to also refresh bun/node/omp; **`--no-config`** to leave your config untouched.
 
+**Lean startup context (out of the box).** OMP loads every tool's JSON schema into
+the system prompt on *every* request, so a full dev-team install otherwise starts
+near ~29K tokens of fixed overhead (~18K of it "System tools"). The generated
+config now trims that without losing capability:
+
+- **dev-team** turns off the DAP `debug` tool and the Python/JS `eval` tool — no
+  dev-team agent or command uses them (they go through `bash` + the
+  `systematic-debugging` skill).
+- **token-diet** sets `tools.discoveryMode: all` so non-essential tool schemas are
+  hidden behind OMP's on-demand discovery tool, keeping only the hot path
+  (`read, bash, edit, write, find, search, task, todo`) always loaded. Hidden
+  tools stay one discovery call away.
+
+Together this drops startup context to **~20K (-31%)**. Tune the always-loaded set
+with `tools.essentialOverride`, or revert with `--no-config` / by editing
+`~/.omp/agent/config.yml`.
+
 **Corporate proxies (Zscaler / Trend Micro under WSL):** if a TLS-intercepting
 proxy breaks certificate checks, the UNIX installers give you two options:
 

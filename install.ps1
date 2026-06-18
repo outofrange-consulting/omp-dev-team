@@ -141,9 +141,16 @@ function Write-Config {
       "  default: claude-sonnet-4-6", "  plan: claude-sonnet-4-6", "  slow: claude-opus-4-8"
   }
   if ($SEL_DEVTEAM -or $SEL_TOKENDIET) { $lines += "skills:", "  enabled: true", "  enableSkillCommands: true" }
+  # dev-team never uses the DAP debug tool or the Python/JS eval tool (it relies
+  # on the systematic-debugging skill + bash); drop their schemas.
+  if ($SEL_DEVTEAM) { $lines += "debug:", "  enabled: false", "eval:", "  py: false", "  js: false" }
+  # token-diet: hide non-essential tool schemas behind OMP's on-demand discovery
+  # tool, keeping only the hot path loaded. Trims startup tools ~18K -> ~10K with
+  # no loss of capability. Tune via tools.essentialOverride.
+  if ($SEL_TOKENDIET) { $lines += "tools:", "  discoveryMode: all", "  essentialOverride: [read, bash, edit, write, find, search, task, todo]" }
   if ($SEL_DEVTEAM) { $lines += "task:", "  maxRecursionDepth: 4", "  simple: default" }
   Set-Content -Path $cfg -Value $lines
-  Ok "Wrote $cfg (default=Sonnet 4.6 orchestrator; smol/task=Haiku; slow=Opus)"
+  Ok "Wrote $cfg (default=Sonnet 4.6 orchestrator; smol/task=Haiku; slow=Opus$(if ($SEL_TOKENDIET) { '; lean tool surface (on-demand discovery)' }))"
 }
 
 # --- 3) Per-plugin prompts --------------------------------------------------
