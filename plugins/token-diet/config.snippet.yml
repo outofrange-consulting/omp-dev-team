@@ -1,8 +1,25 @@
-# token-diet skills — appended to ~/.omp/agent/config.yml by install.sh.
-# Plugin-provider skills (caveman, yagni, codegraph, token-diet) only surface as
-# /commands and via skill:// when skill commands are enabled. (ctx-wire works via
-# PATH shims and the CodeGraph MCP server is enabled in the plugin's .mcp.json —
-# neither needs config here.)
+# token-diet config — appended to ~/.omp/agent/config.yml by install.sh.
+# Enables skills/commands and isolates OMP from all foreign-tool user configs
+# (~/.claude, ~/.codex, ~/.gemini, ~/.cursor, ~/.codeium/windsurf, ~/.copilot,
+# ~/.config/opencode) so OMP only loads its own plugins and project-level files.
+# (ctx-wire: PATH shims; CodeGraph + context7 MCPs: plugin's .mcp.json)
 skills:
-  enabled: true            # token-diet skills
+  enabled: true
   enableSkillCommands: true
+  enableClaudeUser: false    # don't load ~/.claude skills into OMP
+  enableClaudeProject: false # don't load .claude/ project skills into OMP
+  enableCodexUser: false     # don't load ~/.codex skills into OMP
+commands:
+  enableClaudeUser: false    # don't load ~/.claude commands into OMP
+  enableClaudeProject: false # don't load .claude/ project commands into OMP
+  enableOpencodeUser: false  # don't load ~/.config/opencode commands into OMP
+  enableOpencodeProject: false
+disabledProviders:
+  - claude-plugins  # ~/.claude/plugins/cache/ — marketplace agents, MCP servers
+  - codex           # ~/.codex/ and .codex/ — Codex/OpenAI Codex config
+  - gemini          # ~/.gemini/ and .gemini/ — Gemini CLI MCP + extensions
+  - cursor          # ~/.cursor/ and .cursor/ — Cursor MCP + rules
+  - windsurf        # ~/.codeium/windsurf/ and .windsurf/ — Windsurf rules
+  - opencode        # ~/.config/opencode/ and .opencode/ — OpenCode MCP
+  - github          # ~/.copilot/ and .github/ — Copilot CLI + instructions
+  - cline           # .clinerules — Cline project rules

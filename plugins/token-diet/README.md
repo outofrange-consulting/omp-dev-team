@@ -11,8 +11,11 @@ in place of it.
 |---|---|---|---|
 | **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk) | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **CodeGraph** | MCP symbol/call graph — query instead of grep+read | ~96% on "who calls X / impact / architecture" | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
+| **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
+| **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
+| **C# LSP** | `csharp-ls` wired as OMP-native language server | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Install
 
@@ -40,8 +43,20 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   default**) exposing `codegraph_search/node/callers/callees/explore/impact/files/status`.
   See `skill://codegraph`. Auto-syncs on file changes.
 - **skills** → `install.sh` appends `config.snippet.yml` to `~/.omp/agent/config.yml`
-  (`skills.enableSkillCommands: true`) so `/caveman`, `/yagni` and `skill://codegraph`
-  are available (plugin-provider skills need this toggle). `--no-config` to skip.
+  enabling skill commands and applying provider isolation. `--no-config` to skip.
+- **context7** → CLI mode (`ctx7 library` / `ctx7 docs` via bash — no MCP process).
+  `install.sh` installs the `ctx7` CLI globally. The bundled `context7` skill
+  (`skill://context7`) instructs the agent to fetch current docs automatically
+  whenever a library, framework, or API is involved.
+- **Provider isolation** → `config.snippet.yml` sets `disabledProviders` +
+  `enableClaudeUser/Project/CodexUser: false` so OMP only loads its own plugins and
+  project-level `AGENTS.md`/`CLAUDE.md`. Excluded: `~/.claude/plugins`, `~/.codex`,
+  `~/.gemini`, `~/.cursor`, `~/.codeium/windsurf`, `~/.copilot`, `~/.config/opencode`,
+  `.clinerules`. Existing users who re-run `install.sh` get a `disabledProviders`
+  block appended without touching other settings.
+- **C# LSP** → `install.sh` installs `csharp-ls` via `dotnet tool install -g csharp-ls`
+  (if .NET SDK present) and writes `~/.omp/agent/lsp.json` to register it for `.cs`/
+  `.csx` files. OMP auto-activates it when a `.sln`/`.slnx`/`.csproj` is detected.
 - **caveman** → a native OMP skill (`/caveman`, levels lite/full/ultra) rather
   than the upstream installer, so it's first-class in OMP. See `skill://caveman`.
 - **yagni** → a native OMP skill (`/yagni`, levels lite/full/ultra/off) porting

@@ -107,17 +107,73 @@ EOF
   fi
 fi
 
-# --- Enable the bundled skills (caveman, yagni, codegraph, token-diet) -------
-# Plugin-provider skills only surface as /commands when skills.enableSkillCommands
-# is on; append it unless --no-config. (codegraph MCP ships enabled in .mcp.json.)
+# --- csharp-ls (.NET C# language server) ------------------------------------
+if have dotnet; then
+  if have csharp-ls; then
+    say "csharp-ls present$([ "$UPDATE" = 1 ] && echo " — updating" || echo "")"
+    [ "$UPDATE" = 1 ] && run "dotnet tool update -g csharp-ls || true"
+  else
+    say "Installing csharp-ls (.NET C# language server)"
+    run "dotnet tool install -g csharp-ls || true"
+  fi
+else
+  warn "dotnet not found — skipping csharp-ls (install .NET SDK to enable C# LSP)"
+fi
+
+# --- ctx7 CLI (context7 library documentation) ------------------------------
+# CLI mode — no MCP server; the bundled context7 skill guides the agent to run
+# `ctx7 library` / `ctx7 docs` via bash. More token-efficient than MCP.
+if have npm; then
+  if have ctx7 && [ "$UPDATE" = 0 ]; then
+    say "ctx7 CLI already installed"
+  else
+    say "Installing ctx7 CLI (context7 library documentation)"
+    run "npm install -g ctx7 || true"
+  fi
+else
+  warn "npm not found — ctx7 unavailable (install Node.js to enable library docs)"
+fi
+
+# --- OMP config: skills, provider isolation, csharp-ls LSP ------------------
+# config.snippet.yml appended once (idempotent). Separate block below handles
+# re-runs for users who already have an older snippet without the new settings.
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$NO_CONFIG" = 0 ]; then
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] enable skills in $CFG (skills.enabled + enableSkillCommands)"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] apply token-diet config to $CFG"
   else
     mkdir -p "$(dirname "$CFG")"; touch "$CFG"
-    if grep -q "token-diet skills" "$CFG" 2>/dev/null; then say "Skills already enabled in $CFG"
-    else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; say "Enabled token-diet skills in $CFG"; fi
+    if grep -q "token-diet config" "$CFG" 2>/dev/null; then say "token-diet config already in $CFG"
+    else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; say "Applied token-diet config to $CFG"; fi
   fi
+fi
+
+# Idempotent: add disabledProviders for users with a pre-existing older snippet.
+if [ "$NO_CONFIG" = 0 ]; then
+  if grep -q "disabledProviders" "$CFG" 2>/dev/null; then
+    say "Provider isolation already set in $CFG"
+  else
+    if [ "$DRY" = 1 ]; then echo "  [dry-run] add disabledProviders to $CFG"
+    else
+      printf '\ndisabledProviders:\n  - claude-plugins\n  - codex\n  - gemini\n  - cursor\n  - windsurf\n  - opencode\n  - github\n  - cline\n' >> "$CFG"
+      say "Added provider isolation to $CFG"
+    fi
+  fi
+fi
+
+# --- csharp-ls LSP config ---------------------------------------------------
+LSP="$HOME/.omp/agent/lsp.json"
+if have csharp-ls && [ "$NO_CONFIG" = 0 ]; then
+  if [ -f "$LSP" ]; then
+    say "OMP LSP config already at $LSP — skipping"
+  else
+    say "Writing csharp-ls LSP config to $LSP"
+    if [ "$DRY" = 0 ]; then
+      mkdir -p "$(dirname "$LSP")"
+      printf '{\n  "servers": {\n    "csharp-ls": {\n      "command": "csharp-ls",\n      "fileTypes": [".cs", ".csx"],\n      "rootMarkers": ["*.sln", "*.slnx", "*.csproj", ".git"]\n    }\n  }\n}\n' > "$LSP"
+    fi
+  fi
+elif ! have csharp-ls; then
+  warn "csharp-ls not found — skipping LSP config (dotnet tool install -g csharp-ls)"
 fi
 
 cat <<'EOF'
@@ -125,8 +181,14 @@ cat <<'EOF'
 ==> token-diet is active:
     - ctx-wire transparently compresses command output (PATH shims). `ctx-wire gain`
       shows savings; `ctx-wire doctor` verifies. Re-run install after adding tools.
-    - CodeGraph MCP is enabled (.mcp.json) and the repos above are indexed —
+    - CodeGraph MCP is enabled and repos above are indexed —
       `skill://codegraph` for symbol/caller/architecture queries.
+    - context7 CLI enabled (`ctx7 library` / `ctx7 docs` via bash) — no MCP process.
+      skill://context7 guides the agent to fetch current library docs automatically.
+    - Provider isolation: ~/.claude, ~/.codex, ~/.gemini, ~/.cursor, ~/.codeium/windsurf,
+      ~/.copilot, ~/.config/opencode and their plugin agents are excluded from OMP.
+      OMP only loads its own plugins and project-level AGENTS.md/CLAUDE.md files.
+    - C# LSP (csharp-ls): auto-configured for .sln/.csproj projects.
     - `/caveman` (terse output) and `/yagni` (write less code) are enabled.
-    Restart `omp` so the MCP server + skills load.
+    Restart `omp` so skills + isolation take effect.
 EOF
