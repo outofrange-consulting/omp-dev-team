@@ -2,22 +2,26 @@
 # Overrides the bundled English-only `dotnet-build` filter so the success
 # short-circuit also fires when MSBuild emits French (DOTNET_CLI_UI_LANGUAGE/
 # VSLANG=fr). .NET ships no Romanian satellite resources, so EN+FR covers every
-# locale the .NET CLI can produce. FR strings are taken verbatim from MSBuild's
-# own localization (Strings.fr.xlf): "Build succeeded." -> "La génération a
-# réussi.", "{0} Warning(s)" -> "{0} Avertissement(s)", "{0} Error(s)" ->
-# "{0} Erreur(s)".
+# locale the .NET CLI can produce. FR strings are taken verbatim from MSBuild
+# (Strings.fr.xlf) and NuGet (Strings.fr.xlf):
+#   "Build succeeded."          -> "La génération a réussi."
+#   "{0} Warning(s)"            -> "{0} Avertissement(s)"
+#   "{0} Error(s)"              -> "{0} Erreur(s)"
+#   "Determining projects to restore..." -> "Identification des projets à restaurer..."
 schema_version = 1
 
 [filters.dotnet-build]
-description = "Compact dotnet build output (EN+FR) - short-circuit on success, strip banners"
+description = "Compact dotnet build output (EN+FR) - short-circuit on success, strip banners + restore noise"
 match_command = "^dotnet\\s+build\\b"
 strip_ansi = true
 strip_lines_matching = [
   "^\\s*$",
   "^Microsoft \\(R\\)",
   "^Copyright \\(C\\)",
-  # "Determining projects to restore..." / "Détermination des projets à restaurer..."
-  "^  (Determining projects|Détermination des projets)",
+  "^\\s*(Determining projects to restore|Identification des projets à restaurer)",
+  "^\\s*(Restoring packages for|Restauration des packages pour)",
+  "^\\s*(Restored |Restauration effectuée de )",
+  "^\\s*(All projects are up-to-date for restore|Tous les projets sont à jour pour la restauration)",
 ]
 match_output = [
   { pattern = "0 (Warning\\(s\\)|Avertissement\\(s\\))\\n\\s+0 (Error\\(s\\)|Erreur\\(s\\))", message = "ok (build succeeded)" },
@@ -65,7 +69,7 @@ input = """
 Microsoft (R) Build Engine version 17.8.3+195e7f5a3
 Copyright (C) Microsoft Corporation. Tous droits réservés.
 
-  Détermination des projets à restaurer...
+  Identification des projets à restaurer...
   MyApp -> /home/user/MyApp/bin/Debug/net8.0/MyApp.dll
 
 La génération a réussi.
@@ -79,7 +83,7 @@ expected = "ok (build succeeded)"
 [[tests.dotnet-build]]
 name = "FR: build errors pass through"
 input = """
-  Détermination des projets à restaurer...
+  Identification des projets à restaurer...
 src/Program.cs(10,5): error CS1002: ; attendu [/home/user/MyApp/MyApp.csproj]
 
 ÉCHEC de la build.
@@ -92,7 +96,7 @@ expected = "src/Program.cs(10,5): error CS1002: ; attendu [/home/user/MyApp/MyAp
 name = "FR: failed exit - clean-looking summary not collapsed to ok"
 failed = true
 input = """
-  Détermination des projets à restaurer...
+  Identification des projets à restaurer...
   MyApp -> /home/user/MyApp/bin/Debug/net8.0/MyApp.dll
 
 La génération a réussi.

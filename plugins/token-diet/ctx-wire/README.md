@@ -20,7 +20,10 @@ prose. That set is small:
 |---|---|---|---|
 | **git status** | Yes (gettext) | Yes (`On branch`, hints, `nothing added…`) | ✅ EN+FR |
 | **dotnet build** | Yes (satellite asm) | Yes (`Build succeeded`, `0 Warning(s)`) | ✅ EN+FR |
-| **dotnet test** | Yes (satellite asm) | Yes (`Passed!`, `Failed:`/`Error Message`) | ✅ EN+FR |
+| **dotnet test** | Yes (satellite asm) | Yes — VSTest (`Passed!`, `Failed:`) **and** MTP (`Test run summary:` block) | ✅ EN+FR |
+| **dotnet restore** | Yes (NuGet) | Yes (`All projects are up-to-date`, `Restored …`, `NU####`) | ✅ EN+FR |
+| **dotnet run** | Yes (build + app) | Strips build preamble; collapses all-passed MTP test runs | ✅ EN+FR |
+| **dotnet tool** | Yes (SDK) | Yes (`was successfully installed/updated`) | ✅ EN+FR |
 | git log / diff / blame / list | Yes | **No** — purely structural (blank-strip, truncate, caps) | n/a |
 | grep / rg | Diagnostics only | **No** — `group_by` on `file:line:`, structural | n/a |
 | jira (CLI) | No (Go, English-only) | structural (strip blanks/`--`) | n/a |
@@ -68,8 +71,20 @@ EN+FR pack is the better default when developers genuinely work in French.
 
 Re-extract from upstream localization when tool versions change:
 
-- git:    `git/git@master:po/fr.po`
-- MSBuild: `dotnet/msbuild@main:src/Build/Resources/xlf/Strings.fr.xlf`
-- VSTest:  `microsoft/vstest@main:src/vstest.console/Resources/xlf/Resources.fr.xlf`
+- git:     `git/git@master:po/fr.po`
+- MSBuild:  `dotnet/msbuild@main:src/Build/Resources/xlf/Strings.fr.xlf`
+- VSTest:   `microsoft/vstest@main:src/vstest.console/Resources/xlf/Resources.fr.xlf`
+- MTP:      `microsoft/testfx@main:src/Platform/Microsoft.Testing.Platform/Resources/xlf/PlatformResources.fr.xlf`
+- NuGet:    `NuGet/NuGet.Client@dev:src/NuGet.Core/NuGet.Commands/xlf/Strings.fr.xlf`
+- SDK/tool: `dotnet/sdk@main:src/Cli/dotnet/Commands/xlf/CliCommandStrings.fr.xlf`
 
 Then run `ctx-wire verify` (or the bundled `scripts/verify-filters.py`).
+
+### Microsoft.Testing.Platform (MTP) vs VSTest
+
+`dotnet test` can run on either the classic **VSTest** console (single-line
+`Passed! - Failed: 0, …` summary) or the newer **MTP** runner (multi-line
+`Test run summary:` block). The `dotnet-test` filter handles **both**. Because an
+MTP test project is a plain console app with an entry point, it is also run via
+**`dotnet run`** — so the `dotnet-run` filter collapses an all-passed MTP summary
+too (and preserves failures).

@@ -9,7 +9,7 @@ in place of it.
 
 | Layer | What | Win | Upstream |
 |---|---|---|---|
-| **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk); **EN+FR** filter overrides for `git status` / `dotnet build`/`test` | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
+| **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk); **EN+FR** filter overrides for `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **context-mode** | native OMP plugin that **sandboxes tool output** and indexes it (FTS5/BM25, language-agnostic) — keeps raw payloads out of context + survives compaction | ~98% on giant/unstructured output; any locale (incl. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
 | **CodeGraph** | MCP symbol/call graph — query instead of grep+read | ~96% on "who calls X / impact / architecture" | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
 | **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
@@ -42,7 +42,8 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   MCP-server output. Replaces the earlier RTK integration (RTK is also English-only,
   so it offered no localization advantage).
   **Multilingual filters** → `install.sh` merges EN+FR overrides
-  (`ctx-wire/filters.d/`) for `git status` / `dotnet build` / `dotnet test` into
+  (`ctx-wire/filters.d/`) for `git status` + `dotnet build`/`test` (VSTest **and**
+  Microsoft.Testing.Platform)/`restore`/`run`/`tool` into
   `~/.config/ctx-wire/filters.toml`, so the same compaction fires in `fr_*`
   locales (FR strings taken verbatim from git/MSBuild/VSTest localization). Only
   git+dotnet are localized: every other ctx-wire filter is either structural

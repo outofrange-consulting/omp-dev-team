@@ -53,7 +53,10 @@ elif have ctx-wire; then
   say "ctx-wire present — use --update to refresh"
 else
   say "Installing latest ctx-wire"
-  if have curl; then run "curl -fsSL https://ctx-wire.dev/install.sh | sh"
+  # Non-fatal: a network/release failure here must not abort the rest of the
+  # installer (local filter wiring + config still apply). `set -e` otherwise
+  # exits on the piped installer's non-zero status.
+  if have curl; then run "curl -fsSL https://ctx-wire.dev/install.sh | sh || true"
   else warn "need curl to install ctx-wire — see https://ctx-wire.dev"; fi
 fi
 # Wire it into the command path TRANSPARENTLY via PATH shims in ~/.local/bin (which
@@ -76,7 +79,7 @@ CTXW_FILTERS="$CTXW_DIR/filters.toml"
 BLOCK_BEGIN="# >>> token-diet multilingual filters (managed) >>>"
 BLOCK_END="# <<< token-diet multilingual filters (managed) <<<"
 if [ -d "$PACK_DIR" ]; then
-  say "Installing multilingual ctx-wire filters (EN+FR: git-status, dotnet-build, dotnet-test)"
+  say "Installing multilingual ctx-wire filters (EN+FR: git-status + dotnet build/test[VSTest+MTP]/restore/run/tool)"
   if [ "$DRY" = 0 ]; then
     mkdir -p "$CTXW_DIR"
     blk="$(mktemp)"; tmp="$(mktemp)"
@@ -117,7 +120,21 @@ fi
 if [ "$NO_CTXMODE" = 0 ]; then
   if have omp; then
     say "Installing context-mode OMP plugin (locale-agnostic output sandbox + session continuity)"
-    run "omp plugin install context-mode || true"
+    # Default registry first; context-mode is "recommended once published", so
+    # fall back to a direct dependency install under ~/.omp/plugins (OMP loads
+    # any dependency there whose package.json carries an `omp`/`pi` field). No
+    # separate `omp marketplace add` step is required.
+    if ! run "omp plugin install context-mode"; then
+      warn "omp plugin install failed (not in registry yet?) — falling back to ~/.omp/plugins"
+      OMP_PLUGINS="${OMP_HOME:-$HOME/.omp}/plugins"
+      if [ "$DRY" = 0 ]; then
+        mkdir -p "$OMP_PLUGINS"
+        [ -f "$OMP_PLUGINS/package.json" ] || printf '{\n  "dependencies": {}\n}\n' > "$OMP_PLUGINS/package.json"
+      fi
+      if have bun;   then run "(cd '$OMP_PLUGINS' && bun add context-mode) || true"
+      elif have npm; then run "(cd '$OMP_PLUGINS' && npm install context-mode) || true"
+      else warn "need bun or npm to install context-mode manually — see https://github.com/mksglu/context-mode"; fi
+    fi
   else
     warn "omp CLI not found — skip context-mode (run later: omp plugin install context-mode)"
   fi
@@ -128,8 +145,9 @@ if have codegraph && [ "$UPDATE" = 0 ]; then
   say "CodeGraph present — use --update to refresh"
 else
   say "Installing latest CodeGraph"
-  if have curl;  then run "curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh"
-  elif have npm; then run "npm i -g @colbymchenry/codegraph@latest"
+  # Non-fatal (see ctx-wire note): keep the installer going if the network fails.
+  if have curl;  then run "curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh || true"
+  elif have npm; then run "npm i -g @colbymchenry/codegraph@latest || true"
   else warn "need curl or npm to install codegraph — skipping"; fi
 fi
 
@@ -242,8 +260,9 @@ cat <<'EOF'
 ==> token-diet is active:
     - ctx-wire transparently compresses command output (PATH shims). `ctx-wire gain`
       shows savings; `ctx-wire doctor` verifies. Re-run install after adding tools.
-    - Multilingual filters (EN+FR) for git-status / dotnet-build / dotnet-test are
-      merged into ~/.config/ctx-wire/filters.toml so compaction fires in fr_* locales.
+    - Multilingual filters (EN+FR) for git status + dotnet build/test (VSTest & MTP)/
+      restore/run/tool are merged into ~/.config/ctx-wire/filters.toml so compaction
+      fires in fr_* locales.
     - context-mode plugin: locale-agnostic output sandbox (handles ro/any-language
       output + survives compaction). Layers on top of ctx-wire; --no-context-mode to skip.
     - CodeGraph MCP is enabled and repos above are indexed —
