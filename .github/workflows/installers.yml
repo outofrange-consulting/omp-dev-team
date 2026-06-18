@@ -40,6 +40,16 @@ jobs:
           }
           if ($bad) { exit 1 }
 
+  # 1b) Validate the token-diet ctx-wire EN/FR filter pack against its inline
+  #     tests (offline simulation of ctx-wire's filter pipeline).
+  filters:
+    name: ctx-wire filters (EN/FR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify multilingual ctx-wire filters
+        run: python3 plugins/token-diet/ctx-wire/scripts/verify-filters.py plugins/token-diet/ctx-wire/filters.d
+
   # 2) Run the global installer end-to-end in dry-run on every OS (native shell).
   dryrun:
     name: dry-run (${{ matrix.os }})

@@ -9,7 +9,8 @@ prompts côté fournisseur), pas à la place.
 
 | Couche | Quoi | Gain | Amont |
 |---|---|---|---|
-| **ctx-wire** | proxy CLI transparent qui filtre la **sortie** des commandes + scrube les secrets (logs complets sur disque) | grosses coupes sur le bruit `git`/build/test/lint | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
+| **ctx-wire** | proxy CLI transparent qui filtre la **sortie** des commandes + scrube les secrets (logs complets sur disque) ; surcharges de filtres **EN+FR** pour `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | grosses coupes sur le bruit `git`/build/test/lint | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
+| **context-mode** | plugin OMP natif qui **met la sortie des outils en bac à sable** et l'indexe (FTS5/BM25, indépendant de la langue) — garde le brut hors contexte + survit à la compaction | ~98 % sur sortie géante/non structurée ; toute langue (y c. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
 | **CodeGraph** | graphe de symboles/appels via MCP — requête au lieu de grep+read | ~96 % sur « qui appelle X / impact / architecture » | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
 | **context7** | docs de librairies via MCP — docs API à jour à la demande | élimine les hallucinations sur les APIs de librairies | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | **sortie** laconique en fragments (à la demande) | ~65 % de tokens de sortie | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
@@ -38,6 +39,35 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   sortie est filtrée + les secrets scrubés avant d'atteindre le contexte (logs
   complets sur disque). (`ctx-wire init claude` ne câble que Claude Code, pas OMP —
   d'où les shims.) `ctx-wire gain` montre les économies ; `ctx-wire doctor` vérifie.
+  Remplace l'intégration RTK précédente (RTK est aussi anglais-only : aucun gain
+  de localisation).
+  **Filtres multilingues** → `install.sh` fusionne des surcharges EN+FR
+  (`ctx-wire/filters.d/`) pour `git status` / `dotnet build` / `dotnet test` dans
+  `~/.config/ctx-wire/filters.toml`, pour que la même compaction se déclenche en
+  locale `fr_*` (chaînes FR reprises telles quelles de la localisation
+  git/MSBuild/VSTest). Seuls git+dotnet sont localisés : tous les autres filtres
+  ctx-wire sont soit structurels (grep, git-log, ls), soit enveloppent une
+  toolchain anglais-only (npm/cargo/go/…). **Pas de roumain** — git et .NET ne
+  livrent aucune traduction `ro`, donc ils émettent de l'anglais en locale
+  `ro_RO` ; le roumain n'apparaît que dans les *données*, gérées par context-mode.
+  Voir `ctx-wire/README.md`.
+- **context-mode** → `omp plugin install context-mode` (lancé par `install.sh`,
+  `--no-context-mode` pour sauter). Plugin OMP natif sur les hooks
+  `tool_call`/`tool_result`/`session_start`/`session_before_compact` qui met la
+  sortie des outils en bac à sable et l'indexe (FTS5/BM25, indépendant de la
+  langue) — le filet locale-agnostique pour toute sortie non anglaise (y c. le
+  roumain) et pour la continuité de session à travers la compaction. Se superpose
+  aux collapses déterministes de ctx-wire, sans les remplacer. Il compresse aussi
+  la sortie **MCP** (il s'accroche à `tool_result`) — donc les gros JSON des MCP
+  Atlassian/Miro/GitHub sont réduits, ce que les shims ctx-wire (bash uniquement)
+  ne voient pas. Pour les serveurs MCP que tu définis toi-même : `ctx-wire mcp-wrap
+  --compress` ; voir `ctx-wire/README.md`.
+- **acli** → le **CLI officiel Atlassian** (Jira/Confluence/Bitbucket), installé dans
+  `~/.local/bin` par `install.sh` (`--no-acli` pour sauter ; relancer pour mettre à
+  jour — versions supportées ~6 mois). Préfère le **MCP Atlassian** pour les lectures
+  structurées ; `acli` pour les écritures en masse/scriptées. Sortie anglaise/
+  structurelle — `ctx-wire/filters.d/acli.toml` la compacte et masque les tokens
+  `ATATT…` (ctx-wire scrube déjà GitHub/ADO/Atlassian en forme header/URL/`clé=valeur`).
 - **CodeGraph** → un serveur MCP (`.mcp.json`, `codegraph serve --mcp`, **activé par
   défaut**) exposant `codegraph_search/node/callers/callees/explore/impact/files/status`.
   Voir `skill://codegraph`. Se resynchronise aux changements de fichiers.

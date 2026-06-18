@@ -9,7 +9,8 @@ in place of it.
 
 | Layer | What | Win | Upstream |
 |---|---|---|---|
-| **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk) | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
+| **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk); **EN+FR** filter overrides for `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
+| **context-mode** | native OMP plugin that **sandboxes tool output** and indexes it (FTS5/BM25, language-agnostic) — keeps raw payloads out of context + survives compaction | ~98% on giant/unstructured output; any locale (incl. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
 | **CodeGraph** | MCP symbol/call graph — query instead of grep+read | ~96% on "who calls X / impact / architecture" | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
 | **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
@@ -38,7 +39,34 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   filtered + secret-scrubbed before it hits context (full logs kept on disk).
   (`ctx-wire init claude` only wires Claude Code, not OMP, so we use shims.)
   `ctx-wire gain` shows savings; `ctx-wire doctor` verifies; `ctx-wire mcp-wrap` can also compress
-  MCP-server output. Replaces the earlier RTK integration.
+  MCP-server output. Replaces the earlier RTK integration (RTK is also English-only,
+  so it offered no localization advantage).
+  **Multilingual filters** → `install.sh` merges EN+FR overrides
+  (`ctx-wire/filters.d/`) for `git status` + `dotnet build`/`test` (VSTest **and**
+  Microsoft.Testing.Platform)/`restore`/`run`/`tool` into
+  `~/.config/ctx-wire/filters.toml`, so the same compaction fires in `fr_*`
+  locales (FR strings taken verbatim from git/MSBuild/VSTest localization). Only
+  git+dotnet are localized: every other ctx-wire filter is either structural
+  (grep, git-log, ls) or wraps an English-only toolchain (npm/cargo/go/…).
+  **No Romanian** — git and .NET ship no `ro` translation, so they emit English
+  in a `ro_RO` locale; Romanian only appears in *data*, handled by context-mode.
+  See `ctx-wire/README.md`.
+- **context-mode** → `omp plugin install context-mode` (run by `install.sh`,
+  `--no-context-mode` to skip). A native OMP plugin on the
+  `tool_call`/`tool_result`/`session_start`/`session_before_compact` hooks that
+  sandboxes tool output and indexes it with language-agnostic FTS5/BM25 — the
+  locale-agnostic safety net for any-language output (incl. Romanian) and for
+  session continuity across compaction. Layers on top of ctx-wire's deterministic
+  collapses, not in place of them. It also compresses **MCP** tool output (it hooks
+  `tool_result`), so the verbose Atlassian/Miro/GitHub MCP JSON is reduced too —
+  the ctx-wire shims only see shell commands, not MCP. For self-defined MCP servers
+  you can additionally use `ctx-wire mcp-wrap --compress`; see `ctx-wire/README.md`.
+- **acli** → the official **Atlassian CLI** (Jira/Confluence/Bitbucket), installed to
+  `~/.local/bin` by `install.sh` (`--no-acli` to skip; re-run to update — versions are
+  supported ~6 months). Prefer the **Atlassian MCP** for structured reads; use `acli`
+  for bulk/scripted writes. Its output is English/structural — the bundled
+  `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…` API tokens
+  (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/`key=value` form).
 - **CodeGraph** → an MCP server (`.mcp.json`, `codegraph serve --mcp`, **enabled by
   default**) exposing `codegraph_search/node/callers/callees/explore/impact/files/status`.
   See `skill://codegraph`. Auto-syncs on file changes.

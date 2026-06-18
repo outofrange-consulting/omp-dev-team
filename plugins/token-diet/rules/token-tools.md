@@ -10,6 +10,9 @@ description: Token-saving tool routing (ctx-wire + CodeGraph)
   reaches context — just run commands normally, **no prefix or wrapper**. Full
   logs are kept on disk; don't re-run a command to "see everything". (`ctx-wire
   gain` shows the savings.) If ctx-wire isn't installed, nothing changes.
+  Compaction is **locale-aware** for git/dotnet (EN+FR filters), and the
+  **context-mode** plugin sandboxes any-language output (incl. Romanian) — so
+  non-English command output is compacted too; never switch locale to "help" it.
 - **Code structure via CodeGraph.** When the `codegraph_*` MCP tools are
   available, prefer them over `grep`/`glob`/`Read` for "who calls X", "what does
   X call", "where is symbol Y", "what's the impact of changing Z", and
