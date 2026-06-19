@@ -294,6 +294,8 @@ write_config() {  # uses SEL_* set during the plugin prompts
       echo "skills:"
       echo "  enabled: true"
       echo "  enableSkillCommands: true"
+      echo "  enableClaudeUser: false"
+      echo "  enableClaudeProject: false"
     fi
     # dev-team drives everything through read/bash/edit/find/search/task and the
     # systematic-debugging skill — never the DAP `debug` tool or the Python/JS
@@ -323,6 +325,21 @@ write_config() {  # uses SEL_* set during the plugin prompts
       echo "  maxRecursionDepth: 4"
       echo "  simple: default"
     fi
+    # Provider isolation: prevent other tool ecosystems (Claude Code native plugins,
+    # Codex, Gemini, Cursor, Windsurf, OpenCode, Cline) from loading their own
+    # skills/commands into OMP. OMP is self-contained; cross-loading from ~/.claude
+    # or other agent dirs causes skill pollution and context bloat.
+    echo "commands:"
+    echo "  enableClaudeUser: false"
+    echo "  enableClaudeProject: false"
+    echo "disabledProviders:"
+    echo "  - claude-plugins"
+    echo "  - codex"
+    echo "  - gemini"
+    echo "  - cursor"
+    echo "  - windsurf"
+    echo "  - opencode"
+    echo "  - cline"
   } > "$cfg"
   ok "Wrote $cfg (default=Sonnet 4.6 orchestrator · smol/task=Haiku · slow=Opus$([ "${SEL_COPILOT:-0}" = 1 ] && echo ', via Copilot')$([ "${SEL_TOKENDIET:-0}" = 1 ] && echo ' · lean tool surface (on-demand discovery)'))"
 }
