@@ -1,0 +1,8 @@
+{
+  "name": "datadog",
+  "version": "1.0.0",
+  "description": "Datadog observability from the terminal for Oh-My-Pi via the Datadog 'pup' CLI (DataDog/pup): logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, synthetics, RUM, security/audit, CI test visibility, and LLM/agent observability. Ships ONE broad 'datadog' skill that drives pup (which embeds Datadog's ~30 domain skills/subagents) instead of flooding OMP with individual skills. The installer sets up the pup CLI + authentication (OAuth or DD_API_KEY/DD_APP_KEY).",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+}

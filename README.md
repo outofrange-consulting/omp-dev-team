@@ -2,7 +2,7 @@
 
 > 🌐 **English** · [Français](README.fr.md)
 
-Four **independent** [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi) plugins.
+Seven **independent** [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi) plugins.
 Install any subset — they share nothing. A global installer sets up OMP and walks
 you through them.
 
@@ -13,6 +13,8 @@ you through them.
 | **[`token-diet`](plugins/token-diet/)** | **Aggressive token reduction** — ctx-wire (transparent command-output compression + secret scrub), CodeGraph (MCP symbol/call-graph queries instead of grep+read), a caveman terse-output skill, and a yagni minimal-code skill — layered on OMP's native compaction/`astGrep`. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem** — read repos/files/PRs/diffs via `ado://` URIs (paginated), PR **gates/policies** + CI (builds/logs/run), create/checkout/push/complete PRs, comment/vote. Backed by the **Azure CLI** (`az` + the azure-devops extension), PAT auth, SQLite read cache; works behind corporate TLS proxies. |
 | **[`local-llm`](plugins/local-llm/)** | **Local models sized to your hardware** — detects VRAM/RAM, picks the best-fit GGUF models per role, installs Ollama (or llama.cpp), pulls them, and registers the `local-llm` provider. Hybrid: planning on cloud, execution/cheap roles local. |
+| **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI as a model provider** — point it at a [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) gateway (URL + API key); the installer lists the models and writes a `cliproxy` provider into `~/.omp/agent/models.yml` with runtime discovery, usable as `cliproxy/<model-id>`. |
+| **[`datadog`](plugins/datadog/)** | **Datadog observability from the terminal** — via the Datadog [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, RUM, security/audit, CI test visibility, LLM observability). One broad `datadog` skill drives pup; installer sets up pup + auth. |
 
 ## Quick start (recommended)
 
@@ -22,19 +24,25 @@ offers each plugin + its config, fixing your PATH at the end.
 ```sh
 git clone https://github.com/outofrange-consulting/omp-dev-team
 cd omp-dev-team
-bash install.sh                 # Linux/macOS   (-y for non-interactive, --dry-run to preview)
+bash install.sh                 # Linux/macOS   (-y for non-interactive)
 #   pwsh -File install.ps1      # Windows
 ```
 
 **Works out of the box / defaults:** the global installer **reinstalls the selected
-plugins to the latest** and **resets the managed model-roles + skills block** in
-`~/.omp/agent/config.yml` (your old config is backed up to `config.yml.<timestamp>.bak`
-first). With **copilot-preset** that wires, via GitHub Copilot: `smol`/`task` →
-**Haiku**, `default`/`plan` → **Sonnet 4.6** (runs the dev-team orchestrator —
-non-trivial work goes research → plan → implement → review), `slow` → **Opus**;
-without it, the same tiers on Anthropic ids. token-diet's ctx-wire + CodeGraph and
-the skills are enabled too. Tools already present are kept — pass **`--update`**
-(`-Update`) to also refresh bun/node/omp; **`--no-config`** to leave your config untouched.
+plugins to the latest** and brings runtimes/OMP/tooling **up to date by default**
+(pass **`--no-update`** / `-NoUpdate` to keep tools already installed). It then
+**merges** the managed model-roles + skills defaults into `~/.omp/agent/config.yml`
+and the team MCP servers into `~/.omp/agent/mcp.json` — **anything you've already set
+is preserved** (no clobber, no backup needed). With **copilot-preset** the tiers wire,
+via GitHub Copilot: `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 4.6** (runs
+the dev-team orchestrator — non-trivial work goes research → plan → implement →
+review), `slow` → **Opus**; without it, the same tiers on Anthropic ids. token-diet's
+ctx-wire + CodeGraph and the skills are enabled too. **`--no-config`** leaves your
+config + mcp.json untouched.
+
+The MCP merge enables the team servers (`context7`, `miro`, and `github` when a PAT is
+given/`$GITHUB_TOKEN` is set) in `~/.omp/agent/mcp.json`. Atlassian is **not** an MCP
+here — `acli` (installed by token-diet) is our go-to for Jira/Confluence/Bitbucket.
 
 **Lean startup context (out of the box).** OMP loads every tool's JSON schema into
 the system prompt on *every* request, so a full dev-team install otherwise starts
@@ -63,7 +71,10 @@ proxy breaks certificate checks, the UNIX installers give you two options:
   **persisted to your shell profile** so `omp` and `ollama pull` trust it later too.
   On **WSL you don't even need the .pem** — `--ca-from-windows` exports the Windows
   trust store (incl. the corporate roots) automatically, and the global installer
-  **offers it when it detects WSL**.
+  **offers it when it detects WSL**. To instead install the corporate CA into WSL's
+  **system** trust store (so curl/git/node trust it natively, no env vars), run
+  [`scripts/wsl-trust-zscaler.ps1`](scripts/wsl-trust-zscaler.ps1) from **Windows
+  PowerShell** — it uses `wsl --user root` (no sudo) and `update-ca-certificates`.
 - **Escape hatch — bypass:** `--insecure-tls` (or `OMP_INSECURE_TLS=1`) disables
   verification for that run (curl/wget incl. piped installers, git, node/bun/npm).
   It can't bypass Go/libcurl tools (Ollama, etc.) — use `--ca-file` for those.
@@ -80,6 +91,8 @@ omp plugin install copilot-preset@omp-dev-team
 omp plugin install token-diet@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
 omp plugin install local-llm@omp-dev-team
+omp plugin install cliproxy@omp-dev-team
+omp plugin install datadog@omp-dev-team
 ```
 
 > **Important — extension modules.** OMP does **not** load extension modules
@@ -102,6 +115,8 @@ tools at their latest versions) — see its README:
 - **token-diet** → `bash plugins/token-diet/install.sh` (installs ctx-wire + CodeGraph, indexes your repos), then enable the `codegraph` MCP server.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installs the Azure CLI + azure-devops extension, prompts for org/project/PAT, runs `az devops login`), then restart `omp` so the `ado` tool loads.
 - **local-llm** → `bash plugins/local-llm/install.sh` (detects VRAM/RAM, asks, installs Ollama/llama.cpp, pulls the best-fit models, wires roles).
+- **cliproxy** → `bash plugins/cliproxy/install.sh --url=http://localhost:8317 --api-key=…` (lists the gateway's models, writes the `cliproxy` provider to `~/.omp/agent/models.yml`), then restart `omp`.
+- **datadog** → `bash plugins/datadog/install.sh` (installs the Datadog `pup` CLI + sets up auth; `--with-skills` to also add pup's domain skills).
 
 ## Layout
 
@@ -150,7 +165,7 @@ Notes:
 
 ## Tested
 
-Verified end-to-end on Linux: all `install.sh` pass `bash -n` + dry-run; all
+Verified end-to-end on Linux: all `install.sh` pass `bash -n`; all
 `install.ps1` parse under PowerShell 7; all manifests are valid JSON; the 8
 dev-team extensions compile under `bun`; ctx-wire, CodeGraph, and OMP install via
 the exact commands the scripts use; and all five plugins install through real OMP

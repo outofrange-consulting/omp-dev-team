@@ -2,15 +2,15 @@
 <#
   copilot-preset installer (Windows) — config-only. Ensures OMP is present,
   guides Copilot login, and (optionally) appends config.snippet.yml.
-  Flags: -DryRun, -ApplyConfig.
+  Flags: -ApplyConfig, -NoUpdate (no-op), -Yes (no-op).
 #>
 [CmdletBinding()]
-param([switch]$DryRun, [switch]$ApplyConfig)
+param([switch]$ApplyConfig, [switch]$NoUpdate, [switch]$Yes)
 $ErrorActionPreference = 'Stop'
 
 function Say  ($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 function Have ($c) { [bool](Get-Command $c -ErrorAction SilentlyContinue) }
-function Run  ($cmd) { if ($DryRun) { Write-Host "  [dry-run] $cmd" } else { Invoke-Expression $cmd } }
+function Run  ($cmd) { Invoke-Expression $cmd }
 
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -22,23 +22,13 @@ else { Say "Installing latest OMP"; Run "irm https://omp.sh/install.ps1 | iex" }
 if ($ApplyConfig) {
   $cfg = Join-Path $HOME ".omp\agent\config.yml"
   Say "Appending config.snippet.yml to $cfg"
-  if (-not $DryRun) {
-    New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
-    if ((Test-Path $cfg) -and (Select-String -Path $cfg -Pattern 'copilot-preset' -Quiet)) {
-      Write-Host "  (already present — skipping)"
-    } else {
-      "`n# --- copilot-preset ---`n" + (Get-Content -Raw (Join-Path $Here 'config.snippet.yml')) | Add-Content -Path $cfg
-      Write-Host "  appended. Review $cfg and adjust model ids to your plan."
-    }
+  New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
+  if ((Test-Path $cfg) -and (Select-String -Path $cfg -Pattern 'copilot-preset' -Quiet)) {
+    Write-Host "  (already present — skipping)"
+  } else {
+    "`n# --- copilot-preset ---`n" + (Get-Content -Raw (Join-Path $Here 'config.snippet.yml')) | Add-Content -Path $cfg
+    Write-Host "  appended. Review $cfg and adjust model ids to your plan."
   }
 }
 
-Write-Host @"
-
-==> copilot-preset ready. Final steps:
-    1) Authenticate Copilot:  run omp, then /login -> GitHub Copilot
-       (or set COPILOT_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN)
-    2) Confirm models on your plan:  omp --list-models | Select-String github-copilot
-    3) If you didn't pass -ApplyConfig, paste config.snippet.yml into
-       ~/.omp/agent/config.yml. See pricing.md for the cheap-token mapping.
-"@ -ForegroundColor Green
+Say "copilot-preset ready. Authenticate: run omp -> /login -> GitHub Copilot (or set COPILOT_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN). See pricing.md."

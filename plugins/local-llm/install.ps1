@@ -4,17 +4,17 @@
   Detects VRAM/RAM, asks (>=8GB VRAM recommended), installs the backend (Ollama
   auto, or llama.cpp guided), pulls the best-fit models, and wires roles.
   Flags: -Backend ollama|llama.cpp, -Level smol|balanced|max|local-only, -Vram N,
-         -Ram N, -All, -ApplyConfig, -DryRun, -Yes
+         -Ram N, -All, -ApplyConfig, -NoUpdate (no-op), -Yes
 #>
 [CmdletBinding()]
-param([ValidateSet("ollama","llama.cpp")][string]$Backend, [ValidateSet("smol","balanced","max","local-only")][string]$Level, [int]$Vram, [int]$Ram, [switch]$All, [switch]$ApplyConfig, [switch]$DryRun, [switch]$Yes)
+param([ValidateSet("ollama","llama.cpp")][string]$Backend, [ValidateSet("smol","balanced","max","local-only")][string]$Level, [int]$Vram, [int]$Ram, [switch]$All, [switch]$ApplyConfig, [switch]$NoUpdate, [switch]$Yes)
 $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Say  ($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 function Warn ($m) { Write-Host "  ! $m" -ForegroundColor Yellow }
 function Have ($c) { [bool](Get-Command $c -ErrorAction SilentlyContinue) }
-function Run  ($cmd) { if ($DryRun) { Write-Host "  [dry-run] $cmd" } else { Invoke-Expression $cmd } }
+function Run  ($cmd) { Invoke-Expression $cmd }
 function Ask ($q, $def = 'Y') {
   if ($Yes) { return $true }
   if ([Console]::IsInputRedirected) { return ($def -eq 'Y') }
@@ -84,17 +84,14 @@ if ($be -eq "ollama") {
   $top = if ($plan.roles.task) { $plan.roles.task } else { $plan.roles.default }
   Write-Host "`n  llama.cpp is single-model-per-server. Start your primary ($top), e.g.:"
   Write-Host "    llama-server -hf <HF-GGUF-repo-for-$top> -ngl 99 -c 32768 --port 8080"
-  if (-not $DryRun) { [Environment]::SetEnvironmentVariable('OMP_LOCAL_BACKEND', 'llama.cpp', 'User') }
+  [Environment]::SetEnvironmentVariable('OMP_LOCAL_BACKEND', 'llama.cpp', 'User')
 }
 
 $cfg = Join-Path $HOME ".omp\agent\config.yml"
 if ($ApplyConfig -or (Ask "Append the role wiring to $cfg?" 'Y')) {
-  if ($DryRun) { Write-Host "  [dry-run] append modelRoles/enabledModels to $cfg" }
-  else {
-    New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
-    if ((Test-Path $cfg) -and (Select-String -Path $cfg -Pattern 'local-llm \(appended' -Quiet)) { Write-Host "  (already present — skipping)" }
-    else { "`n# --- local-llm (appended) ---`n$rolesYaml" | Add-Content -Path $cfg; Write-Host "  appended to $cfg" }
-  }
+  New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
+  if ((Test-Path $cfg) -and (Select-String -Path $cfg -Pattern 'local-llm \(appended' -Quiet)) { Write-Host "  (already present — skipping)" }
+  else { "`n# --- local-llm (appended) ---`n$rolesYaml" | Add-Content -Path $cfg; Write-Host "  appended to $cfg" }
 }
 
 # --- Load the provider extension --------------------------------------------
@@ -104,14 +101,11 @@ if ($ApplyConfig -or (Ask "Append the role wiring to $cfg?" 'Y')) {
 $src = Join-Path $Here 'extensions'
 if (Test-Path $src) {
   $dest = Join-Path $HOME ".omp\agent\extensions\local-llm"
-  if ($DryRun) { Write-Host "  [dry-run] mirror local-llm extension -> $dest (OMP native ext dir)" }
-  else {
-    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
-    New-Item -ItemType Directory -Force -Path $dest | Out-Null
-    Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
-    $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
-    Say "local-llm provider loaded into $dest"
-  }
+  if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+  New-Item -ItemType Directory -Force -Path $dest | Out-Null
+  Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
+  $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
+  Say "local-llm provider loaded into $dest"
 }
 
 Write-Host @"

@@ -7,13 +7,13 @@
 #   --vram N --ram N             override detection
 #   --all                        pull every fitting model (default: role models only)
 #   --apply-config               append the role wiring to ~/.omp/agent/config.yml
-#   --dry-run / -y
+#   --no-update (no-op) / -y
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0; LEVEL=""; INSECURE_TLS=0
+YES=0; BACKEND=""; VRAM=""; RAM=""; ALL=0; APPLY=0; LEVEL=""; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
+  --no-update) ;; -y|--yes) YES=1 ;; --all) ALL=1 ;; --apply-config) APPLY=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --backend=*) BACKEND="${a#*=}" ;; --vram=*) VRAM="${a#*=}" ;; --ram=*) RAM="${a#*=}" ;; --level=*) LEVEL="${a#*=}" ;;
   --backend|--vram|--ram|--level) echo "use $a=VALUE" >&2; exit 2 ;;
   -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
@@ -23,7 +23,7 @@ esac; done
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
-run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+run()  { eval "$@"; }
 # Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in
 # bypass of cert verification for curl/wget (incl. piped installers), git, node/bun.
 enable_insecure_tls() {
@@ -120,7 +120,7 @@ if [ "$BACKEND" = "ollama" ]; then
     elif have curl; then run "curl -fsSL https://ollama.com/install.sh | sh"
     else warn "install Ollama from https://ollama.com/download"; fi
   fi
-  if [ "$DRY" = 0 ] && have ollama && ! curl -fsS --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+  if have ollama && ! curl -fsS --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
     say "Starting 'ollama serve' (background)"; (ollama serve >/dev/null 2>&1 &) ; sleep 3 || true
   fi
   say "Pulling role models (${BACKEND})"
@@ -142,22 +142,17 @@ else
   OMP reaches it on :8080. For multi-model, consider 'llama-swap'.
 EOF
   # Make the extension target llama.cpp.
-  if [ "$DRY" = 0 ]; then
-    for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
-      [ -e "$p" ] || continue; grep -qsF OMP_LOCAL_BACKEND "$p" || printf '\nexport OMP_LOCAL_BACKEND=llama.cpp\n' >> "$p"
-    done
-  fi
+  for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
+    [ -e "$p" ] || continue; grep -qsF OMP_LOCAL_BACKEND "$p" || printf '\nexport OMP_LOCAL_BACKEND=llama.cpp\n' >> "$p"
+  done
 fi
 
 # --- wire roles into OMP config --------------------------------------------
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$APPLY" = 1 ] || ask "Append the role wiring to $CFG?" "Y"; then
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] append modelRoles/enabledModels to $CFG"
-  else
-    mkdir -p "$(dirname "$CFG")"; touch "$CFG"
-    if grep -q "local-llm (appended" "$CFG" 2>/dev/null; then echo "  (already present — skipping)"
-    else { echo ""; echo "# --- local-llm (appended $(date -u +%FT%TZ)) ---"; printf '%s\n' "$ROLES_YAML"; } >> "$CFG"; echo "  appended to $CFG"; fi
-  fi
+  mkdir -p "$(dirname "$CFG")"; touch "$CFG"
+  if grep -q "local-llm (appended" "$CFG" 2>/dev/null; then echo "  (already present — skipping)"
+  else { echo ""; echo "# --- local-llm (appended $(date -u +%FT%TZ)) ---"; printf '%s\n' "$ROLES_YAML"; } >> "$CFG"; echo "  appended to $CFG"; fi
 fi
 
 # --- Load the provider extension --------------------------------------------
@@ -166,12 +161,9 @@ fi
 # register. Mirror it into OMP's native user-extension dir.
 if [ -d "$HERE/extensions" ]; then
   DEST="$HOME/.omp/agent/extensions/local-llm"
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror local-llm extension -> $DEST (OMP native ext dir)"
-  else
-    rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
-    [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
-    say "local-llm provider loaded into $DEST"
-  fi
+  rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
+  [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
+  say "local-llm provider loaded into $DEST"
 fi
 
 cat <<EOF

@@ -2,13 +2,13 @@
 # dev-team installer (Linux/macOS) — prerequisite checker + optional config apply.
 # The agentic dev team is all-cloud: no local model backend to install. It needs
 # OMP + git; a few skills optionally use gh / semgrep / docker / python3.
-# Flags: --dry-run, --apply-config (append config.snippet.yml), -y.
+# Flags: --apply-config (append config.snippet.yml), --no-update (no-op), -y.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; APPLY=0; INSECURE_TLS=0
+APPLY=0; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; --apply-config) APPLY=1 ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
+  --apply-config) APPLY=1 ;; --no-update) ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   -h|--help) sed -n '2,6p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
@@ -17,7 +17,7 @@ say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 ok()   { printf '\033[32m  ok\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
-run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+run()  { eval "$@"; }
 # Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in
 # bypass of cert verification for curl/wget (incl. piped installers), git, node/bun.
 enable_insecure_tls() {
@@ -56,11 +56,9 @@ done
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$APPLY" = 1 ]; then
   say "Appending config.snippet.yml to $CFG"
-  if [ "$DRY" = 0 ]; then
-    mkdir -p "$(dirname "$CFG")"; touch "$CFG"
-    if grep -q "dev-team —" "$CFG" 2>/dev/null; then echo "  (already present — skipping)"
-    else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; echo "  appended."; fi
-  fi
+  mkdir -p "$(dirname "$CFG")"; touch "$CFG"
+  if grep -q "dev-team —" "$CFG" 2>/dev/null; then echo "  (already present — skipping)"
+  else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; echo "  appended."; fi
 fi
 
 # --- Load the guard/routing extensions --------------------------------------
@@ -69,20 +67,9 @@ fi
 # otherwise never run. Mirror them into OMP's native user-extension dir.
 if [ -d "$HERE/extensions" ]; then
   DEST="$HOME/.omp/agent/extensions/dev-team"
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror dev-team extensions -> $DEST (OMP native ext dir)"
-  else
-    rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
-    [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
-    say "guards + model-routing loaded into $DEST"
-  fi
+  rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
+  [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
+  say "guards + model-routing loaded into $DEST"
 fi
 
-cat <<'EOF'
-
-==> dev-team ready. Next:
-    1) If you didn't pass --apply-config, paste config.snippet.yml into
-       ~/.omp/agent/config.yml.
-    2) Run `omp`, then drive the workflow: /specs -> /plan -> /build -> /pr.
-    Keep the small tier cheap: modelRoles.smol (default claude-haiku-4-5; or a
-    github-copilot model via the copilot-preset plugin).
-EOF
+say "dev-team ready. Restart omp, then drive the workflow: /specs -> /plan -> /build -> /pr."

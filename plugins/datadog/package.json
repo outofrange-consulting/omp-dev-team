@@ -1,0 +1,8 @@
+{
+  "name": "@omp-dev-team/datadog",
+  "version": "1.0.0",
+  "description": "Datadog observability for OMP via the Datadog 'pup' CLI — one broad skill that drives pup.",
+  "license": "MIT",
+  "private": true,
+  "comment": "Config-only plugin: install.sh/ps1 install the pup CLI (DataDog/pup) and set up auth. The single 'datadog' skill routes everything through pup so OMP's skill list isn't flooded by pup's ~30 embedded domain skills. --with-skills opts into `pup skills install pi`."
+}

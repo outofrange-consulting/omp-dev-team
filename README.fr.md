@@ -2,7 +2,7 @@
 
 > 🌐 [English](README.md) · **Français**
 
-Quatre plugins **indépendants** pour [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi).
+Sept plugins **indépendants** pour [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi).
 Installez-en autant que vous voulez — ils ne partagent rien. Un installeur global
 met en place OMP et vous guide à travers chacun d'eux.
 
@@ -13,6 +13,8 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), un skill « caveman » de sortie laconique, et un skill « yagni » de code minimal — par-dessus la compaction/`astGrep` natives d'OMP. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Propulsé par l'**Azure CLI** (`az` + extension azure-devops), auth PAT, cache SQLite ; fonctionne derrière les proxys TLS d'entreprise. |
 | **[`local-llm`](plugins/local-llm/)** | **Modèles locaux dimensionnés à votre matériel** — détecte VRAM/RAM, choisit les meilleurs GGUF par rôle, installe Ollama (ou llama.cpp), les télécharge, et enregistre le fournisseur `local-llm`. Hybride : planification cloud, exécution/rôles bon marché en local. |
+| **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI comme fournisseur de modèles** — pointez-le vers une passerelle [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (URL + clé API) ; l'installeur liste les modèles et écrit un fournisseur `cliproxy` dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `cliproxy/<id-modèle>`. |
+| **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
 
 ## Démarrage rapide (recommandé)
 
@@ -22,20 +24,26 @@ plugin + sa config de façon interactive, et corrige votre PATH à la fin.
 ```sh
 git clone https://github.com/outofrange-consulting/omp-dev-team
 cd omp-dev-team
-bash install.sh                 # Linux/macOS   (-y non-interactif, --dry-run pour prévisualiser)
+bash install.sh                 # Linux/macOS   (-y non-interactif)
 #   pwsh -File install.ps1      # Windows
 ```
 
 **Fonctionne d'emblée / défauts :** l'installeur global **réinstalle les plugins
-choisis à la dernière version** et **réinitialise le bloc géré model-roles + skills**
-dans `~/.omp/agent/config.yml` (votre ancienne config est sauvegardée dans
-`config.yml.<horodatage>.bak`). Avec **copilot-preset**, ça câble via GitHub Copilot :
-`smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 4.6** (qui pilote
+choisis à la dernière version** et met runtimes/OMP/outils **à jour par défaut**
+(`--no-update` / `-NoUpdate` pour conserver les outils déjà installés). Il **fusionne**
+ensuite les défauts gérés model-roles + skills dans `~/.omp/agent/config.yml` et les
+serveurs MCP de l'équipe dans `~/.omp/agent/mcp.json` — **tout ce que vous avez déjà
+réglé est préservé** (aucun écrasement). Avec **copilot-preset**, ça câble via GitHub
+Copilot : `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 4.6** (qui pilote
 l'orchestrateur dev-team — une tâche non triviale passe par research → plan →
 implement → review), `slow` → **Opus** ; sans lui, les mêmes tiers en ids Anthropic.
-ctx-wire + CodeGraph de token-diet et les skills sont aussi activés. Les outils déjà
-présents sont conservés — `--update` (`-Update`) pour aussi rafraîchir bun/node/omp ;
-`--no-config` pour ne pas toucher à votre config.
+ctx-wire + CodeGraph de token-diet et les skills sont aussi activés. `--no-config`
+laisse votre config + mcp.json intacts.
+
+La fusion MCP active les serveurs de l'équipe (`context7`, `miro`, et `github` si un
+PAT est fourni / `$GITHUB_TOKEN` est défini) dans `~/.omp/agent/mcp.json`. Atlassian
+n'est **pas** un MCP ici — `acli` (installé par token-diet) est notre référence pour
+Jira/Confluence/Bitbucket.
 
 **Contexte de démarrage allégé (par défaut).** OMP charge le schéma JSON de *chaque*
 outil dans le system prompt à *chaque* requête : une install dev-team complète
@@ -65,7 +73,11 @@ offrent deux options :
   **persisté dans votre profil shell** pour qu'`omp` et `ollama pull` en bénéficient ensuite.
   Sous **WSL, pas besoin du .pem** — `--ca-from-windows` exporte automatiquement le
   magasin de certificats Windows (avec les racines d'entreprise), et l'installeur
-  global le **propose dès qu'il détecte WSL**.
+  global le **propose dès qu'il détecte WSL**. Pour plutôt installer la CA dans le
+  magasin **système** de WSL (curl/git/node lui font confiance nativement, sans
+  variables d'env), lancez [`scripts/wsl-trust-zscaler.ps1`](scripts/wsl-trust-zscaler.ps1)
+  depuis **PowerShell Windows** — il utilise `wsl --user root` (sans sudo) et
+  `update-ca-certificates`.
 - **Échappatoire — bypass :** `--insecure-tls` (ou `OMP_INSECURE_TLS=1`) désactive la
   vérification le temps du run (curl/wget incl. installeurs pi-pés, git, node/bun/npm).
   Ne peut pas bypasser les outils Go/libcurl (Ollama, etc.) — utilisez `--ca-file` pour ceux-là.
@@ -82,6 +94,8 @@ omp plugin install copilot-preset@omp-dev-team
 omp plugin install token-diet@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
 omp plugin install local-llm@omp-dev-team
+omp plugin install cliproxy@omp-dev-team
+omp plugin install datadog@omp-dev-team
 ```
 
 > **Important — modules d'extension.** OMP ne charge **pas** les modules
@@ -105,6 +119,8 @@ du plugin dans leur dernière version) — voir son README :
 - **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installe l'Azure CLI + l'extension azure-devops, demande org/projet/**PAT**, lance `az devops login`), puis redémarrez `omp` pour charger l'outil `ado`.
 - **local-llm** → `bash plugins/local-llm/install.sh` (détecte VRAM/RAM, demande, installe Ollama/llama.cpp, télécharge les meilleurs modèles, câble les rôles).
+- **cliproxy** → `bash plugins/cliproxy/install.sh --url=http://localhost:8317 --api-key=…` (liste les modèles de la passerelle, écrit le fournisseur `cliproxy` dans `~/.omp/agent/models.yml`), puis redémarrez `omp`.
+- **datadog** → `bash plugins/datadog/install.sh` (installe la CLI Datadog `pup` + configure l'auth ; `--with-skills` pour aussi ajouter les skills par domaine de pup).
 
 ## Disposition
 
@@ -149,8 +165,8 @@ Notes :
 ## Testé
 
 Vérifié de bout en bout sous Linux et en intégration continue (Linux/macOS/Windows,
-voir `.github/workflows/installers.yml`) : tous les `install.sh` passent `bash -n` +
-dry-run ; tous les `install.ps1` se parsent sous PowerShell 7 ; tous les manifestes
+voir `.github/workflows/installers.yml`) : tous les `install.sh` passent `bash -n` ;
+tous les `install.ps1` se parsent sous PowerShell 7 ; tous les manifestes
 sont du JSON valide ; les 8 extensions de dev-team compilent sous `bun` ; ctx-wire,
 CodeGraph et OMP s'installent via les commandes exactes des scripts ; et les cinq
 plugins s'installent via le vrai OMP.

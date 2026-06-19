@@ -6,13 +6,13 @@
 # Flags:
 #   --configure   force the org/project/PAT prompt
 #   --no-config   never prompt for credentials
-#   --dry-run     print only
+#   --no-update   no-op (kept for installer compatibility)
 #   -y, --yes     non-interactive (skip the credential prompt)
 set -euo pipefail
 
-DRY=0; YES=0; CONFIG=auto; INSECURE_TLS=0
+YES=0; CONFIG=auto; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
+  --no-update) ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --configure) CONFIG=force ;; --no-config) CONFIG=skip ;;
   -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
@@ -21,7 +21,7 @@ esac; done
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
-run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+run()  { eval "$@"; }
 # Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in
 # bypass of cert verification for curl/wget (incl. piped installers), git, node/bun.
 enable_insecure_tls() {
@@ -59,7 +59,7 @@ fi
 if have az; then
   if az extension show --name azure-devops >/dev/null 2>&1; then say "azure-devops CLI extension present"
   else say "Adding the azure-devops CLI extension"; run "az extension add --name azure-devops --only-show-errors || true"; fi
-elif [ "$DRY" = 1 ]; then echo "  [dry-run] az extension add --name azure-devops"; fi
+fi
 have git || warn "git not found — pr_checkout / pr_push need it (install git)"
 
 # --- Configure org / project / PAT ------------------------------------------
@@ -68,7 +68,6 @@ have git || warn "git not found — pr_checkout / pr_push need it (install git)"
 az_login() {  # az_login <org-name> <project> <pat>
   have az || return 0
   local orgurl="https://dev.azure.com/$1"
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] az devops configure --defaults organization=$orgurl${2:+ project=$2}; az devops login"; return 0; fi
   az devops configure --defaults "organization=$orgurl" ${2:+"project=$2"} --only-show-errors >/dev/null 2>&1 || true
   if [ -n "$3" ]; then
     printf '%s' "$3" | az devops login --organization "$orgurl" --only-show-errors >/dev/null 2>&1 \
@@ -83,7 +82,6 @@ configure_ado() {
   org="${org#https://dev.azure.com/}"; org="${org%/}"   # tolerate a pasted URL
   printf '    AZURE_DEVOPS_PROJECT (optional default): '; read -r proj </dev/tty || proj=""
   printf '    AZURE_DEVOPS_PAT (hidden; Code R/W, PR R/W, Build R, Policy R): '; read -r -s pat </dev/tty || pat=""; echo
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] write ORG/PROJECT to ~/.profile, PAT to $secrets (chmod 600), az devops login"; return; fi
   [ -e "$HOME/.profile" ] || : > "$HOME/.profile"
   for p in "${profiles[@]}"; do [ -e "$p" ] || continue
     grep -qsF AZURE_DEVOPS_ORG "$p" || printf '\nexport AZURE_DEVOPS_ORG=%q\n' "$org" >> "$p"
@@ -118,12 +116,9 @@ fi
 HERE_EXT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "$HERE_EXT/extensions" ]; then
   DEST="$HOME/.omp/agent/extensions/azure-devops-fs"
-  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror ado extension -> $DEST (OMP native ext dir)"
-  else
-    rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE_EXT/extensions" "$DEST/"
-    [ -f "$HERE_EXT/package.json" ] && cp "$HERE_EXT/package.json" "$DEST/"
-    say "ado tool loaded into $DEST"
-  fi
+  rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE_EXT/extensions" "$DEST/"
+  [ -f "$HERE_EXT/package.json" ] && cp "$HERE_EXT/package.json" "$DEST/"
+  say "ado tool loaded into $DEST"
 fi
 
 cat <<'EOF'

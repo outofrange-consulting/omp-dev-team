@@ -3,7 +3,7 @@
   "name": "omp-dev-team",
   "owner": { "name": "outofrange-consulting" },
   "metadata": {
-    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, a token-reduction toolkit, and an Azure DevOps filesystem.",
+    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, a token-reduction toolkit, an Azure DevOps filesystem, a CLIProxyAPI provider, local LLMs, and Datadog observability.",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -44,6 +44,22 @@
       "source": "./local-llm",
       "description": "Run OMP roles on LOCAL models sized to your hardware: detects VRAM/RAM, picks the best-fit GGUF models per role, installs Ollama (or llama.cpp), pulls the models, and registers them as the 'local-llm' provider. Hybrid by default (planning on cloud, execution/cheap roles local).",
       "category": "configuration",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "cliproxy",
+      "source": "./cliproxy",
+      "description": "Register a CLIProxyAPI gateway (router-for-me/CLIProxyAPI) as an OpenAI-compatible model provider. You supply the gateway URL + API key; the installer lists the models and writes a 'cliproxy' provider into ~/.omp/agent/models.yml with runtime discovery, so any upstream the gateway exposes is usable as cliproxy/<model-id>.",
+      "category": "configuration",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "datadog",
+      "source": "./datadog",
+      "description": "Datadog observability from the terminal via the Datadog 'pup' CLI (DataDog/pup): logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, synthetics, RUM, security/audit, CI test visibility, and LLM/agent observability. One broad 'datadog' skill drives pup (which embeds Datadog's domain skills) instead of flooding OMP. Installer sets up pup + auth.",
+      "category": "devops",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     }

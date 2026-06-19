@@ -66,10 +66,11 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   --compress` ; voir `ctx-wire/README.md`.
 - **acli** → le **CLI officiel Atlassian** (Jira/Confluence/Bitbucket), installé dans
   `~/.local/bin` par `install.sh` (`--no-acli` pour sauter ; relancer pour mettre à
-  jour — versions supportées ~6 mois). Préfère le **MCP Atlassian** pour les lectures
-  structurées ; `acli` pour les écritures en masse/scriptées. Sortie anglaise/
-  structurelle — `ctx-wire/filters.d/acli.toml` la compacte et masque les tokens
-  `ATATT…` (ctx-wire scrube déjà GitHub/ADO/Atlassian en forme header/URL/`clé=valeur`).
+  jour — versions supportées ~6 mois). **acli est notre référence pour Atlassian** —
+  en lecture comme en écriture, plutôt que le MCP Atlassian. `install.sh` propose
+  aussi de lancer `acli jira auth login` en interactif. Sortie anglaise/structurelle —
+  `ctx-wire/filters.d/acli.toml` la compacte et masque les tokens `ATATT…` (ctx-wire
+  scrube déjà GitHub/ADO/Atlassian en forme header/URL/`clé=valeur`).
 - **CodeGraph** → un serveur MCP (`.mcp.json`, `codegraph serve --mcp`, **activé par
   défaut**) exposant `codegraph_search/node/callers/callees/explore/impact/files/status`.
   Voir `skill://codegraph`. Se resynchronise aux changements de fichiers.

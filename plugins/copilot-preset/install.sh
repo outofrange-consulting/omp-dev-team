@@ -2,13 +2,13 @@
 # copilot-preset installer (Linux/macOS) — config-only. Ensures OMP is present,
 # guides Copilot login, and (optionally) appends config.snippet.yml to your OMP
 # config. No external tools to install.
-# Flags: --dry-run, --apply-config (append snippet), -y.
+# Flags: --apply-config (append snippet), --no-update (no-op), -y.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DRY=0; APPLY=0; INSECURE_TLS=0
+APPLY=0; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
-  --dry-run) DRY=1 ;; --apply-config) APPLY=1 ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
+  --apply-config) APPLY=1 ;; --no-update) ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   -h|--help) sed -n '2,5p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
@@ -16,7 +16,7 @@ esac; done
 say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
-run()  { if [ "$DRY" = 1 ]; then printf '  [dry-run] %s\n' "$*"; else eval "$@"; fi; }
+run()  { eval "$@"; }
 # Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in
 # bypass of cert verification for curl/wget (incl. piped installers), git, node/bun.
 enable_insecure_tls() {
@@ -47,14 +47,12 @@ fi
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$APPLY" = 1 ]; then
   say "Appending config.snippet.yml to $CFG"
-  if [ "$DRY" = 0 ]; then
-    mkdir -p "$(dirname "$CFG")"; touch "$CFG"
-    if grep -q "copilot-preset" "$CFG" 2>/dev/null; then
-      echo "  (already present — skipping)"
-    else
-      { echo ""; echo "# --- copilot-preset (appended $(date -u +%FT%TZ)) ---"; cat "$HERE/config.snippet.yml"; } >> "$CFG"
-      echo "  appended. Review $CFG and adjust model ids to your plan."
-    fi
+  mkdir -p "$(dirname "$CFG")"; touch "$CFG"
+  if grep -q "copilot-preset" "$CFG" 2>/dev/null; then
+    echo "  (already present — skipping)"
+  else
+    { echo ""; echo "# --- copilot-preset (appended $(date -u +%FT%TZ)) ---"; cat "$HERE/config.snippet.yml"; } >> "$CFG"
+    echo "  appended. Review $CFG and adjust model ids to your plan."
   fi
 fi
 
