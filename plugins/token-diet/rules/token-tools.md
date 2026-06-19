@@ -20,3 +20,8 @@ description: Token-saving tool routing (ctx-wire + CodeGraph)
   replaces dozens of grep+read round-trips.
 - Reserve full-file `Read` for when you actually need to edit or read prose; for
   structure, query the graph first.
+- **Re-reads are deduped.** Reading the same unchanged file again returns a short
+  stub, not the bytes — the earlier read is still in context, so reuse it instead
+  of re-reading to "refresh". (Editing the file, or compaction, lets a real
+  re-read through.) Likewise, don't paste/echo the same large output twice:
+  byte-identical repeated blocks are collapsed before each model call.

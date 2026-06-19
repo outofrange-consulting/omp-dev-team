@@ -28,6 +28,8 @@ Three external layers on top of what OMP already does natively. Run
 | **CodeGraph** (MCP) | no persistent cross-file **symbol/call graph** | ~96% fewer tokens for "who calls X / impact / architecture" vs grep+read |
 | **caveman** (skill) | agent **output** is verbose prose | ~65% fewer output tokens, on demand |
 | **yagni** (skill) | agent writes **too much code** (bloat/over-engineering) | ~80–94% less code → fewer output now + fewer input tokens every future turn |
+| **read-dedup** + **context-dedup** (extensions) | unchanged files re-read, and identical big blocks repeated, **inflate input** | LOSSLESS, on by default: re-reads return a stub; byte-identical repeated blocks collapsed before each call |
+| **context-compress** (extension, opt-in) | old **prose** context stays verbose every turn | protect-masked prose shrink of OLD messages — code/paths/numbers kept byte-identical (lossy; `TOKEN_DIET_CONTEXT_COMPRESS=safe\|lite\|full`) |
 
 ## Decision guide
 
@@ -40,6 +42,12 @@ Three external layers on top of what OMP already does natively. Run
   (`skill://caveman`).
 - Want the agent to **write minimal code** (YAGNI, no over-engineering) or to
   review a diff for bloat → `/yagni` (`skill://yagni`).
+- Don't re-read an unchanged file to "refresh" — it's **deduped** (a stub is
+  returned; the earlier read is still in context). Same for re-pasting/echoing
+  the same large output: byte-identical repeated blocks are collapsed each call.
+- Want to also squeeze verbose **old prose** context (lossy, but code/paths/
+  numbers stay byte-identical, recency window untouched)? Set
+  `TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full`.
 
 ## Setup (once per machine / project)
 

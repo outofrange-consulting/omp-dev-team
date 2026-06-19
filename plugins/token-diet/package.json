@@ -1,8 +1,15 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "1.3.1",
-  "description": "Token-reduction toolkit for OMP: ctx-wire + CodeGraph + caveman + yagni.",
+  "version": "1.7.0",
+  "description": "Token-reduction toolkit for OMP: ctx-wire + context-mode + CodeGraph + caveman + yagni, plus read/context dedup and an opt-in protect-masked context compressor.",
   "license": "MIT",
   "private": true,
-  "comment": "Ships the CodeGraph MCP server (enabled by default in .mcp.json), an always-on rule, a config.snippet.yml that enables skill commands, and four skills (codegraph, caveman, yagni, token-diet). ctx-wire (transparent command-output compression) is installed by install.sh via PATH shims in ~/.local/bin. No omp.extensions."
+  "omp": {
+    "extensions": [
+      "./extensions/read-dedup.ts",
+      "./extensions/context-dedup.ts",
+      "./extensions/context-compress.ts"
+    ]
+  },
+  "comment": "Ships the CodeGraph MCP server (enabled in .mcp.json), an always-on rule, a config.snippet.yml, four skills (codegraph, caveman, yagni, token-diet), and three context-transform extensions: read-dedup + context-dedup are lossless and on by default; context-compress is lossy and opt-in via TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full. install.sh mirrors extensions/ into ~/.omp/agent/extensions/token-diet (OMP does not load extensions from marketplace cache installs) and installs ctx-wire PATH shims. Pure logic lives in extensions/lib and is unit-tested by scripts/extensions.test.ts."
 }
