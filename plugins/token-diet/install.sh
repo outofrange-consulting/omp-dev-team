@@ -278,6 +278,23 @@ elif ! have csharp-ls; then
   warn "csharp-ls not found — skipping LSP config (dotnet tool install -g csharp-ls)"
 fi
 
+# --- Load the context-transform extensions ----------------------------------
+# OMP does NOT load extension modules (package.json `omp.extensions`) from a
+# marketplace cache install, so mirror them into OMP's native user-extension dir
+# (same pattern as dev-team/local-llm). read-dedup + context-dedup are LOSSLESS
+# and on by default; context-compress runs at 'safe' (near-lossless) by default,
+# with lite|full (lossy) or off via TOKEN_DIET_CONTEXT_COMPRESS. Disable a dedup
+# with TOKEN_DIET_READ_DEDUP=0 / TOKEN_DIET_CONTEXT_DEDUP=0.
+if [ -d "$HERE/extensions" ]; then
+  DEST="$HOME/.omp/agent/extensions/token-diet"
+  if [ "$DRY" = 1 ]; then echo "  [dry-run] mirror token-diet extensions -> $DEST (OMP native ext dir)"
+  else
+    rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
+    [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
+    say "read-dedup + context-dedup + context-compress (safe) loaded into $DEST"
+  fi
+fi
+
 cat <<'EOF'
 
 ==> token-diet is active:
@@ -300,5 +317,9 @@ cat <<'EOF'
       OMP only loads its own plugins and project-level AGENTS.md/CLAUDE.md files.
     - C# LSP (csharp-ls): auto-configured for .sln/.csproj projects.
     - `/caveman` (terse output) and `/yagni` (write less code) are enabled.
-    Restart `omp` so skills + isolation take effect.
+    - Context extensions: re-reads of unchanged files + byte-identical repeated
+      blocks are elided (LOSSLESS, on); old prose context is also compressed at
+      'safe' by default (near-lossless). TOKEN_DIET_CONTEXT_COMPRESS=lite|full
+      for more (lossy), or =off to disable.
+    Restart `omp` so skills + isolation + extensions take effect.
 EOF

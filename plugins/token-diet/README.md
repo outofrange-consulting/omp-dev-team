@@ -15,6 +15,8 @@ in place of it.
 | **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
+| **read-dedup** + **context-dedup** | re-reads of unchanged files + byte-identical repeated blocks inflate **input** | LOSSLESS, on: re-read → stub; identical blocks collapsed before each call | caveman-code's "Read Dedup", reimplemented on OMP's `tool_call`/`context` hooks |
+| **context-compress** | old **prose** context stays verbose every turn | protect-masked prose shrink of old messages — code/paths/numbers byte-identical (`safe` on by default; `lite`/`full` opt-in) | quality-preserving take on [caveman-code](https://github.com/JuliusBrussee/caveman-code)'s LLMLingua/Provence |
 | **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
 | **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
 | **C# LSP** | `csharp-ls` wired as OMP-native language server | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
@@ -101,6 +103,24 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   ladder + review/audit/debt modes. Lazy ≠ negligent — security/validation/data-
   loss/a11y/tests are never cut (and it won't edit `.feature` specs to dodge
   work). See `skill://yagni`.
+- **read-dedup / context-dedup / context-compress** → native OMP extensions,
+  mirrored into `~/.omp/agent/extensions/token-diet` by `install.sh` (OMP doesn't
+  load extensions from marketplace cache installs). The two **dedups are lossless
+  and on by default**: read-dedup gates the `read` tool (`tool_call`) so a
+  byte-identical re-read of an unchanged file returns a stub instead of the bytes
+  (compaction-aware), and context-dedup uses the `context` hook to collapse
+  byte-identical large blocks repeated across tool/assistant messages (keeping
+  the newest verbatim) — catching duplicates from any source, including
+  `bash`/`cat` and MCP. **context-compress runs at `safe` by default**
+  (near-lossless: strips ANSI + collapses whitespace only, never drops words) —
+  the quality-preserving realization of caveman-code's LLMLingua/Provence context
+  transform. A *protect mask* keeps code, paths, numbers and identifiers
+  **byte-identical** (the same set you'd hand real LLMLingua-2 as `force_tokens`),
+  only prose is touched, and the recency window + every user/system message are
+  left untouched. Go further (lossy — drops filler/articles) or disable with
+  `TOKEN_DIET_CONTEXT_COMPRESS=lite|full|off`. Pure logic in `extensions/lib`,
+  unit-tested by `bun scripts/extensions.test.ts`. Full analysis + the heavier
+  real-LLMLingua escalation path: `research/caveman-code.md`.
 
 ## What OMP already does (so you don't double up)
 

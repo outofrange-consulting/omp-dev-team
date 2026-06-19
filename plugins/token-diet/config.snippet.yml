@@ -34,3 +34,21 @@ disabledProviders:
   - opencode        # ~/.config/opencode/ and .opencode/ — OpenCode MCP
   - github          # ~/.copilot/ and .github/ — Copilot CLI + instructions
   - cline           # .clinerules — Cline project rules
+
+# Context-transform extensions (installed as files by install.sh into
+# ~/.omp/agent/extensions/token-diet — they are NOT config.yml keys). They are
+# controlled by environment variables, all quality-first defaults:
+#   read-dedup       LOSSLESS, ON  — suppress byte-identical re-reads of unchanged
+#                    files while the original is still in context (compaction-aware).
+#                    Off: TOKEN_DIET_READ_DEDUP=0
+#   context-dedup    LOSSLESS, ON  — before each LLM call, collapse byte-identical
+#                    large blocks repeated across tool/assistant messages (keep the
+#                    newest verbatim). Off: TOKEN_DIET_CONTEXT_DEDUP=0
+#                    Threshold: TOKEN_DIET_DEDUP_MIN_CHARS (default 1200)
+#   context-compress ON at `safe` by default — protect-masked prose compression of
+#                    OLD assistant/tool messages (code/paths/numbers byte-identical;
+#                    recency window + user/system untouched). `safe` is near-lossless
+#                    (ANSI + whitespace only, no word drop). Go further (lossy) or
+#                    turn off: TOKEN_DIET_CONTEXT_COMPRESS=lite|full|off
+#                    Tuning: TOKEN_DIET_COMPRESS_MIN_CHARS (600),
+#                    TOKEN_DIET_COMPRESS_KEEP_RECENT (6)
