@@ -16,6 +16,7 @@ in place of it.
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 | **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
+| **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
 | **C# LSP** | `csharp-ls` wired as OMP-native language server | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Install
@@ -76,6 +77,14 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   `install.sh` installs the `ctx7` CLI globally. The bundled `context7` skill
   (`skill://context7`) instructs the agent to fetch current docs automatically
   whenever a library, framework, or API is involved.
+- **Lean tool surface** → `config.snippet.yml` sets `tools.discoveryMode: all` with
+  an `essentialOverride` hot path (`read, bash, edit, write, find, search, task,
+  todo`). OMP otherwise inlines every tool's JSON schema into the system prompt on
+  every request (~18K with dev-team); discovery mode hides the non-essential ones
+  behind the built-in `search_tool_bm25` discovery tool, so they cost nothing until
+  used. Drops startup "System tools" to ~10K. Widen the always-loaded set (e.g. add
+  `ast_grep`) via `tools.essentialOverride`; set `discoveryMode: auto` to only hide
+  MCP tools past 40, or `off` to disable.
 - **Provider isolation** → `config.snippet.yml` sets `disabledProviders` +
   `enableClaudeUser/Project/CodexUser: false` so OMP only loads its own plugins and
   project-level `AGENTS.md`/`CLAUDE.md`. Excluded: `~/.claude/plugins`, `~/.codex`,
