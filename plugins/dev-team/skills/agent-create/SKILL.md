@@ -1,13 +1,6 @@
 ---
 name: agent-create
-description: >-
-  Create new Oh-My-Pi (OMP) sub-agent files following the official schema and
-  token-efficiency budgets. Handles both review agents (JSON output, read-only
-  tools, ≤ 40-line body) and team agents (prose output, action tools, ≤ 75-line
-  body). Use when the user says "add an agent", "create a reviewer for X",
-  "new team agent for Y", or when /agent-add is invoked. Validates against
-  /agent-audit before writing. Updates the agent registry and CLAUDE.md after
-  success.
+description: "Create new Oh-My-Pi (OMP) sub-agent files following the official schema and token-efficiency budgets — review agents (JSON output, read-only tools, ≤ 40-line body) and team agents (prose output, action tools, ≤ 75-line body). Use when the user says \"add an agent\", \"create a reviewer for X\", \"new team agent for Y\", or when /agent-add is invoked. Validates against /agent-audit before writing, then updates the agent registry and CLAUDE.md."
 role: worker
 user-invocable: true
 ---

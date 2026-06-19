@@ -1,10 +1,6 @@
 ---
 name: benchmark
-description: >-
-  Capture runtime performance metrics (Core Web Vitals, resource sizes, load
-  times) for web pages. Compare against baselines and performance budgets.
-  Use when the user says "benchmark", "check performance", "page speed",
-  "web vitals", "performance regression", or "how fast is this page".
+description: "Capture runtime performance metrics (Core Web Vitals, resource sizes, load times) for web pages and compare against baselines and budgets. Use when the user says \"benchmark\", \"check performance\", \"page speed\", \"web vitals\", \"performance regression\", or \"how fast is this page\"."
 argument-hint: "<url> [--baseline] [--budget] [--trend] [--mobile] [--3g] [--runs <n>]"
 user-invocable: true
 allowed-tools: read, write, find, search, bash(npx playwright *), bash(node *), bash(mkdir *), bash(date *), bash(cat *)

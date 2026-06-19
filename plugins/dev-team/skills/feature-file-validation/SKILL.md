@@ -1,13 +1,6 @@
 ---
 name: feature-file-validation
-description: >-
-  Validate Gherkin feature files for structural quality, determinism, and
-  implementation independence, then verify each scenario has matching test
-  automation. Use this skill whenever reviewing test files, feature files, or
-  BDD scenarios — including during /code-review when .feature files or step
-  definition files appear in the changeset. Also use when a user asks to
-  "check my feature files", "validate my Gherkin", "are my scenarios
-  testable", or "do my feature files have tests".
+description: "Validate Gherkin feature files for structural quality, determinism, and implementation independence, then verify each scenario has matching test automation. Use whenever reviewing test files, feature files, or BDD scenarios — including during /code-review when .feature or step-definition files appear in the changeset. Also use when the user asks to \"check my feature files\", \"validate my Gherkin\", \"are my scenarios testable\", \"do my feature files have tests\"."
 role: worker
 user-invocable: true
 ---

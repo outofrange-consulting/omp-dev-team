@@ -1,12 +1,6 @@
 ---
 name: test-design
-description: >-
-  Deep test-design review: dispatch test-review (tactical quality) and
-  test-smell-review (xUnit smells, double selection, pyramid placement) in
-  parallel, then run the test-design-advisor skill to recommend how to test
-  hard-to-test code. Use when the user says "review my tests", "how should I
-  test this", "is this testable", "test design review", or before writing a
-  suite for an untested module. Advisory — it recommends, it does not edit.
+description: "Deep test-design review: dispatches test-review (tactical quality) and test-smell-review (xUnit smells, double selection, pyramid placement) in parallel, then runs test-design-advisor to recommend how to test hard-to-test code. Use when the user says \"review my tests\", \"how should I test this\", \"is this testable\", \"test design review\", or before writing a suite for an untested module. Advisory — it recommends, it does not edit."
 argument-hint: "[--path <dir>] [--since <ref>] [--advise]"
 user-invocable: true
 allowed-tools: read, search, find, bash(git diff *), task

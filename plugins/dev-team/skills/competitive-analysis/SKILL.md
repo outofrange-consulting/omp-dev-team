@@ -1,19 +1,6 @@
 ---
 name: competitive-analysis
-description: >-
-  Compare this plugin against external plugins, tools, feature sets, or ideas to
-  find gaps and weaknesses. Produces a structured gap analysis report with rough
-  specs for closing each gap. Use this skill whenever the user references
-  capabilities from OUTSIDE the plugin — another plugin they found, a competitor's
-  tool, a feature list from a different project, a repo URL, or a hypothetical
-  concept for capabilities we lack. Trigger phrases include "how do we compare
-  to X", "what does Y have that we don't", "what are we missing", "gap analysis",
-  "competitive analysis", "weaknesses compared to", "stack up against",
-  "where do we fall short", and "should we add X — I saw it in another tool".
-  Also trigger when the user pastes a feature list or describes capabilities
-  they saw elsewhere and asks whether we should have them. Do NOT trigger for
-  internal operations like running reviews, auditing our own agents, adding
-  skills, threat modeling, domain analysis, or debugging — those use other skills.
+description: "Compare this plugin against external plugins, tools, or feature sets to find gaps and weaknesses; produces a structured gap-analysis report with rough specs to close each gap. Use when the user references capabilities from OUTSIDE the plugin (a competitor tool, a pasted feature list, a repo URL, or \"should we add X — I saw it in another tool\"): \"how do we compare to X\", \"what does Y have that we don't\", \"what are we missing\", \"gap analysis\", \"competitive analysis\", \"weaknesses compared to\", \"stack up against\", \"where do we fall short\". Do NOT trigger for internal ops (reviews, agent audits, adding skills, threat modeling, domain analysis, debugging)."
 role: orchestrator
 user-invocable: true
 ---

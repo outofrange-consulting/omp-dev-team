@@ -1,6 +1,6 @@
 ---
 name: ubiquitous-language
-description: Build or refresh the project's ubiquitous language glossary — one markdown file per business concept at `.plans/domain/<Concept>.md` plus a `_index.md`. Mines grep-based signals (class names, enum values, interface names, domain-event names, BDD scenario names, validator rules) and applies a four-gate filter to keep only genuine business concepts. Optional interactive interview phase to refine definitions and capture behavior (state transitions, invariants, synonyms to avoid). Language-agnostic — works for JS/TS, C#, Java, Python, Go, or any mix. Use whenever the user says "build the glossary", "extract domain terms", "document the ubiquitous language", "what are the domain concepts", or when domain-review surfaces pervasive terminology inconsistency (3+ names for the same concept).
+description: "Build or refresh the project's ubiquitous-language glossary — one markdown file per business concept at `.plans/domain/<Concept>.md` plus `_index.md`. Mines grep signals (class/enum/interface/domain-event/BDD-scenario/validator names), applies a four-gate filter to keep genuine business concepts, with an optional interview phase to refine definitions and behavior. Language-agnostic. Use when the user says \"build the glossary\", \"extract domain terms\", \"document the ubiquitous language\", \"what are the domain concepts\", or when domain-review surfaces 3+ names for the same concept."
 role: worker
 user-invocable: true
 argument-hint: "[path-to-source-root]"

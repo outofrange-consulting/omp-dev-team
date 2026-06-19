@@ -1,10 +1,6 @@
 ---
 name: review
-description: >-
-  Alias for /code-review. Run all enabled review agents against target files.
-  Use this whenever the user asks for a code review, wants feedback on their
-  code, says "review my code", "check this before I PR", "what's wrong with
-  this", "run the agents", or has just finished implementing a feature.
+description: "Alias for /code-review — run all enabled review agents against target files. Use whenever the user asks for a code review or feedback: \"review my code\", \"check this before I PR\", \"what's wrong with this\", \"run the agents\", or has just finished implementing a feature."
 argument-hint: >-
   [--agent <name>] [--since <ref>] [--path <dir>] [--all] [--json]
   [--force --reason "<text>"] [--static-analysis|--no-static-analysis]

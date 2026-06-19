@@ -1,12 +1,6 @@
 ---
 name: design-it-twice
-description: >-
-  Generate multiple radically different interface designs for a module using
-  parallel sub-agents, then compare and synthesize. Based on Ousterhout's
-  "Design It Twice" principle. Use when the user wants to explore interface
-  options, design an API, compare module shapes, or says "design it twice",
-  "what are my options", or "show me alternatives". Also use when the Architect
-  agent is designing a new module boundary or public interface.
+description: "Generate multiple radically different interface designs for a module using parallel sub-agents, then compare and synthesize (Ousterhout's \"Design It Twice\"). Use when the user wants to explore interface options, design an API, or compare module shapes: \"design it twice\", \"what are my options\", \"show me alternatives\". Also use when the Architect agent is designing a new module boundary or public interface."
 role: worker
 user-invocable: true
 ---

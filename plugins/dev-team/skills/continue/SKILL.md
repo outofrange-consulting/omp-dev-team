@@ -1,10 +1,6 @@
 ---
 name: continue
-description: >-
-  Resume work from a prior session by reading phase progress files in memory/
-  and active plans. Use this when starting a new session on in-progress work,
-  or when the user says "continue", "pick up where I left off", "resume",
-  or "what was I working on".
+description: "Resume work from a prior session by reading phase-progress files in memory/ and active plans. Use when starting a new session on in-progress work, or when the user says \"continue\", \"pick up where I left off\", \"resume\", or \"what was I working on\"."
 argument-hint: ""
 user-invocable: true
 allowed-tools: read, find, search, bash(git log *), bash(git branch *), bash(git status *), bash(git diff *), bash(ls *)

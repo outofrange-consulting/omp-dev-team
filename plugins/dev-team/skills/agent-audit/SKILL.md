@@ -1,11 +1,6 @@
 ---
 name: agent-audit
-description: >-
-  Audit code-review agents, skills, and hooks for structural compliance.
-  Use this when adding or modifying any agent, skill, or hook file, or for
-  a periodic health check of the toolkit. Trigger phrases: "audit the
-  agents", "check compliance", "validate the skills", "are the agents
-  correct", or any time agent/skill files change.
+description: "Audit code-review agents, skills, and hooks for structural compliance. Use when adding or modifying any agent, skill, or hook file, or for a periodic health check: \"audit the agents\", \"check compliance\", \"validate the skills\", \"are the agents correct\", or any time agent/skill files change."
 argument-hint: "[file-path | --all] [--fix]"
 user-invocable: true
 allowed-tools: read, edit, search, find

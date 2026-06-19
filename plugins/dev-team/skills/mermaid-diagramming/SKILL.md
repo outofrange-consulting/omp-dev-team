@@ -1,6 +1,6 @@
 ---
 name: mermaid-diagramming
-description: Create Mermaid diagrams using the project's blue-gray theme. Use whenever the user asks to draw a diagram, create a flowchart, visualize a process, document architecture, or add any Mermaid diagram to a markdown file. Trigger on phrases like "draw a diagram", "create a flowchart", "visualize this", "add a mermaid diagram", "document the flow", "sequence diagram", "architecture diagram", or any request to diagram a process or system.
+description: "Create Mermaid diagrams using the project's blue-gray theme. Use whenever the user asks to draw a diagram, create a flowchart, visualize a process, document architecture, or add a Mermaid diagram to markdown: \"draw a diagram\", \"create a flowchart\", \"visualize this\", \"add a mermaid diagram\", \"document the flow\", \"sequence diagram\", \"architecture diagram\"."
 role: worker
 user-invocable: true
 ---

@@ -1,12 +1,6 @@
 ---
 name: review-agent
-description: >-
-  Run a single named review agent against target files. Use this when the
-  user names a specific agent (e.g. "run security-review", "check for test
-  issues", "run js-fp-review on this file") rather than wanting the full
-  suite. Prefer this over /code-review when only one concern is relevant or
-  speed matters. Also used by the orchestrator for inline review checkpoints
-  during Phase 3 implementation.
+description: "Run a single named review agent against target files. Use when the user names a specific agent (\"run security-review\", \"check for test issues\", \"run js-fp-review on this file\") rather than the full suite. Prefer over /code-review when only one concern is relevant or speed matters. Also used by the orchestrator for inline review checkpoints during Phase 3 implementation."
 argument-hint: "<agent-name> [--since <ref>] [--path <dir>]"
 user-invocable: true
 allowed-tools: read, search, find, bash(git diff *)

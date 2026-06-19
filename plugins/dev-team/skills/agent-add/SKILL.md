@@ -1,12 +1,6 @@
 ---
 name: agent-add
-description: >-
-  Create a new Oh-My-Pi (OMP) agent file (review or team type) following the
-  official sub-agent schema and token-efficiency budgets. Use when the user
-  wants to add a new review agent, detect a new category of code issue, create
-  a team agent persona, or says things like "add an agent for X", "create a
-  reviewer for Y", "new team agent for Z". Also use when given a URL to a
-  coding standard that should become a review agent.
+description: "Create a new Oh-My-Pi (OMP) agent file (review or team type) following the official sub-agent schema and token-efficiency budgets. Use when the user wants to add a review agent, detect a new category of code issue, or create a team-agent persona: \"add an agent for X\", \"create a reviewer for Y\", \"new team agent for Z\". Also use when given a URL to a coding standard that should become a review agent."
 argument-hint: >-
   <description-or-url> [--name <name>] [--type review|team]
   [--tier small|mid|frontier] [--context diff-only|full-file|project-structure]

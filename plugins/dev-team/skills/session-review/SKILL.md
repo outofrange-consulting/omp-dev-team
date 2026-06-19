@@ -1,10 +1,6 @@
 ---
 name: session-review
-description: >-
-  Mine real Oh-My-Pi (OMP) session transcripts to suggest plugin improvements that
-  cut token spend, reduce re-work, and improve accuracy. Use when the user asks
-  to "review my sessions", "where am I wasting tokens", "why does this keep
-  re-doing work", or "/session-review".
+description: "Mine real Oh-My-Pi (OMP) session transcripts to suggest plugin improvements that cut token spend, reduce rework, and improve accuracy. Use when the user asks to \"review my sessions\", \"where am I wasting tokens\", \"why does this keep re-doing work\", or runs /session-review."
 argument-hint: "[--cwd <path>] [--transcript <file>] [--out <report>]"
 user-invocable: true
 allowed-tools: >-

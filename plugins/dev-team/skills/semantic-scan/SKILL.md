@@ -1,12 +1,6 @@
 ---
 name: semantic-scan
-description: >-
-  Build a computation register and detect semantic duplicates across architectural
-  layers. Finds business logic reimplemented multiple times in different layers —
-  the same domain calculation independently appearing in domain services, client
-  adapters, and presentation components. Runs incrementally (git-diff-based) after
-  the first scan. Produces a structured duplicate report with file:line references
-  and canonical location suggestions.
+description: "Build a computation register and detect semantic duplicates across architectural layers — business logic reimplemented in domain services, client adapters, and presentation components. Runs incrementally (git-diff-based) after the first scan. Produces a structured duplicate report with file:line references and canonical-location suggestions."
 argument-hint: "[path] [--full] [--no-opus]"
 user-invocable: true
 ---

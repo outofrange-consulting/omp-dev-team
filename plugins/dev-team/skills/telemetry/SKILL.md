@@ -1,9 +1,6 @@
 ---
 name: telemetry
-description: >-
-  Manage and report the opt-in, privacy-clean usage telemetry beacon. Use when
-  the user asks to "enable/disable telemetry", "show telemetry", "usage stats",
-  "which commands do I use", or "how often is the commit gate bypassed".
+description: "Manage and report the opt-in, privacy-clean usage telemetry beacon. Use when the user asks to \"enable/disable telemetry\", \"show telemetry\", \"usage stats\", \"which commands do I use\", or \"how often is the commit gate bypassed\"."
 argument-hint: "[on|off|status|report]"
 user-invocable: true
 allowed-tools: >-

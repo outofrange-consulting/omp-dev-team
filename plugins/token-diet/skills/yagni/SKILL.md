@@ -1,10 +1,6 @@
 ---
 name: yagni
-description: >-
-  Write minimal code — the laziest-senior-dev / YAGNI discipline. Use when the
-  user says "yagni", "ponytail", "minimal code", "keep it simple", "don't
-  over-engineer", "fewer lines", or asks to review/trim a diff for bloat. Fewer
-  lines = fewer tokens over the whole session + less tech debt.
+description: "Write minimal code — the laziest-senior-dev / YAGNI discipline. Use when the user says \"yagni\", \"ponytail\", \"minimal code\", \"keep it simple\", \"don't over-engineer\", \"fewer lines\", or asks to review/trim a diff for bloat. Fewer lines = fewer tokens over the session + less tech debt."
 ---
 
 # yagni — the laziest senior dev in the room

@@ -1,6 +1,6 @@
 ---
 name: branch-workflow
-description: Clean branch completion workflow — PR creation, merge strategy, and cleanup. Use this skill when implementation is complete and it's time to ship — after Phase 3 human gate passes. Also use when the user says "create a PR", "merge this", "ship it", "finish this branch", or asks about merge strategy.
+description: "Clean branch-completion workflow — PR creation, merge strategy, and cleanup. Use when implementation is complete and it's time to ship (after the Phase 3 human gate), or when the user says \"create a PR\", \"merge this\", \"ship it\", \"finish this branch\", or asks about merge strategy."
 role: worker
 user-invocable: true
 ---

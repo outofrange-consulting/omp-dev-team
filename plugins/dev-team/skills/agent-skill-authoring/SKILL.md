@@ -1,6 +1,6 @@
 ---
 name: agent-skill-authoring
-description: Conventions, anti-patterns, and meta-patterns for writing skills (and the shared agent/skill philosophy). Use when creating or editing a SKILL.md file, or when reviewing the agent-vs-skill separation. For the procedural workflow that generates a new agent file, use the agent-create skill (invoked by /agent-add).
+description: "Conventions, anti-patterns, and meta-patterns for writing skills (and the shared agent/skill philosophy). Use when creating or editing a SKILL.md file, or reviewing the agent-vs-skill separation. For the procedural workflow that generates a new agent file, use the agent-create skill (invoked by /agent-add)."
 role: worker
 user-invocable: true
 ---

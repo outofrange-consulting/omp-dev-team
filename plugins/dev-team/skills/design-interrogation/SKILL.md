@@ -1,13 +1,6 @@
 ---
 name: design-interrogation
-description: >-
-  Relentlessly interview the user about a plan, design, or feature spec to
-  surface unresolved decisions, hidden assumptions, and edge cases. Use when
-  the user says "grill me", "stress-test this plan", "poke holes in my design",
-  "what am I missing", or before committing to a plan that feels under-examined.
-  Unlike /specs (which produces artifacts) this skill produces clarity — it's a
-  thinking tool. Also use proactively in the Research phase when a design doc
-  has implicit decisions that need to be made explicit.
+description: "Relentlessly interview the user about a plan, design, or feature spec to surface unresolved decisions, hidden assumptions, and edge cases. Use when the user says \"grill me\", \"stress-test this plan\", \"poke holes in my design\", \"what am I missing\", or before committing to an under-examined plan. Unlike /specs (which produces artifacts) this produces clarity — a thinking tool. Also use proactively in the Research phase when a design doc has implicit decisions to make explicit."
 role: worker
 user-invocable: true
 ---

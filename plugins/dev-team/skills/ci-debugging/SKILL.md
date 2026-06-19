@@ -1,6 +1,6 @@
 ---
 name: ci-debugging
-description: Systematic CI/CD failure diagnosis with hypothesis-first approach, environment delta analysis, and anti-patterns. Use when CI fails, pipelines break, or the user says "CI is failing", "build broke", "pipeline error", or "tests pass locally but fail in CI".
+description: "Systematic CI/CD failure diagnosis — hypothesis-first, environment-delta analysis, and anti-patterns. Use when CI fails or the user says \"CI is failing\", \"build broke\", \"pipeline error\", or \"tests pass locally but fail in CI\"."
 role: worker
 user-invocable: true
 ---

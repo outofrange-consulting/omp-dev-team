@@ -1,6 +1,6 @@
 ---
 name: specs
-description: Collaborative workflow for producing the three specification artifacts (intent, architecture notes, acceptance criteria) that describe a change and its goals before any implementation begins. Use when starting any new feature or behavior change — do not write code until artifacts pass the consistency gate. BDD/Gherkin scenarios are authored later, per slice, in /plan.
+description: "Collaborative workflow producing the three specification artifacts (intent, architecture notes, acceptance criteria) that describe a change and its goals before implementation. Use when starting any new feature or behavior change — do not write code until artifacts pass the consistency gate. BDD/Gherkin scenarios are authored later, per slice, in /plan."
 role: worker
 user-invocable: true
 ---

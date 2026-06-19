@@ -1,6 +1,6 @@
 ---
 name: exploratory-testing
-description: Charter-driven exploratory testing — probe a running feature/endpoint with structured heuristics, evaluate charter quality, run adversarial expansion, classify defects, and auto-triage critical findings into an incremental report. Use when the user runs /explore, says "explore this endpoint", "poke at this feature", "find bugs in the running app", or wants hands-off exploratory testing of a live target.
+description: "Charter-driven exploratory testing — probe a running feature/endpoint with structured heuristics, evaluate charter quality, run adversarial expansion, classify defects, and auto-triage critical findings into an incremental report. Use when the user runs /explore, says \"explore this endpoint\", \"poke at this feature\", \"find bugs in the running app\", or wants hands-off exploratory testing of a live target."
 role: worker
 user-invocable: true
 ---

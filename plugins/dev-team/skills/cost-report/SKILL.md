@@ -1,10 +1,6 @@
 ---
 name: cost-report
-description: >-
-  Report actual token spend and dollar cost of dispatched work — per agent and
-  total — and flag cost regressions. Use when the user asks "how much did that
-  cost", "token spend", "cost of this run", "cost report", or wants to check for
-  a cost regression after /code-review or an orchestration run.
+description: "Report actual token spend and dollar cost of dispatched work — per agent and total — and flag cost regressions. Use when the user asks \"how much did that cost\", \"token spend\", \"cost of this run\", \"cost report\", or wants to check for a cost regression after /code-review or an orchestration run."
 argument-hint: "[--transcript <path>] [--tolerance <n>]"
 user-invocable: true
 allowed-tools: >-

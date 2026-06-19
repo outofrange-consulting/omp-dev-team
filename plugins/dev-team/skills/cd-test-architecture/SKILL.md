@@ -1,6 +1,6 @@
 ---
 name: cd-test-architecture
-description: Evaluate an existing application's tests and recommend a CD-pipeline-aligned test architecture — fast, deterministic tests with minimal tooling that fully validate behavior (including cross-service interaction) and run in CI without configuring the rest of the system. Use when the user says "evaluate how this app is tested", "design a test architecture", "align our tests for CD", "make our CI tests deterministic", "our tests need the whole system configured", "our tests live in another repo / Postman / manual scripts", or asks for UI/service/batch test patterns.
+description: "Evaluate an existing app's tests and recommend a CD-pipeline-aligned test architecture — fast, deterministic, minimal-tooling tests that fully validate behavior (including cross-service) and run in CI without standing up the rest of the system. Use when the user says \"evaluate how this app is tested\", \"design a test architecture\", \"align our tests for CD\", \"make our CI tests deterministic\", \"our tests need the whole system configured\", \"our tests live in another repo / Postman / manual scripts\", or asks for UI/service/batch test patterns."
 role: worker
 user-invocable: true
 ---

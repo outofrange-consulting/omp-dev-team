@@ -1,6 +1,6 @@
 ---
 name: mutation-testing
-description: Validate test suite quality by running a real mutation testing tool and triaging surviving mutants. Use after writing tests to verify assertions catch behavioral changes, when evaluating test coverage quality, or as a CI quality gate on critical modules. The AI value here is triage — classifying survivors, writing fix tests — not generating or estimating mutations.
+description: "Validate test-suite quality by running a real mutation-testing tool and triaging surviving mutants. Use after writing tests to verify assertions catch behavioral changes, when evaluating coverage quality, or as a CI quality gate on critical modules. The AI value is triage — classifying survivors and writing fix tests — not generating mutations."
 role: worker
 user-invocable: true
 ---

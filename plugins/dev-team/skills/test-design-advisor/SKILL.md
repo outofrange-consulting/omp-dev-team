@@ -1,6 +1,6 @@
 ---
 name: test-design-advisor
-description: Advise on test design — assess testability, recommend the right test-pyramid layer and test-double strategy, and propose a behavior-preserving refactor sequence to make hard-to-test code testable. Use when the user says "how should I test this", "is this testable", "design tests for this", "what's the right test for X", or before writing tests for an untested module.
+description: "Advise on test design — assess testability, recommend the right test-pyramid layer and test-double strategy, and propose a behavior-preserving refactor sequence for hard-to-test code. Use when the user says \"how should I test this\", \"is this testable\", \"design tests for this\", \"what's the right test for X\", or before writing tests for an untested module."
 role: worker
 user-invocable: true
 ---

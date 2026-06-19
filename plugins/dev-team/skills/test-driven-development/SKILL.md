@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: Enforce RED-GREEN-REFACTOR cycle with hard gates. Use this skill whenever writing new code, fixing bugs, or adding features — any time implementation code will be written or modified. Prevents the common LLM failure mode of writing implementation first and tests later (or never). Also use when reviewing code to verify TDD discipline was followed.
+description: "Enforce the RED-GREEN-REFACTOR cycle with hard gates. Use whenever implementation code will be written or modified — new code, bug fixes, features. Prevents the common LLM failure mode of writing implementation first and tests later (or never). Also use when reviewing code to verify TDD discipline."
 role: worker
 user-invocable: true
 ---

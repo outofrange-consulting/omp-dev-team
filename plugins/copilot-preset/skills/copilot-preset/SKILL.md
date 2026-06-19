@@ -1,10 +1,6 @@
 ---
 name: copilot-preset
-description: >-
-  How this OMP workspace is wired to GitHub Copilot models. Use when the user
-  asks which model is running, how to switch Copilot models, about AI-credit /
-  token billing, which model is cheapest, MAI-Code-1-Flash ("MIA Coding"), or
-  how to run the dev-team cheaply on their Copilot license.
+description: "How this OMP workspace is wired to GitHub Copilot models. Use when the user asks which model is running, how to switch Copilot models, about AI-credit/token billing, which model is cheapest, MAI-Code-1-Flash (\"MIA Coding\"), or how to run the dev-team cheaply on their Copilot license."
 ---
 
 # GitHub Copilot model preset

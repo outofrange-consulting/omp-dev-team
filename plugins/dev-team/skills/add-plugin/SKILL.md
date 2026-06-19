@@ -1,10 +1,6 @@
 ---
 name: add-plugin
-description: >-
-  Install a Oh-My-Pi (OMP) plugin and register it in settings.json so the
-  full team can replicate the install. Use this whenever adding a new
-  plugin to the project — it keeps settings.json in sync with what is
-  actually installed.
+description: "Install an Oh-My-Pi (OMP) plugin and register it in settings.json so the team can replicate the install. Use whenever adding a new plugin to the project — it keeps settings.json in sync with what is installed."
 argument-hint: >-
   <name@marketplace> [--repo <owner/repo>]
 user-invocable: true

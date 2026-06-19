@@ -1,10 +1,6 @@
 ---
 name: setup
-description: >-
-  Detect a project's tech stack and auto-generate project-level CLAUDE.md,
-  PostToolUse hooks, and language-specific agent templates in one shot. Use
-  this when onboarding a new project, or when the user says "setup",
-  "bootstrap", "configure this project", or "detect my stack".
+description: "Detect a project's tech stack and auto-generate project-level CLAUDE.md, PostToolUse hooks, and language-specific agent templates in one shot. Use when onboarding a new project, or when the user says \"setup\", \"bootstrap\", \"configure this project\", or \"detect my stack\"."
 argument-hint: "[--dry-run]"
 user-invocable: true
 allowed-tools: read, write, edit, find, search, bash(jq *), bash(ls *), bash(mkdir *), bash(cat *), bash(test *), bash(node *)

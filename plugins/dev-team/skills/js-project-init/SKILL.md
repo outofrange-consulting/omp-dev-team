@@ -1,6 +1,6 @@
 ---
 name: js-project-init
-description: Initialize a new JavaScript project with ES modules, functional style, prettier, eslint, editorconfig, vitest, and gitignore. Use this skill whenever the user wants to start a new JS project, scaffold a Node.js app, create a new package, bootstrap a JavaScript repo, or says things like "init a new project", "set up a JS project", "create a new node app", "start a new frontend project", or "bootstrap a new package". Also trigger when the user asks to add standard JS tooling (linting, formatting, testing) to an empty or near-empty directory.
+description: "Initialize a new JavaScript project with ES modules, functional style, prettier, eslint, editorconfig, vitest, and gitignore. Use when the user wants to start, scaffold, or bootstrap a JS/Node project or package: \"init a new project\", \"set up a JS project\", \"create a new node app\", \"start a new frontend project\", \"bootstrap a new package\". Also trigger to add standard JS tooling (linting, formatting, testing) to an empty or near-empty directory."
 user-invocable: true
 ---
 

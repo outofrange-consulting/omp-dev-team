@@ -1,10 +1,6 @@
 ---
 name: agent-readiness
-description: >-
-  Score how ready the current repository is for AI-assisted development against
-  the Agent-Readiness Scorecard. Use when the user asks "how agent-ready is this
-  repo", "score this repo for agents", "agent readiness", or wants a tiered
-  readiness report.
+description: "Score how ready the current repository is for AI-assisted development against the Agent-Readiness Scorecard. Use when the user asks \"how agent-ready is this repo\", \"score this repo for agents\", \"agent readiness\", or wants a tiered readiness report."
 argument-hint: "[repo-path] [--json <file>] [--markdown <file>]"
 user-invocable: true
 allowed-tools: >-

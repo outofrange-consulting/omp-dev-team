@@ -1,11 +1,6 @@
 ---
 name: semgrep-analyze
-description: >-
-  Run Semgrep static analysis on target files and return structured
-  findings. Use this when the user wants static analysis, SAST scanning, or
-  security scanning — phrases like "run semgrep", "scan for
-  vulnerabilities", "static analysis on this code", or as a pre-review gate
-  when security findings are needed before AI agents run.
+description: "Run Semgrep static analysis on target files and return structured findings. Use when the user wants static analysis, SAST, or security scanning: \"run semgrep\", \"scan for vulnerabilities\", \"static analysis on this code\", or as a pre-review gate when security findings are needed before AI agents run."
 argument-hint: "[path] [--rules <ruleset>]"
 user-invocable: true
 allowed-tools: read, search, find, bash(semgrep *)

@@ -1,13 +1,6 @@
 ---
 name: semantic-duplication-scan
-description: >-
-  Detect business logic reimplemented in multiple architectural layers. Builds a
-  persistent computation-register.json by annotating non-trivial computation
-  functions with structured semantic descriptions, then clusters entries to
-  surface duplicate domain concepts. Runs in full-scan mode on first use,
-  incremental (git-diff-based) mode on subsequent runs. Use when the user wants
-  to find logical duplication that linters and diff-scoped review agents miss —
-  the same domain calculation independently reimplemented across layers.
+description: "Detect business logic reimplemented across architectural layers. Annotates non-trivial computation functions into a persistent computation-register.json, then clusters entries to surface duplicate domain concepts (full scan on first use, git-diff incremental after). Use to find logical duplication that linters and diff-scoped review agents miss — the same domain calculation independently reimplemented across layers."
 role: worker
 user-invocable: true
 ---

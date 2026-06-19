@@ -1,11 +1,6 @@
 ---
 name: agent-remove
-description: >-
-  Remove an agent from the system — deletes the agent file, cleans up all
-  registry entries, removes cross-references, and updates documentation.
-  Use when the user says "remove the X agent", "delete X-review", "retire
-  the X role", or "we no longer need X". Handles both team agents and review
-  agents. Always confirms before deleting.
+description: "Remove an agent — deletes the agent file, cleans up registry entries and cross-references, and updates docs. Use when the user says \"remove the X agent\", \"delete X-review\", \"retire the X role\", or \"we no longer need X\". Handles team and review agents; always confirms before deleting."
 argument-hint: "<agent-name> [--dry]"
 user-invocable: true
 allowed-tools: read, edit, bash(rm *), bash(ls *), bash(git rm *), bash(grep -r *), find, search

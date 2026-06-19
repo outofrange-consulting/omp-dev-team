@@ -1,11 +1,6 @@
 ---
 name: plan
-description: >-
-  Create a structured implementation plan with goal, acceptance criteria,
-  incremental TDD steps, and a pre-PR quality gate. Use this for tasks that
-  need a plan but not the full three-phase orchestration, or when the user
-  says "plan this", "make a plan", "break this down", or "how should I
-  implement this".
+description: "Create a structured implementation plan with goal, acceptance criteria, incremental TDD steps, and a pre-PR quality gate. Use for tasks that need a plan but not the full three-phase orchestration, or when the user says \"plan this\", \"make a plan\", \"break this down\", or \"how should I implement this\"."
 argument-hint: "<task-description> [--output <path>]"
 user-invocable: true
 allowed-tools: read, write, find, search, bash(mkdir *), bash(date *), bash(git branch *), ask

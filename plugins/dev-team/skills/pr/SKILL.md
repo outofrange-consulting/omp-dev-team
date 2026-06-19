@@ -1,10 +1,6 @@
 ---
 name: pr
-description: >-
-  Run a pre-PR quality gate (tests, typecheck, lint, code review) and then
-  create a pull request with a structured summary. Use when the user says
-  "create a PR", "open a PR", "submit for review", or "I'm done with this
-  feature".
+description: "Run a pre-PR quality gate (tests, typecheck, lint, code review) then create a pull request with a structured summary. Use when the user says \"create a PR\", \"open a PR\", \"submit for review\", or \"I'm done with this feature\"."
 argument-hint: "[--skip-review] [--draft] [--base <branch>]"
 user-invocable: true
 allowed-tools: read, write, edit, find, search, bash(git *), bash(gh *), bash(npm *), bash(npx *), bash(pnpm *), bash(yarn *), bash(make *), bash(pytest *), bash(go *), bash(cargo *), bash(dotnet *), skill(code-review *)

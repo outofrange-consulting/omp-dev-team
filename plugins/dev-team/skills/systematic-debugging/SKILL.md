@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Four-phase debugging protocol (reproduce, investigate, root-cause, fix) that prevents guess-and-fix thrashing. Use this skill whenever a test fails, a bug is reported, an error occurs during implementation, or any unexpected behavior is encountered. Prevents the common LLM failure mode of guessing at fixes without understanding the problem.
+description: "Four-phase debugging protocol (reproduce, investigate, root-cause, fix) that prevents guess-and-fix thrashing. Use whenever a test fails, a bug is reported, an error occurs during implementation, or any unexpected behavior appears. Prevents the common LLM failure mode of guessing at fixes without understanding the problem."
 role: worker
 user-invocable: true
 ---

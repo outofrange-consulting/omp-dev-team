@@ -1,10 +1,6 @@
 ---
 name: triage
-description: >-
-  Investigate a bug, find its root cause, and write a portable triage record to
-  .triage/<slug>.md with a TDD fix plan. Use when the user reports a bug and
-  wants it triaged, says "triage this", "investigate and write it up", or wants
-  a hands-off bug investigation that produces an actionable record.
+description: "Investigate a bug, find its root cause, and write a portable triage record to .triage/<slug>.md with a TDD fix plan. Use when the user reports a bug and wants it triaged: \"triage this\", \"investigate and write it up\", or wants a hands-off bug investigation that produces an actionable record."
 argument-hint: "<bug description or error message>"
 user-invocable: true
 allowed-tools: read, find, search, bash, write, task

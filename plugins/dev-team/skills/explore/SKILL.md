@@ -1,12 +1,6 @@
 ---
 name: explore
-description: >-
-  Charter-driven exploratory testing of a running feature or endpoint. Dispatches
-  the QA Engineer in "Chaos Specialist" mode to probe with structured heuristics
-  (Goldilocks, Happy-Path Divergence, Telemetry Deepening, Invariant Probing,
-  CRUD Sweep), run adversarial expansion, and auto-triage critical defects into an
-  incremental report. Use when the user says "explore this endpoint", "poke at
-  this feature", or wants hands-off exploratory testing of a live target.
+description: "Charter-driven exploratory testing of a running feature or endpoint. Dispatches the QA Engineer in \"Chaos Specialist\" mode with structured heuristics (Goldilocks, Happy-Path Divergence, Telemetry Deepening, Invariant Probing, CRUD Sweep), runs adversarial expansion, and auto-triages critical defects into an incremental report. Use when the user says \"explore this endpoint\", \"poke at this feature\", or wants hands-off exploratory testing of a live target."
 argument-hint: "--charter '<goal>' [target] [--probe-budget <n>] [--invariants '<expr,...>'] [--no-adversarial] [--force]"
 user-invocable: true
 allowed-tools: read, search, find, bash, write, task

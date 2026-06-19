@@ -1,10 +1,6 @@
 ---
 name: build
-description: >-
-  Execute an approved implementation plan using TDD. Reads the plan, implements
-  each step with RED-GREEN-REFACTOR, runs inline review checkpoints, and
-  produces verification evidence. Use when the user says "build this", "implement
-  the plan", "start building", or after /plan has been approved.
+description: "Execute an approved implementation plan using TDD — read the plan, implement each step with RED-GREEN-REFACTOR, run inline review checkpoints, and produce verification evidence. Use when the user says \"build this\", \"implement the plan\", \"start building\", or after /plan is approved."
 argument-hint: "[--plan <path>]"
 user-invocable: true
 allowed-tools: read, write, edit, find, search, bash, task, ask
