@@ -94,8 +94,8 @@ if (-not $NoConfig) {
 # --- Load the context-transform extensions ----------------------------------
 # OMP does not load extensions from a marketplace cache install; mirror them into
 # the native user-extension dir (same pattern as dev-team/local-llm). Lossless
-# read-dedup + context-dedup are on by default; context-compress is opt-in
-# (TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full).
+# read-dedup + context-dedup are on by default; context-compress runs at 'safe'
+# (near-lossless) by default — lite|full (lossy) or off via TOKEN_DIET_CONTEXT_COMPRESS.
 $src = Join-Path $Here 'extensions'
 if (Test-Path $src) {
   $dest = Join-Path $HOME ".omp\agent\extensions\token-diet"
@@ -105,7 +105,7 @@ if (Test-Path $src) {
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
     $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
-    Say "read-dedup + context-dedup (+ opt-in context-compress) loaded into $dest"
+    Say "read-dedup + context-dedup + context-compress (safe) loaded into $dest"
   }
 }
 
@@ -117,8 +117,9 @@ Write-Host @"
     - CodeGraph MCP is enabled (.mcp.json) and your repos are indexed —
       skill://codegraph for symbol/caller/architecture queries.
     - /caveman (terse output) and /yagni (write less code) are enabled.
-    - Dedup extensions: re-reads of unchanged files and byte-identical repeated
-      blocks are elided from context (LOSSLESS, on). Opt into prose compression
-      of old context with TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full.
+    - Context extensions: re-reads of unchanged files + byte-identical repeated
+      blocks are elided (LOSSLESS, on); old prose context is also compressed at
+      'safe' by default (near-lossless). TOKEN_DIET_CONTEXT_COMPRESS=lite|full
+      for more (lossy), or =off to disable.
     Restart omp so the MCP server + skills + extensions load.
 "@ -ForegroundColor Green

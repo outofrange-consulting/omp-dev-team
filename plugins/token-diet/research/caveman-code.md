@@ -20,7 +20,8 @@
     inchangé → stub (port de la couche « Read Dedup »).
   - `context-dedup` — **sans perte, actif** : fusionne les blocs byte-identiques
     répétés dans le contexte avant chaque appel (toutes sources : `cat`, MCP…).
-  - `context-compress` — **lossy, opt-in** : la version *qualité-préservée* du
+  - `context-compress` — **`safe` actif par défaut** (quasi sans perte) ; `lite`/
+    `full` lossy & opt-in ; `off` pour couper. La version *qualité-préservée* du
     transform LLMLingua/Provence (voir §5), via un **protect mask**.
 - **Ce qu'on a écarté** : RTK (anglais-only), le binding ONNX/BERT de LLMLingua
   (lourd, latence ×N agents), et la réécriture du **prompt user littéral** (hook
@@ -104,7 +105,7 @@ Prémisse correcte (même Pi), mais frères ≠ parent/enfant :
 | Sortie d'outil | caps aveugles + RTK | ✅ ctx-wire (sémantique) + context-mode (index) |
 | **Multilingue FR/RO** | ❌ RTK anglais-only | ✅ filtres EN+FR + language-agnostic |
 | Relecture/contexte dédupliqués | ✅ read-dedup | ✅ **read-dedup + context-dedup** (porté) |
-| Compression d'entrée (prompt/contexte) | LLMLingua/Provence (lossy, sans garde-fou) | ✅ **context-compress** protect-maskée (opt-in) |
+| Compression d'entrée (prompt/contexte) | LLMLingua/Provence (lossy, sans garde-fou) | ✅ **context-compress** protect-maskée (`safe` par défaut) |
 | CodeGraph / context7 / yagni / lean-tools / isolation | ❌ | ✅ |
 
 token-diet a **déjà parcouru et dépassé** le chemin de caveman-code (RTK retiré
@@ -145,7 +146,7 @@ plugins/token-diet/
   extensions/
     read-dedup.ts        tool_call gate ; LOSSLESS ; ON (TOKEN_DIET_READ_DEDUP=0 pour couper)
     context-dedup.ts     hook context ; LOSSLESS ; ON (TOKEN_DIET_CONTEXT_DEDUP=0)
-    context-compress.ts  hook context ; LOSSY ; OPT-IN (TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full)
+    context-compress.ts  hook context ; `safe` ON par defaut (quasi sans perte) ; lite|full lossy ; off coupe (TOKEN_DIET_CONTEXT_COMPRESS)
     lib/protect.ts       protect/restore + compressProse + compress (PUR, testé)
     lib/messages.ts      collapseDuplicateBlobs + compressOldMessages (PUR, testé)
   scripts/extensions.test.ts   47 assertions — `bun plugins/token-diet/scripts/extensions.test.ts`
@@ -159,9 +160,11 @@ Garde-fous qualité (tous testés) :
 - **context-dedup** : ne touche que `assistant`/`tool`, garde la **dernière** copie
   verbatim (la canonique est dans le même payload → sans perte), seuil
   `TOKEN_DIET_DEDUP_MIN_CHARS` (1200).
-- **context-compress** : protect mask + **fenêtre de récence** intacte
-  (`KEEP_RECENT`, défaut 6) + **jamais** `user`/`system` + `activationThreshold`
-  (`MIN_CHARS`, 600) + garantie **never-expand** + `try/catch` passthrough.
+- **context-compress** : défaut `safe` (quasi sans perte : ANSI + espaces, aucun
+  mot supprimé) ; protect mask + **fenêtre de récence** intacte (`KEEP_RECENT`,
+  défaut 6) + **jamais** `user`/`system` + `activationThreshold` (`MIN_CHARS`,
+  600) + garantie **never-expand** + `try/catch` passthrough. `lite`/`full`
+  ajoutent le drop de filler/articles (lossy).
 - OMP passe au hook `context` une **deep copy** → la session sauvegardée n'est
   jamais altérée, même en cas de bug.
 
@@ -177,9 +180,9 @@ Garde-fous qualité (tous testés) :
 
 1. **Garder token-diet** ; **ne pas intégrer caveman-code** en tant que tel.
 2. **Activer par défaut** read-dedup + context-dedup (sans perte). Déjà le cas.
-3. **context-compress** reste **opt-in** (lossy) — l'essayer d'abord en `safe`
-   (quasi sans perte : ANSI/espaces/lignes vides), puis `lite`/`full` si le gain
-   le justifie, en surveillant la qualité.
+3. **context-compress** tourne en **`safe` par défaut** (quasi sans perte :
+   ANSI/espaces/lignes vides) ; passer en `lite`/`full` (lossy) si le gain le
+   justifie, ou `off` pour couper. Surveiller la qualité au-delà de `safe`.
 4. **Veille** : cavemem (mémoire), goal loop — réservoir d'idées pour de *futurs*
    plugins distincts, pas pour token-diet.
 

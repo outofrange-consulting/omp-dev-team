@@ -16,6 +16,7 @@ import {
 	compressOldMessages,
 	textBlobs,
 } from "../extensions/lib/messages.ts";
+import { parseLevel } from "../extensions/context-compress.ts";
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -140,6 +141,18 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("old message kept a path detail", oldMsg.content.includes("src/app/main.ts"));
 	check("recent message untouched (recency window)", recentMsg.content === PROSE);
 	check("user message untouched", userMsg.content === PROSE);
+}
+
+// 9) context-compress level parsing: safe by default, off disables.
+{
+	check("parseLevel() unset => safe", parseLevel(undefined) === "safe");
+	check("parseLevel('') => safe", parseLevel("") === "safe");
+	check("parseLevel('SAFE') => safe", parseLevel("SAFE") === "safe");
+	check("parseLevel('lite') => lite", parseLevel("lite") === "lite");
+	check("parseLevel('full') => full", parseLevel("full") === "full");
+	check("parseLevel('off') => null", parseLevel("off") === null);
+	check("parseLevel('0') => null", parseLevel("0") === null);
+	check("parseLevel('garbage') => safe", parseLevel("garbage") === "safe");
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);

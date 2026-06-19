@@ -16,7 +16,7 @@ prompts côté fournisseur), pas à la place.
 | **caveman** | **sortie** laconique en fragments (à la demande) | ~65 % de tokens de sortie | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | écrire **moins de code** — YAGNI / dev sénior le plus fainéant (à la demande) | ~80–94 % de code en moins ; moins de tokens maintenant **et** à chaque tour futur | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 | **read-dedup** + **context-dedup** | relectures de fichiers inchangés + blocs identiques répétés gonflent l'**entrée** | SANS PERTE, actif : relecture → stub ; blocs byte-identiques fusionnés avant chaque appel | « Read Dedup » de caveman-code, réimplémenté sur les hooks `tool_call`/`context` d'OMP |
-| **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour (opt-in) | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
+| **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques (`safe` actif par défaut ; `lite`/`full` opt-in) | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
 | **Isolation providers** | exclut toutes les configs utilisateur d'autres outils du contexte OMP | élimine le bruit des agents Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode | settings OMP natifs |
 | **LSP C#** | `csharp-ls` câblé comme serveur de langage OMP natif | aller-à-la-définition, références, diagnostics sur `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
@@ -103,15 +103,17 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   fichier inchangé (et tient compte de la compaction) ; context-dedup utilise le
   hook `context` pour fusionner les blocs byte-identiques répétés entre messages
   outil/assistant (en gardant le plus récent verbatim) — y compris les doublons
-  venant de `bash`/`cat` et des MCP. **context-compress est lossy et opt-in**
-  (`TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full`) : la réalisation qualité-préservée
-  du transform de contexte LLMLingua/Provence de caveman-code. Un *protect mask*
-  garde le code, les chemins, les nombres et les identifiants **byte-identiques**
-  (le même ensemble qu'on passerait à un vrai LLMLingua-2 en `force_tokens`),
-  seule la prose est raccourcie, et la fenêtre de récence + tous les messages
-  user/system sont laissés intacts. Logique pure dans `extensions/lib`, testée par
-  `bun scripts/extensions.test.ts`. Analyse complète + voie d'escalade vers le vrai
-  LLMLingua : `research/caveman-code.md`.
+  venant de `bash`/`cat` et des MCP. **context-compress tourne en `safe` par
+  défaut** (quasi sans perte : strip ANSI + collapse des espaces uniquement, aucun
+  mot supprimé) : la réalisation qualité-préservée du transform de contexte
+  LLMLingua/Provence de caveman-code. Un *protect mask* garde le code, les chemins,
+  les nombres et les identifiants **byte-identiques** (le même ensemble qu'on
+  passerait à un vrai LLMLingua-2 en `force_tokens`), seule la prose est touchée,
+  et la fenêtre de récence + tous les messages user/system sont laissés intacts.
+  Pour aller plus loin (lossy — supprime filler/articles) ou couper :
+  `TOKEN_DIET_CONTEXT_COMPRESS=lite|full|off`. Logique pure dans `extensions/lib`,
+  testée par `bun scripts/extensions.test.ts`. Analyse complète + voie d'escalade
+  vers le vrai LLMLingua : `research/caveman-code.md`.
 
 ## Ce qu'OMP fait déjà (pour ne pas doublonner)
 
