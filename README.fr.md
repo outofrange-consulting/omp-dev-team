@@ -2,7 +2,7 @@
 
 > 🌐 [English](README.md) · **Français**
 
-Sept plugins **indépendants** pour [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi).
+Six plugins **indépendants** pour [Oh-My-Pi (OMP)](https://github.com/can1357/oh-my-pi).
 Installez-en autant que vous voulez — ils ne partagent rien. Un installeur global
 met en place OMP et vous guide à travers chacun d'eux.
 
@@ -12,7 +12,6 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
 | **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), un skill « caveman » de sortie laconique, et un skill « yagni » de code minimal — par-dessus la compaction/`astGrep` natives d'OMP. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Propulsé par l'**Azure CLI** (`az` + extension azure-devops), auth PAT, cache SQLite ; fonctionne derrière les proxys TLS d'entreprise. |
-| **[`local-llm`](plugins/local-llm/)** | **Modèles locaux dimensionnés à votre matériel** — détecte VRAM/RAM, choisit les meilleurs GGUF par rôle, installe Ollama (ou llama.cpp), les télécharge, et enregistre le fournisseur `local-llm`. Hybride : planification cloud, exécution/rôles bon marché en local. |
 | **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI comme fournisseur de modèles** — pointez-le vers une passerelle [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (URL + clé API) ; l'installeur liste les modèles et écrit un fournisseur `cliproxy` dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `cliproxy/<id-modèle>`. |
 | **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
 
@@ -40,10 +39,9 @@ implement → review), `slow` → **Opus** ; sans lui, les mêmes tiers en ids A
 ctx-wire + CodeGraph de token-diet et les skills sont aussi activés. `--no-config`
 laisse votre config + mcp.json intacts.
 
-La fusion MCP active les serveurs de l'équipe (`context7`, `miro`, et `github` si un
-PAT est fourni / `$GITHUB_TOKEN` est défini) dans `~/.omp/agent/mcp.json`. Atlassian
-n'est **pas** un MCP ici — `acli` (installé par token-diet) est notre référence pour
-Jira/Confluence/Bitbucket.
+Le seul serveur MCP configuré dans `~/.omp/agent/mcp.json` est **`github`** (activé si
+un PAT est fourni / `$GITHUB_TOKEN` est défini). **Context7** et **Atlassian** s'utilisent
+en **CLI + skill**, pas en MCP — `ctx7` et `acli` (installés par token-diet).
 
 **Contexte de démarrage allégé (par défaut).** OMP charge le schéma JSON de *chaque*
 outil dans le system prompt à *chaque* requête : une install dev-team complète
@@ -93,7 +91,6 @@ omp plugin install dev-team@omp-dev-team
 omp plugin install copilot-preset@omp-dev-team
 omp plugin install token-diet@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
-omp plugin install local-llm@omp-dev-team
 omp plugin install cliproxy@omp-dev-team
 omp plugin install datadog@omp-dev-team
 ```
@@ -103,7 +100,7 @@ omp plugin install datadog@omp-dev-team
 > installation via le cache marketplace — seuls skills/commands/agents/rules/MCP
 > y sont exposés. Les plugins dont le cœur *est* une extension —
 > **azure-devops-fs** (l'outil `ado`), **dev-team** (les garde-fous bloquants +
-> le routage de modèles) et **local-llm** (le fournisseur) — ont donc besoin que
+> le routage de modèles) et **cliproxy** (le fournisseur) — ont donc besoin que
 > leur installeur tourne aussi. Le `install.sh` global et chaque
 > `install.sh`/`install.ps1` de plugin recopient ces modules dans le dossier natif
 > d'OMP `~/.omp/agent/extensions/<plugin>/` (toujours découvert, survit aux resets
@@ -118,7 +115,6 @@ du plugin dans leur dernière version) — voir son README :
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
 - **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installe l'Azure CLI + l'extension azure-devops, demande org/projet/**PAT**, lance `az devops login`), puis redémarrez `omp` pour charger l'outil `ado`.
-- **local-llm** → `bash plugins/local-llm/install.sh` (détecte VRAM/RAM, demande, installe Ollama/llama.cpp, télécharge les meilleurs modèles, câble les rôles).
 - **cliproxy** → `bash plugins/cliproxy/install.sh --url=http://localhost:8317 --api-key=…` (liste les modèles de la passerelle, écrit le fournisseur `cliproxy` dans `~/.omp/agent/models.yml`), puis redémarrez `omp`.
 - **datadog** → `bash plugins/datadog/install.sh` (installe la CLI Datadog `pup` + configure l'auth ; `--with-skills` pour aussi ajouter les skills par domaine de pup).
 
@@ -133,7 +129,8 @@ plugins/
   copilot-preset/   config.snippet.yml · pricing.md · skills/ · install.{sh,ps1}
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ (ado.ts + lib/az.ts) commands/ skills/ rules/ knowledge/ · install.{sh,ps1}
-  local-llm/        extensions/ (catalog/selector/detect/emit) · skills/ · install.{sh,ps1}
+  cliproxy/         extensions/ (cliproxy.ts) · skills/ · install.{sh,ps1}
+  datadog/          skills/ (umbrella) · install.{sh,ps1}
 ```
 
 ## Agent Package Manager (APM) & définitions dupliquées

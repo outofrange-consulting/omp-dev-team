@@ -205,7 +205,8 @@ function Write-Mcp {
   $mcp = Join-Path $HOME ".omp\agent\mcp.json"
   $gh = $env:GITHUB_TOKEN; if (-not $gh) { $gh = $env:GH_TOKEN }; if (-not $gh) { $gh = $env:GITHUB_PERSONAL_ACCESS_TOKEN }
   if (-not $gh) { $gh = PromptValue 'GitHub PAT for the GitHub MCP (optional, blank to skip)' }
-  # GitHub kept LAST (no trailing comma), enabled only when a token is available.
+  # Only GitHub is an MCP, enabled only when a token is available. Atlassian -> acli,
+  # Context7 -> ctx7 CLI (both CLI+skill, not MCP). No Miro.
   if ($gh) {
     $ghBlock = '"github": { "type": "http", "url": "https://api.githubcopilot.com/mcp/", "headers": { "Authorization": "Bearer ' + $gh + '" }, "enabled": true }'
   } else {
@@ -215,8 +216,6 @@ function Write-Mcp {
   @"
 {
   "mcpServers": {
-    "context7": { "type": "http", "url": "https://mcp.context7.com/mcp", "enabled": true },
-    "miro": { "type": "http", "url": "https://mcp.miro.com/", "enabled": true },
     $ghBlock
   }
 }
@@ -224,7 +223,7 @@ function Write-Mcp {
   New-Item -ItemType Directory -Force -Path (Split-Path $mcp) | Out-Null
   try { Js-Run (Join-Path $Root 'scripts\merge-json.mjs') @($mcp, $patch.FullName) | Out-Null } catch { Warn "mcp.json merge failed: $_" }
   Remove-Item $patch -ErrorAction SilentlyContinue
-  Ok "mcp.json merged (context7, miro$(if ($gh) { ', github' }))"
+  Ok "mcp.json merged ($(if ($gh) { 'github enabled' } else { 'github present (add a PAT to enable)' }))"
 }
 
 # --- 3) Per-plugin prompts --------------------------------------------------
@@ -246,9 +245,6 @@ if (Ask "Install cliproxy (register a CLIProxyAPI gateway as a model provider)?"
 }
 if (Ask "Install datadog (Pup CLI + Datadog observability skills)?" 'N') {
   Plug 'datadog' (Join-Path $Root 'plugins\datadog')
-}
-if (Ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" 'N') {
-  Plug 'local-llm' (Join-Path $Root 'plugins\local-llm')
 }
 if (Ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" 'N') {
   Plug 'azure-devops-fs' (Join-Path $Root 'plugins\azure-devops-fs')

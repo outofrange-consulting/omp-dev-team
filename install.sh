@@ -316,8 +316,8 @@ write_mcp() {
   local mcp="$HOME/.omp/agent/mcp.json" patch gh ghblock=""
   gh="${GITHUB_TOKEN:-${GH_TOKEN:-${GITHUB_PERSONAL_ACCESS_TOKEN:-}}}"
   [ -z "$gh" ] && gh="$(prompt 'GitHub PAT for the GitHub MCP (optional, blank to skip)')"
-  # GitHub is always present, enabled only when a token is available. Kept LAST so
-  # there's no trailing comma. Atlassian is intentionally absent (acli is go-to).
+  # Only GitHub is configured as an MCP, and only when a token is available.
+  # Atlassian -> acli, Context7 -> ctx7 CLI, both as CLI+skill (not MCP). No Miro.
   if [ -n "$gh" ]; then
     ghblock="$(printf '"github": { "type": "http", "url": "https://api.githubcopilot.com/mcp/", "headers": { "Authorization": "Bearer %s" }, "enabled": true }' "$gh")"
   else
@@ -327,8 +327,6 @@ write_mcp() {
   cat > "$patch" <<EOF
 {
   "mcpServers": {
-    "context7": { "type": "http", "url": "https://mcp.context7.com/mcp", "enabled": true },
-    "miro": { "type": "http", "url": "https://mcp.miro.com/", "enabled": true },
     $ghblock
   }
 }
@@ -337,7 +335,7 @@ EOF
   run "js_run \"$ROOT/scripts/merge-json.mjs\" \"$mcp\" \"$patch\" >/dev/null || true"
   [ -n "$gh" ] && chmod 600 "$mcp" 2>/dev/null || true
   rm -f "$patch"
-  ok "mcp.json merged (context7, miro$([ -n "$gh" ] && echo ', github'))"
+  ok "mcp.json merged ($([ -n "$gh" ] && echo 'github enabled' || echo 'github present (add a PAT to enable)'))"
 }
 
 # --- 3) Per-plugin prompts --------------------------------------------------
@@ -362,10 +360,6 @@ fi
 
 if ask "Install datadog (Pup CLI + Datadog observability skills)?" "N"; then
   plug datadog "$ROOT/plugins/datadog"
-fi
-
-if ask "Install local-llm (run roles on local GPU models; needs >=8GB VRAM)?" "N"; then
-  plug local-llm "$ROOT/plugins/local-llm"
 fi
 
 if ask "Install azure-devops-fs (Azure DevOps as a filesystem)?" "N"; then

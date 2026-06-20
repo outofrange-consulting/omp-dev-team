@@ -3,7 +3,7 @@
   "name": "omp-dev-team",
   "owner": { "name": "outofrange-consulting" },
   "metadata": {
-    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, a token-reduction toolkit, an Azure DevOps filesystem, a CLIProxyAPI provider, local LLMs, and Datadog observability.",
+    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, a token-reduction toolkit, an Azure DevOps filesystem, a CLIProxyAPI provider, and Datadog observability.",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -36,14 +36,6 @@
       "source": "./token-diet",
       "description": "Aggressive token reduction: ctx-wire for transparently compressed + secret-scrubbed shell output, context-mode output sandboxing, CodeGraph (MCP) for symbol/call-graph queries instead of grep+read, caveman terse-output + yagni minimal-code skills, plus context-transform extensions (lossless read-dedup + context-dedup on by default; protect-masked context-compress at safe by default, the quality-preserving take on caveman-code's LLMLingua/Provence). Layers on OMP's native compaction + astGrep; ships an always-on routing rule, MCP config, skills, extensions, and a setup script.",
       "category": "productivity",
-      "license": "MIT",
-      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
-    },
-    {
-      "name": "local-llm",
-      "source": "./local-llm",
-      "description": "Run OMP roles on LOCAL models sized to your hardware: detects VRAM/RAM, picks the best-fit GGUF models per role, installs Ollama (or llama.cpp), pulls the models, and registers them as the 'local-llm' provider. Hybrid by default (planning on cloud, execution/cheap roles local).",
-      "category": "configuration",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     },
