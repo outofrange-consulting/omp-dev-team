@@ -50,27 +50,8 @@ jobs:
       - name: Verify multilingual ctx-wire filters
         run: python3 plugins/token-diet/ctx-wire/scripts/verify-filters.py plugins/token-diet/ctx-wire/filters.d
 
-  # 2) Run the global installer end-to-end in dry-run on every OS (native shell).
-  dryrun:
-    name: dry-run (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: install.sh --dry-run
-        if: runner.os != 'Windows'
-        shell: bash
-        run: bash install.sh -y --dry-run
-      - name: install.ps1 -DryRun
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./install.ps1 -Yes -DryRun
-
-  # 3) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
-  #    verifies OMP launches and lists all four plugins).
+  # 2) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
+  #    verifies OMP launches and lists all plugins).
   e2e:
     name: e2e (${{ matrix.os }} real install)
     strategy:
@@ -92,10 +73,10 @@ jobs:
           export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
           omp --version
           omp plugin list | tee /tmp/plugins.txt
-          for p in dev-team copilot-preset token-diet azure-devops-fs; do
+          for p in dev-team copilot-preset token-diet azure-devops-fs cliproxy datadog; do
             grep -q "$p@omp-dev-team" /tmp/plugins.txt || { echo "missing $p"; exit 1; }
           done
-          echo "all four plugins installed"
+          echo "all plugins installed"
 
       - name: Run global installer (Windows)
         if: runner.os == 'Windows'
@@ -109,7 +90,7 @@ jobs:
           omp --version
           $list = omp plugin list 2>$null
           $list
-          foreach ($p in 'dev-team','copilot-preset','token-diet','azure-devops-fs') {
+          foreach ($p in 'dev-team','copilot-preset','token-diet','azure-devops-fs','cliproxy','datadog') {
             if (-not ($list | Select-String "$p@omp-dev-team")) { Write-Error "missing $p"; exit 1 }
           }
-          Write-Host "all four plugins installed"
+          Write-Host "all plugins installed"

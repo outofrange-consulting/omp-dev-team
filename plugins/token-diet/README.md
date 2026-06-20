@@ -66,10 +66,11 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   you can additionally use `ctx-wire mcp-wrap --compress`; see `ctx-wire/README.md`.
 - **acli** → the official **Atlassian CLI** (Jira/Confluence/Bitbucket), installed to
   `~/.local/bin` by `install.sh` (`--no-acli` to skip; re-run to update — versions are
-  supported ~6 months). Prefer the **Atlassian MCP** for structured reads; use `acli`
-  for bulk/scripted writes. Its output is English/structural — the bundled
-  `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…` API tokens
-  (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/`key=value` form).
+  supported ~6 months). **acli is our go-to for Atlassian** — for both reads and
+  writes, instead of the Atlassian MCP. `install.sh` also offers to run
+  `acli jira auth login` when interactive. Its output is English/structural — the
+  bundled `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…` API
+  tokens (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/`key=value` form).
 - **CodeGraph** → an MCP server (`.mcp.json`, `codegraph serve --mcp`, **enabled by
   default**) exposing `codegraph_search/node/callers/callees/explore/impact/files/status`.
   See `skill://codegraph`. Auto-syncs on file changes.
