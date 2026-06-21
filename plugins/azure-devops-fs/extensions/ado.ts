@@ -14,9 +14,9 @@
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { cacheGet, cacheSet } from "./lib/cache.ts";
 import {
 	fmtBuilds,
@@ -30,7 +30,7 @@ import {
 	fmtRepo,
 	fmtWorkItem,
 } from "./lib/format.ts";
-import { makeAz, resolveAzEnv } from "./lib/az.ts";
+import { makeAz, rejectFlagLike, resolveAzEnv } from "./lib/az.ts";
 import { AdoError, authHeader } from "./lib/rest.ts";
 import { isAdoUri, parseAdoUri } from "./lib/uri.ts";
 import { prCheckout, prPush, prWorktreePath } from "./lib/worktree.ts";
@@ -181,6 +181,13 @@ export default function ado(pi: ExtensionAPI) {
 
 				const env = resolveAzEnv({ org, project });
 				const c = makeAz(env, signal ?? undefined);
+				// Arg-injection guard: these caller/URI-derived values are appended as
+				// positional args to `az`; a leading "-" would be parsed as a flag.
+				rejectFlagLike("repo", repo);
+				rejectFlagLike("ref", ref);
+				rejectFlagLike("source", p.source);
+				rejectFlagLike("target", p.target);
+				rejectFlagLike("status", p.status);
 				// versionDescriptor.* query for the git/items endpoint
 				const verDesc = (r?: string, type = "branch") =>
 					r ? { "versionDescriptor.version": r, "versionDescriptor.versionType": type } : {};
@@ -312,7 +319,23 @@ export default function ado(pi: ExtensionAPI) {
 						const PAGE = 25;
 						const skip = Math.max(0, p.skip ?? 0);
 						let files = ch.filter((e: any) => e.item?.path && !e.item.isFolder);
-						if (want) files = files.filter((e: any) => e.item.path === want || e.item.path === `/${want}`);
+						if (want) {
+							const matches = files.filter((e: any) => e.item.path === want || e.item.path === `/${want}`);
+							if (matches.length === 0) {
+								// The requested file isn't in this PR's change set — say so clearly
+								// (with a few near-matches) instead of silently reporting "0 files".
+								const wantBase = basename(String(want));
+								const near = files
+									.map((e: any) => e.item.path as string)
+									.filter((fp) => fp.includes(String(want)) || basename(fp) === wantBase)
+									.slice(0, 5);
+								const hint = near.length
+									? `\n\nDid you mean:\n${near.map((fp) => `- ${fp}`).join("\n")}`
+									: `\n\nRun pr_diff without 'path' to list the ${files.length} changed file(s).`;
+								return text(`File '${want}' was not found in the change set of PR !${id}.${hint}`);
+							}
+							files = matches;
+						}
 						const total = files.length;
 						files = want ? files.slice(0, 1) : files.slice(skip, skip + PAGE);
 						const more = !want && skip + files.length < total;
@@ -332,7 +355,9 @@ export default function ado(pi: ExtensionAPI) {
 						};
 						const isBinary = (s: string) => s.includes("\u0000");
 						const dir = mkdtempSync(join(tmpdir(), "ado-diff-"));
+						try {
 						const parts: string[] = [];
+						let n = 0;
 						for (const e of files) {
 							const fp = e.item.path as string;
 							const a = contentAt(base, fp);
@@ -341,8 +366,18 @@ export default function ado(pi: ExtensionAPI) {
 								parts.push(`### ${fp} (${e.changeType})\n\n_(binary file — diff omitted)_`);
 								continue;
 							}
-							const af = join(dir, "a");
-							const bf = join(dir, "b");
+							// Write each side under the real basename in its own old/new dir so
+							// `git diff --no-index` produces sane file headers; we then rewrite
+							// the temp prefixes back to the real repo path. split/join avoids any
+							// RegExp metachar issues from interpolating the temp dir.
+							const rel = String(fp).replace(/^\/+/, "") || "file";
+							const oldDir = join(dir, `f${n}`, "a");
+							const newDir = join(dir, `f${n}`, "b");
+							n++;
+							const af = join(oldDir, rel);
+							const bf = join(newDir, rel);
+							mkdirSync(dirname(af), { recursive: true });
+							mkdirSync(dirname(bf), { recursive: true });
 							writeFileSync(af, a);
 							writeFileSync(bf, b);
 							let d = "";
@@ -351,11 +386,15 @@ export default function ado(pi: ExtensionAPI) {
 							} catch (err: any) {
 								d = String(err.stdout ?? ""); // git diff exits 1 when files differ
 							}
-							parts.push(`### ${fp} (${e.changeType})\n\n\`\`\`diff\n${d.replace(new RegExp(dir + "/", "g"), "")}\n\`\`\``);
+							d = d.split(oldDir + "/").join("").split(newDir + "/").join("");
+							parts.push(`### ${fp} (${e.changeType})\n\n\`\`\`diff\n${d}\n\`\`\``);
 						}
 						const range = want ? "" : ` ${skip + 1}-${skip + files.length} of ${total}`;
 						const hint = more ? `\n\n_More files: re-run with skip=${skip + PAGE}._` : "";
 						return text(`# PR !${id} diff (${files.length} file${files.length === 1 ? "" : "s"}${range})\n\n${parts.join("\n\n")}${hint}`);
+						} finally {
+							rmSync(dir, { recursive: true, force: true });
+						}
 					}
 					case "pr_create": {
 						need(repo, "repo");

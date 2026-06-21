@@ -15,12 +15,22 @@
 // `az devops invoke`.
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AdoError, type AdoEnv } from "./rest.ts";
 
 const API = "7.1";
+
+// Caller/URI-derived values (repo/ref/source/target/status/branch) are appended
+// as positional args to `az`. execFileSync already blocks shell injection, but a
+// value starting with "-" would be parsed by `az` as a FLAG (arg injection).
+// Reject those before they reach the argv. Centralized so every call site that
+// takes untrusted input uses the same guard.
+export function rejectFlagLike(name: string, value: unknown): void {
+	if (typeof value === "string" && value.startsWith("-"))
+		throw new AdoError(`invalid ${name}: value may not start with '-' (got '${value}')`);
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -117,9 +127,14 @@ export function makeAz(env: AdoEnv, signal?: AbortSignal): AzClient {
 			if (qp.length) args.push("--query-parameters", ...qp);
 			if (body !== undefined) {
 				const dir = mkdtempSync(join(tmpdir(), "ado-az-"));
-				const f = join(dir, "body.json");
-				writeFileSync(f, typeof body === "string" ? body : JSON.stringify(body));
-				args.push("--in-file", f, "--media-type", "application/json");
+				try {
+					const f = join(dir, "body.json");
+					writeFileSync(f, typeof body === "string" ? body : JSON.stringify(body));
+					args.push("--in-file", f, "--media-type", "application/json");
+					return exec(args, raw);
+				} finally {
+					rmSync(dir, { recursive: true, force: true });
+				}
 			}
 			return exec(args, raw);
 		},

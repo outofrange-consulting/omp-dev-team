@@ -1,6 +1,8 @@
 // PR checkout/push for Azure DevOps repos, using git with PAT auth injected via
-// http.extraheader. Checkouts live under ~/.omp/wt/<key>/pr-<id> (a single-
-// branch clone of the PR source branch), mirroring the gh tool's worktree dir.
+// http.extraheader. The auth header is passed through git's GIT_CONFIG_* env
+// vars (never via argv), so the PAT never lands in /proc/<pid>/cmdline or `ps`.
+// Checkouts live under ~/.omp/wt/<key>/pr-<id> (a single-branch clone of the PR
+// source branch), mirroring the gh tool's worktree dir.
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -26,10 +28,27 @@ export function repoCloneUrl(env: AdoEnv, repo: string): string {
 	)}/_git/${encodeURIComponent(repo)}`;
 }
 
+// Build an env that injects `http.extraheader=Authorization: <PAT>` via git's
+// GIT_CONFIG_* protocol rather than `-c` argv, so the PAT never appears in any
+// process command line. git reads GIT_CONFIG_KEY_<n>/VALUE_<n> for n in
+// [0, GIT_CONFIG_COUNT). Merged onto process.env so PATH/proxy settings survive.
+function gitAuthEnv(pat: string): NodeJS.ProcessEnv {
+	return {
+		...process.env,
+		GIT_CONFIG_COUNT: "1",
+		GIT_CONFIG_KEY_0: "http.extraheader",
+		GIT_CONFIG_VALUE_0: `Authorization: ${authHeader(pat)}`,
+	};
+}
+
 function git(args: string[], cwd: string, pat: string): string {
-	// Inject auth without writing the PAT to disk/remote URL.
-	const full = ["-c", `http.extraheader=Authorization: ${authHeader(pat)}`, ...args];
-	return execFileSync("git", full, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+	// Inject auth without writing the PAT to disk/remote URL/argv.
+	return execFileSync("git", args, {
+		cwd,
+		env: gitAuthEnv(pat),
+		encoding: "utf8",
+		stdio: ["ignore", "pipe", "pipe"],
+	});
 }
 
 export interface CheckoutResult {
@@ -62,17 +81,8 @@ export function prCheckout(
 	const url = repoCloneUrl(env, repo);
 	execFileSync(
 		"git",
-		[
-			"-c",
-			`http.extraheader=Authorization: ${authHeader(env.pat)}`,
-			"clone",
-			"--single-branch",
-			"--branch",
-			branch,
-			url,
-			dest,
-		],
-		{ encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+		["clone", "--single-branch", "--branch", branch, url, dest],
+		{ env: gitAuthEnv(env.pat), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
 	);
 	return { worktreePath: dest, branch, reused: false };
 }

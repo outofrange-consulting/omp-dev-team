@@ -5,6 +5,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 type DB = {
 	query: (sql: string) => { get: (...a: unknown[]) => unknown; run: (...a: unknown[]) => unknown };
@@ -31,12 +32,34 @@ function open(): DB | null {
 	return db;
 }
 
+// Scope key so cache rows never leak across credentials/orgs/projects. We hash
+// the EFFECTIVE credential actually used — mirroring the same precedence as
+// resolveAzEnv/resolveEnv — together with org+project. SHA-256 keeps it
+// collision-resistant and non-reversible; we never store the secret itself.
 function fingerprint(): string {
-	const pat = process.env.AZURE_DEVOPS_PAT ?? "";
-	// short, non-reversible scope key so cache rows don't leak across creds
-	let h = 0;
-	for (let i = 0; i < pat.length; i++) h = (h * 31 + pat.charCodeAt(i)) | 0;
-	return String(h >>> 0);
+	const org = process.env.AZURE_DEVOPS_ORG ?? "";
+	const project = process.env.AZURE_DEVOPS_PROJECT ?? "";
+	// Effective credential, in the same order resolveAzEnv/resolveEnv resolve it.
+	const cred =
+		process.env.AZURE_DEVOPS_PAT ??
+		process.env.AZURE_DEVOPS_EXT_PAT ??
+		process.env.SYSTEM_ACCESSTOKEN ??
+		"";
+	const h = createHash("sha256");
+	if (cred) {
+		// Distinct identities (any token source) get distinct cache scopes.
+		h.update("cred:");
+		h.update(cred);
+	} else {
+		// No resolvable credential (e.g. `az devops login`): fall back to a stable
+		// org+project identity so distinct orgs/projects still don't collide.
+		h.update("anon:");
+	}
+	h.update("\0org:");
+	h.update(org);
+	h.update("\0proj:");
+	h.update(project);
+	return h.digest("hex");
 }
 
 export function cacheGet(key: string, hardTtlSec: number): string | null {
