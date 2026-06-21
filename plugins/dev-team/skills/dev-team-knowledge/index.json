@@ -1,5 +1,5 @@
 {
-  "plugins/dev-team/knowledge/accepted-risks-schema.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/accepted-risks-schema.md": {
     "Purpose": {
       "summary": "A project-local `ACCEPTED-RISKS.md` at the repo root declares findings the team has explicitly accepted as known risks.",
       "anchor": "purpose"
@@ -37,7 +37,7 @@
       "anchor": "out-of-scope"
     }
   },
-  "plugins/dev-team/knowledge/adr-decision-criteria.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/adr-decision-criteria.md": {
     "Core Definition": {
       "summary": "An ADR documents **a decision on a matter where \"why?\" would not be obvious** — especially for decisions that are **hard to change later**.",
       "anchor": "core-definition"
@@ -59,7 +59,7 @@
       "anchor": "relationship-to-other-documents"
     }
   },
-  "plugins/dev-team/knowledge/adversarial-review-protocol.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/adversarial-review-protocol.md": {
     "The Loop": {
       "summary": "After the initial review pass, re-examine findings with the following questions.",
       "anchor": "the-loop"
@@ -101,7 +101,7 @@
       "anchor": "output"
     }
   },
-  "plugins/dev-team/knowledge/agent-registry.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/agent-registry.md": {
     "Team Agents": {
       "summary": "| Agent | File | ~Tokens | Primary Focus |",
       "anchor": "team-agents"
@@ -127,7 +127,7 @@
       "anchor": "agent-templates"
     }
   },
-  "plugins/dev-team/knowledge/architecture-assessment.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/architecture-assessment.md": {
     "Exploration Patterns": {
       "summary": "Map the architectural landscape before detecting issues.",
       "anchor": "exploration-patterns"
@@ -161,7 +161,7 @@
       "anchor": "mcp-enhanced-analysis"
     }
   },
-  "plugins/dev-team/knowledge/cd-test-architecture.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/cd-test-architecture.md": {
     "The Six Test Types": {
       "summary": "| Type | Verifies | Dependencies | Deterministic?",
       "anchor": "the-six-test-types"
@@ -211,7 +211,7 @@
       "anchor": "boundaries"
     }
   },
-  "plugins/dev-team/knowledge/component-test-patterns.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/component-test-patterns.md": {
     "Identify the Component's Pattern": {
       "summary": "| If the component… | Pattern | Group |",
       "anchor": "identify-the-components-pattern"
@@ -265,7 +265,7 @@
       "anchor": "quick-reference-isolation-strategy-by-pattern"
     }
   },
-  "plugins/dev-team/knowledge/design-smells.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/design-smells.md": {
     "Design Smells → Pattern Mapping": {
       "summary": "| Smell | Signature in code | Remediation pattern |",
       "anchor": "design-smells-pattern-mapping"
@@ -303,7 +303,7 @@
       "anchor": "what-not-to-flag-1"
     }
   },
-  "plugins/dev-team/knowledge/domain-modeling.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/domain-modeling.md": {
     "Exploration Patterns": {
       "summary": "Map the project structure before detecting issues.",
       "anchor": "exploration-patterns"
@@ -349,7 +349,7 @@
       "anchor": "ubiquitous-language-drift"
     }
   },
-  "plugins/dev-team/knowledge/exploratory-testing-field-guide.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/exploratory-testing-field-guide.md": {
     "1. Charter Quality (§2.3–2.4)": {
       "summary": "**Format**: `Explore [target] with [approach] to discover [concern]`",
       "anchor": "1-charter-quality-2324"
@@ -371,7 +371,7 @@
       "anchor": "5-implicit-expectations"
     }
   },
-  "plugins/dev-team/knowledge/fixture-construction.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/fixture-construction.md": {
     "1. Construction patterns (how the fixture object is built)": {
       "summary": "| Pattern | What it is | Use when | Cost / risk |",
       "anchor": "1-construction-patterns-how-the-fixture-object-is-built"
@@ -389,7 +389,7 @@
       "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
     }
   },
-  "plugins/dev-team/knowledge/microservice-testing.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/microservice-testing.md": {
     "The Layers (per service)": {
       "summary": "| Layer | Scope | What it verifies | Doubles |",
       "anchor": "the-layers-per-service"
@@ -411,7 +411,7 @@
       "anchor": "boundaries"
     }
   },
-  "plugins/dev-team/knowledge/object-calisthenics.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/object-calisthenics.md": {
     "The Rules": {
       "summary": "If a method has nested `if`/`for`/`while`, extract the inner block into a named method.",
       "anchor": "the-rules"
@@ -457,7 +457,7 @@
       "anchor": "applying-pragmatically"
     }
   },
-  "plugins/dev-team/knowledge/owasp-detection.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md": {
     "A01: Broken Access Control": {
       "summary": "| Pattern | Language | Grep Signal | Category |",
       "anchor": "a01-broken-access-control"
@@ -499,7 +499,7 @@
       "anchor": "a10-ssrf"
     }
   },
-  "plugins/dev-team/knowledge/result-verification.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/result-verification.md": {
     "Verification style: state vs behavior": {
       "summary": "| Style | What it checks | Use when |",
       "anchor": "verification-style-state-vs-behavior"
@@ -517,7 +517,7 @@
       "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
     }
   },
-  "plugins/dev-team/knowledge/review-rubric.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/review-rubric.md": {
     "Health Score Calculation": {
       "summary": "Collect the status from each agent: `pass`, `warn`, `fail`, `skip`.",
       "anchor": "health-score-calculation"
@@ -535,7 +535,7 @@
       "anchor": "confidence-and-actionability"
     }
   },
-  "plugins/dev-team/knowledge/review-template.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/review-template.md": {
     "Report Structure": {
       "summary": "Use these consistently:",
       "anchor": "report-structure"
@@ -549,7 +549,7 @@
       "anchor": "health-score-icons"
     }
   },
-  "plugins/dev-team/knowledge/security-primitives-contract.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md": {
     "Bypass path": {
       "summary": "Edits to this file are guarded by `hooks/contract-version-guard.sh`.",
       "anchor": "bypass-path"
@@ -635,7 +635,7 @@
       "anchor": "100-2026-04-21"
     }
   },
-  "plugins/dev-team/knowledge/test-automation-maturity.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-automation-maturity.md": {
     "Maturity scale (diagnose from evidence, lowest rung first)": {
       "summary": "| Rung | Signal in the suite | Risk |",
       "anchor": "maturity-scale-diagnose-from-evidence-lowest-rung-first"
@@ -661,7 +661,7 @@
       "anchor": "boundaries"
     }
   },
-  "plugins/dev-team/knowledge/test-doubles.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-doubles.md": {
     "The Five Doubles": {
       "summary": "| Double | What it does | Verification style | Use when |",
       "anchor": "the-five-doubles"
@@ -687,7 +687,7 @@
       "anchor": "boundaries"
     }
   },
-  "plugins/dev-team/knowledge/test-layer-gates.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-layer-gates.md": {
     "The gates (before pyramid placement)": {
       "summary": "**Gate A — user-facing dynamic.** The user acts and must *see* a rendered result.",
       "anchor": "the-gates-before-pyramid-placement"
@@ -697,7 +697,7 @@
       "anchor": "redundancy-check-business-critical-only-after-placement"
     }
   },
-  "plugins/dev-team/knowledge/test-organization.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-organization.md": {
     "The Four-Phase Test (the anchor)": {
       "summary": "Every test follows four phases, visibly separated:",
       "anchor": "the-four-phase-test-the-anchor"
@@ -723,7 +723,7 @@
       "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
     }
   },
-  "plugins/dev-team/knowledge/test-pyramid.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-pyramid.md": {
     "The Layers": {
       "summary": "| Layer | Scope | Speed | Doubles | What it proves |",
       "anchor": "the-layers"
@@ -753,7 +753,7 @@
       "anchor": "boundaries"
     }
   },
-  "plugins/dev-team/knowledge/test-refactoring.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-refactoring.md": {
     "1. Goals & Principles (the criteria a refactoring moves toward)": {
       "summary": "**Goals — a good automated test is:**",
       "anchor": "1-goals-principles-the-criteria-a-refactoring-moves-toward"
@@ -771,7 +771,7 @@
       "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
     }
   },
-  "plugins/dev-team/knowledge/test-smells.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-smells.md": {
     "Smell Categories": {
       "summary": "xUnit Test Patterns groups smells into three levels.",
       "anchor": "smell-categories"
@@ -797,7 +797,7 @@
       "anchor": "boundaries"
     }
   },
-  "plugins/dev-team/knowledge/test-strategy.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/test-strategy.md": {
     "1. Test Fixture Strategy": {
       "summary": "The fixture is everything the test needs in place before it acts.",
       "anchor": "1-test-fixture-strategy"
@@ -815,7 +815,7 @@
       "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
     }
   },
-  "plugins/dev-team/knowledge/testability-patterns.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/testability-patterns.md": {
     "\"I Can't Test This Class\" Decision Flow": {
       "summary": "---",
       "anchor": "i-cant-test-this-class-decision-flow"
@@ -845,7 +845,7 @@
       "anchor": "references"
     }
   },
-  "plugins/dev-team/knowledge/testing-quadrants.md": {
+  "plugins/dev-team/skills/dev-team-knowledge/testing-quadrants.md": {
     "The Four Quadrants": {
       "summary": "| Q | Facing × Stance | Tests | Mode |",
       "anchor": "the-four-quadrants"

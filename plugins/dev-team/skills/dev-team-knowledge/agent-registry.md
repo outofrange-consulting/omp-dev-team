@@ -17,7 +17,8 @@ This file contains the complete registry tables. CLAUDE.md references this file 
 | Platform Engineer | `agents/platform-engineer.md` | 320 | Pipeline, deployment, reliability |
 | ADR Author | `agents/adr-author.md` | 320 | Creates and manages Architecture Decision Records |
 | Codebase Recon | `agents/codebase-recon.md` | ~900 | Repo reconnaissance — surfaces entry points, dependencies, security surface, git history. Produces RECON artifact per security-primitives-contract. Dispatched on demand by architect and domain-analysis. |
-| **All team agents** | | **~4,510** | |
+| Session Analysis | `agents/session-analysis.md` | ~500 | Map an aggregated session digest to probable plugin causes and ranked, tagged improvement suggestions |
+| **All team agents** | | **~5,010** | |
 
 ## Review Agents
 
@@ -143,19 +144,3 @@ Knowledge files in `knowledge/` provide progressive disclosure — agents read t
 | Test Matrix Examples | `knowledge/test-matrix-examples/*.md` | ~950 | test-design-advisor (few-shot templates) |
 | Testing Techniques | `knowledge/testing-techniques/*.md` | ~1,300 | test-design-advisor (overlay, on trigger), security-review |
 | Test Stack Profiles | `knowledge/test-stack-profiles/*.md` | ~1,400 | test-design-advisor (tool resolution by detected stack) |
-
-## Agent Templates
-
-Language-specific review agents in `templates/agents/`. Scaffolded into projects by `/setup` when the matching stack is detected. Not bundled as always-on.
-
-| Template | File | Activates When |
-|----------|------|---------------|
-| ts-enforcer | `templates/agents/ts-enforcer.md` | TypeScript detected |
-| esm-enforcer | `templates/agents/esm-enforcer.md` | Any JS/TS project (always-on) |
-| react-testing | `templates/agents/react-testing.md` | React in deps |
-| front-end-testing | `templates/agents/front-end-testing.md` | Any frontend framework |
-| twelve-factor-audit | `templates/agents/twelve-factor-audit.md` | Service/API project |
-| python-quality | `templates/agents/python-quality.md` | Python stack |
-| go-quality | `templates/agents/go-quality.md` | Go stack |
-| csharp-quality | `templates/agents/csharp-quality.md` | C#/.NET stack |
-| angular-testing | `templates/agents/angular-testing.md` | Angular in deps |

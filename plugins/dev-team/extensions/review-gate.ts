@@ -45,6 +45,36 @@ function isGitCommit(cmd: string): boolean {
 	return /\bgit\b[^&|;]*\bcommit\b/.test(cmd);
 }
 
+// Detect `--no-verify` only as a real argument token, not as a substring of the
+// command (e.g. a commit MESSAGE containing the text "--no-verify"). We tokenize
+// the command in a quote-aware way (so a quoted `-m '... --no-verify ...'`
+// message stays a single token) and skip the value of a message flag
+// (`-m VALUE`, `--message`, `-F FILE`, `--file`) so message bodies can't
+// trigger the bypass.
+function tokenizeShell(cmd: string): string[] {
+	const tokens: string[] = [];
+	const re = /'[^']*'|"[^"]*"|\S+/g;
+	let m: RegExpExecArray | null;
+	while ((m = re.exec(cmd)) !== null) tokens.push(m[0]);
+	return tokens;
+}
+
+function hasNoVerifyFlag(cmd: string): boolean {
+	const tokens = tokenizeShell(cmd);
+	const skipNext = new Set(["-m", "--message", "-F", "--file"]);
+	for (let i = 0; i < tokens.length; i++) {
+		const tok = tokens[i];
+		// `--message=...` / `--file=...` carry their value inline — skip whole token.
+		if (/^--(?:message|file)=/.test(tok)) continue;
+		if (skipNext.has(tok)) {
+			i++; // skip this flag's value token
+			continue;
+		}
+		if (tok === "--no-verify") return true;
+	}
+	return false;
+}
+
 export default function reviewGate(pi: ExtensionAPI) {
 	pi.setLabel("review-gate");
 
@@ -73,7 +103,7 @@ export default function reviewGate(pi: ExtensionAPI) {
 			(event.input as Record<string, unknown>).command ?? "",
 		);
 		if (!isGitCommit(cmd)) return;
-		if (cmd.includes("--no-verify")) {
+		if (hasNoVerifyFlag(cmd)) {
 			ctx.ui.notify("commit with --no-verify: review gate bypassed", "warn");
 			return;
 		}

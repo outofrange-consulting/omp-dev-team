@@ -2,7 +2,7 @@
 // Port of the Claude Code `pre-tool-guard.sh` hook + `guards.json`.
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { matchesAny, pathsFromToolInput } from "./lib/shared.ts";
+import { bashWriteTargets, matchesAny, pathsFromToolInput } from "./lib/shared.ts";
 
 const BLOCKED = [
 	".env",
@@ -24,6 +24,28 @@ export default function pathGuard(pi: ExtensionAPI) {
 	pi.setLabel("path-guard");
 
 	pi.on("tool_call", async (event, ctx) => {
+		// bash branch (best-effort): catch writes to blocked paths performed via
+		// the shell (redirection, tee, sed -i, cp/mv dest) rather than write/edit.
+		if (event.toolName === "bash") {
+			const cmd = String(
+				(event.input as Record<string, unknown>).command ?? "",
+			);
+			if (!cmd) return;
+			for (const p of bashWriteTargets(cmd)) {
+				const base = p.split("/").pop() ?? p;
+				const blocked = matchesAny(p, BLOCKED) ?? matchesAny(base, BLOCKED);
+				if (blocked) {
+					return {
+						block: true,
+						reason:
+							`Blocked shell write to sensitive path "${p}" (matches "${blocked}"). ` +
+							`Writing secrets/credentials via the shell is denied. If this is a ` +
+							`template or fixture, rename it or adjust path-guard.ts.`,
+					};
+				}
+			}
+			return;
+		}
 		if (event.toolName !== "write" && event.toolName !== "edit") return;
 		const paths = pathsFromToolInput(
 			event.toolName,

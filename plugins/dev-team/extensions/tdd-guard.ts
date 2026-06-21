@@ -15,8 +15,10 @@ import { pathsFromToolInput } from "./lib/shared.ts";
 const TEST_RE = /(\.|_|\/)(test|spec)\.|(^|\/)(tests?|__tests__|spec)\//i;
 const SOURCE_RE = /\.(ts|tsx|js|jsx|py|go|rs|java|kt|cs|rb|svelte|vue)$/i;
 const FEATURE_RE = /\.feature$/i;
-// shell ops that would mutate a file
-const BASH_WRITE_RE = /(>>?|\btee\b|sed\s+-i|\bmv\b|\bcp\b|\brm\b|\btruncate\b|\bdd\b)/i;
+// shell ops that would mutate a file (best-effort — the write/edit tool path is
+// the real protection; this only catches obvious shell-mediated rewrites).
+const BASH_WRITE_RE =
+	/(>>?|\btee\b|sed\s+-i|\bmv\b|\bcp\b|\brm\b|\btruncate\b|\bdd\b|python\d?\s+-c|node\s+-e|perl\s+-[a-z]*i|\bed\b|git\s+checkout\s+--)/i;
 
 function featureReason(p: string): string {
 	return (

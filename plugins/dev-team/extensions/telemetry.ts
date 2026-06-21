@@ -11,16 +11,18 @@ import { appendJSONL, nowISO, statePath } from "./lib/shared.ts";
 interface Counters {
 	turns: number;
 	toolCalls: Record<string, number>;
-	blocked: number;
+	// Counts tool calls that returned an error (not just policy "blocks") — named
+	// `errors` rather than `blocked` so the JSONL field and report aren't misleading.
+	errors: number;
 }
 
 export default function telemetry(pi: ExtensionAPI) {
 	pi.setLabel("telemetry");
 
-	let c: Counters = { turns: 0, toolCalls: {}, blocked: 0 };
+	let c: Counters = { turns: 0, toolCalls: {}, errors: 0 };
 
 	pi.on("session_start", async () => {
-		c = { turns: 0, toolCalls: {}, blocked: 0 };
+		c = { turns: 0, toolCalls: {}, errors: 0 };
 	});
 
 	pi.on("turn_end", async () => {
@@ -29,7 +31,7 @@ export default function telemetry(pi: ExtensionAPI) {
 
 	pi.on("tool_result", async (event) => {
 		c.toolCalls[event.toolName] = (c.toolCalls[event.toolName] ?? 0) + 1;
-		if (event.isError) c.blocked += 1;
+		if (event.isError) c.errors += 1;
 	});
 
 	pi.registerCommand("cost-report", {
@@ -54,7 +56,7 @@ export default function telemetry(pi: ExtensionAPI) {
 				contextUsed: ctxPct,
 			});
 			ctx.ui.notify(
-				`turns=${c.turns} ctx=${ctxPct} errors=${c.blocked} | ${tools || "no tool calls"}`,
+				`turns=${c.turns} ctx=${ctxPct} errors=${c.errors} | ${tools || "no tool calls"}`,
 				"info",
 			);
 		},

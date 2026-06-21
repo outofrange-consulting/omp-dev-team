@@ -3,6 +3,7 @@
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import {
+	bashWriteTargets,
 	matchesAny,
 	pathsFromToolInput,
 	readJSON,
@@ -67,6 +68,23 @@ export default function freezeGuard(pi: ExtensionAPI) {
 				event.input as Record<string, unknown>,
 			);
 			for (const p of paths) {
+				const g = matchesAny(p, globs);
+				if (g) {
+					return {
+						block: true,
+						reason: `"${p}" is frozen (matches "${g}"). Run /unfreeze ${g} to edit it.`,
+					};
+				}
+			}
+		}
+
+		// bash branch (best-effort): catch frozen-path writes performed via the
+		// shell (redirection, tee, sed -i, cp/mv dest) rather than write/edit.
+		if (event.toolName === "bash") {
+			const cmd = String(
+				(event.input as Record<string, unknown>).command ?? "",
+			);
+			for (const p of bashWriteTargets(cmd)) {
 				const g = matchesAny(p, globs);
 				if (g) {
 					return {
