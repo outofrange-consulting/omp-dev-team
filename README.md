@@ -163,11 +163,14 @@ Notes:
 
 ## Tested
 
-Verified end-to-end on Linux: all `install.sh` pass `bash -n`; all
-`install.ps1` parse under PowerShell 7; all manifests are valid JSON; the 8
-dev-team extensions compile under `bun`; ctx-wire, CodeGraph, and OMP install via
-the exact commands the scripts use; and all five plugins install through real OMP
-(`omp plugin marketplace add ./` → `omp plugin install <name>@omp-dev-team`).
+Verified end-to-end and in CI (Linux/macOS/Windows — see
+[`.github/workflows/installers.yml`](.github/workflows/installers.yml)): all
+`install.sh` pass `bash -n`; all `install.ps1` parse under PowerShell 7; all
+manifests are valid JSON; the 8 dev-team extensions (plus the token-diet,
+azure-devops-fs, and cliproxy extension modules) compile under `bun`; ctx-wire,
+CodeGraph, and OMP install via the exact commands the scripts use; and all six
+plugins install through real OMP on each OS (`omp plugin marketplace add ./` →
+`omp plugin install <name>@omp-dev-team`).
 
 ## Credits
 

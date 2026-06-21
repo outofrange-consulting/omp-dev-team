@@ -26,7 +26,11 @@ function Install-Pup {
     if (Have pup) { return }
   }
   try {
-    $arch = if ([Environment]::Is64BitOperatingSystem) { 'x86_64' } else { 'x86_64' }
+    # Mirror datadog/install.sh arch detection: arm64 vs x86_64 (the dead ternary
+    # here always returned x86_64, so arm64 Windows silently got the x64 asset).
+    $procArch = $env:PROCESSOR_ARCHITECTURE
+    if (-not $procArch) { $procArch = '' }
+    $arch = if ($procArch -match 'ARM64' -or $env:PROCESSOR_ARCHITEW6432 -match 'ARM64') { 'arm64' } else { 'x86_64' }
     $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/DataDog/pup/releases/latest' -Headers @{ 'User-Agent' = 'omp-dev-team' }
     $ver = ($rel.tag_name -replace '^v', '')
     $url = "https://github.com/DataDog/pup/releases/download/v$ver/pup_${ver}_Windows_$arch.zip"

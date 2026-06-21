@@ -59,6 +59,12 @@ if ($Url) {
     } else {
       $block = (& $Runner $ext '--yaml' '--url' $Url '--api-key-ref' $apiRef) -join "`n"
       $lines = Get-Content $modelsYml
+      # SAFETY: splicing after a `providers:` line assumes it's bare. If it has
+      # inline content/comments/odd indent the result can be invalid YAML and
+      # break ALL providers. So we (a) back up first, (b) only splice when there's
+      # a bare `^providers:\s*$` line (else append a fresh top-level block), and
+      # (c) validate with PyYAML when available, restoring the backup on failure.
+      $bak = "$modelsYml.bak"; Copy-Item -Force $modelsYml $bak
       if ($lines -match '^providers:\s*$') {
         $inner = ($block -split "`n" | Select-Object -Skip 1) -join "`n"
         $out = @()
@@ -68,7 +74,22 @@ if ($Url) {
       } else {
         Add-Content -Path $modelsYml -Value "`n$block"
       }
-      Say "Wrote the cliproxy provider to $modelsYml"
+      $py = Get-Command python3 -ErrorAction SilentlyContinue; if (-not $py) { $py = Get-Command python -ErrorAction SilentlyContinue }
+      $hasYaml = $false
+      if ($py) { & $py.Source -c 'import yaml' 2>$null | Out-Null; $hasYaml = ($LASTEXITCODE -eq 0) }
+      if ($hasYaml) {
+        & $py.Source -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))' $modelsYml 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+          Remove-Item $bak -ErrorAction SilentlyContinue
+          Say "Wrote the cliproxy provider to $modelsYml (validated)"
+        } else {
+          Move-Item -Force $bak $modelsYml
+          Warn "Result was not valid YAML — restored $modelsYml from backup. Add the cliproxy provider manually."
+        }
+      } else {
+        Remove-Item $bak -ErrorAction SilentlyContinue
+        Say "Wrote the cliproxy provider to $modelsYml (no YAML validator found — skipped validation)"
+      }
     }
   }
 }

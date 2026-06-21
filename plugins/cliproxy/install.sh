@@ -81,12 +81,32 @@ if [ -n "$URL" ]; then
       # Drop the leading `providers:` line from the generated block when merging
       # into a file that already has one.
       INNER="$(printf '%s\n' "$BLOCK" | sed '1d')"
-      if grep -qE "^providers:" "$MODELS_YML" 2>/dev/null; then
+      # SAFETY: the awk insert assumes a bare top-level `providers:` line. If the
+      # user's providers: has inline content/comments/odd indent the result can be
+      # invalid YAML and break ALL providers. So we (a) back up first, (b) only
+      # splice when there's a bare `^providers:[[:space:]]*$` line (otherwise append
+      # a fresh top-level block), and (c) validate with PyYAML when available,
+      # restoring the backup on failure.
+      BAK="$MODELS_YML.bak"; cp "$MODELS_YML" "$BAK"
+      if grep -qE "^providers:[[:space:]]*$" "$MODELS_YML" 2>/dev/null; then
         awk -v blk="$INNER" 'BEGIN{done=0} {print} /^providers:[[:space:]]*$/ && !done {print blk; done=1}' "$MODELS_YML" > "$MODELS_YML.tmp" && mv "$MODELS_YML.tmp" "$MODELS_YML"
       else
+        # No bare top-level providers: line — don't risk splicing into an
+        # inline/indented/commented one; append a clean top-level block instead.
         { printf '\n'; printf '%s\n' "$BLOCK"; } >> "$MODELS_YML"
       fi
-      say "Wrote the cliproxy provider to $MODELS_YML"
+      # Validate the result is parseable YAML if a parser is available; otherwise
+      # trust the edit. On parse failure, roll back to the backup.
+      if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+        if python3 -c 'import yaml,sys; yaml.safe_load(open(sys.argv[1]))' "$MODELS_YML" >/dev/null 2>&1; then
+          rm -f "$BAK"; say "Wrote the cliproxy provider to $MODELS_YML (validated)"
+        else
+          mv "$BAK" "$MODELS_YML"
+          warn "Result was not valid YAML — restored $MODELS_YML from backup. Add the cliproxy provider manually."
+        fi
+      else
+        rm -f "$BAK"; say "Wrote the cliproxy provider to $MODELS_YML (no YAML validator found — skipped validation)"
+      fi
     fi
   fi
 fi

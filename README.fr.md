@@ -126,6 +126,7 @@ install.sh · install.ps1               # installeur global (OMP + marketplace +
 plugins/
   dev-team/         agents/ skills/ commands/ rules/ extensions/ .mcp.json
                     config.snippet.yml · install.sh · install.ps1
+                    skills/dev-team-knowledge/  (registries, rubriques, model-routing.json)
   copilot-preset/   config.snippet.yml · pricing.md · skills/ · install.{sh,ps1}
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ (ado.ts + lib/az.ts) commands/ skills/ rules/ knowledge/ · install.{sh,ps1}
@@ -161,12 +162,13 @@ Notes :
 
 ## Testé
 
-Vérifié de bout en bout sous Linux et en intégration continue (Linux/macOS/Windows,
-voir `.github/workflows/installers.yml`) : tous les `install.sh` passent `bash -n` ;
-tous les `install.ps1` se parsent sous PowerShell 7 ; tous les manifestes
-sont du JSON valide ; les 8 extensions de dev-team compilent sous `bun` ; ctx-wire,
-CodeGraph et OMP s'installent via les commandes exactes des scripts ; et les cinq
-plugins s'installent via le vrai OMP.
+Vérifié de bout en bout et en intégration continue (Linux/macOS/Windows,
+voir [`.github/workflows/installers.yml`](.github/workflows/installers.yml)) : tous
+les `install.sh` passent `bash -n` ; tous les `install.ps1` se parsent sous
+PowerShell 7 ; tous les manifestes sont du JSON valide ; les 8 extensions de
+dev-team (plus les modules d'extension de token-diet, azure-devops-fs et cliproxy)
+compilent sous `bun` ; ctx-wire, CodeGraph et OMP s'installent via les commandes
+exactes des scripts ; et les six plugins s'installent via le vrai OMP sur chaque OS.
 
 ## Crédits
 

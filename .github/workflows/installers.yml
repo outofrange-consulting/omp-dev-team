@@ -50,6 +50,30 @@ jobs:
       - name: Verify multilingual ctx-wire filters
         run: python3 plugins/token-diet/ctx-wire/scripts/verify-filters.py plugins/token-diet/ctx-wire/filters.d
 
+  # 1c) Compile the plugin extension modules under bun (catches TS/syntax errors
+  #     in the guard/routing/provider/context-transform extensions).
+  extensions:
+    name: extensions compile (bun)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: bun build the extension modules
+        run: |
+          rc=0
+          for f in \
+            plugins/dev-team/extensions/*.ts \
+            plugins/token-diet/extensions/*.ts \
+            plugins/azure-devops-fs/extensions/*.ts \
+            plugins/cliproxy/extensions/*.ts; do
+            if bun build "$f" --target node >/dev/null; then
+              echo "ok $f"
+            else
+              echo "FAIL $f"; rc=1
+            fi
+          done
+          exit $rc
+
   # 2) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
   #    verifies OMP launches and lists all plugins).
   e2e:

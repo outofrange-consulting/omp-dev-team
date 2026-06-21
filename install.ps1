@@ -39,9 +39,30 @@ function Ask ($q, $def = 'Y') {
   if ([string]::IsNullOrWhiteSpace($ans)) { $ans = $def }
   return ($ans -match '^(y|Y)')
 }
-function PromptValue ($label) {
+function PromptValue ($label, [switch]$Secret) {
   if ($Yes) { return '' }
+  if ($Secret) {
+    # Hidden input for secrets (PATs/keys) — Read-Host -AsSecureString does not
+    # echo, matching the other ps1 secret prompts. Convert back to plain text.
+    $sec = Read-Host "    $label" -AsSecureString
+    return [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+  }
   return (Read-Host "    $label")
+}
+# Restrict a file to the current user only (no inherited access) — the Windows
+# equivalent of `chmod 600`. Used to lock down ~/.omp/agent/mcp.json after the
+# GitHub PAT is written into it.
+function Lock-FileToCurrentUser ($path) {
+  if (-not (Test-Path $path)) { return }
+  try {
+    $me = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    $acl = New-Object System.Security.AccessControl.FileSecurity
+    $acl.SetAccessRuleProtection($true, $false)   # disable inheritance, drop inherited rules
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+      $me, 'FullControl', 'Allow')
+    $acl.AddAccessRule($rule)
+    Set-Acl -Path $path -AclObject $acl
+  } catch { Warn "could not lock ACL on $path ($_)" }
 }
 function Ensure-Path ($dir) {
   if (-not (Test-Path $dir)) { return }
@@ -204,7 +225,7 @@ function Write-Mcp {
   if (-not ((Have bun) -or (Have node))) { Warn "no bun/node — skipping mcp.json"; return }
   $mcp = Join-Path $HOME ".omp\agent\mcp.json"
   $gh = $env:GITHUB_TOKEN; if (-not $gh) { $gh = $env:GH_TOKEN }; if (-not $gh) { $gh = $env:GITHUB_PERSONAL_ACCESS_TOKEN }
-  if (-not $gh) { $gh = PromptValue 'GitHub PAT for the GitHub MCP (optional, blank to skip)' }
+  if (-not $gh) { $gh = PromptValue 'GitHub PAT for the GitHub MCP (optional, blank to skip)' -Secret }
   # Only GitHub is an MCP, enabled only when a token is available. Atlassian -> acli,
   # Context7 -> ctx7 CLI (both CLI+skill, not MCP). No Miro.
   if ($gh) {
@@ -223,6 +244,10 @@ function Write-Mcp {
   New-Item -ItemType Directory -Force -Path (Split-Path $mcp) | Out-Null
   try { Js-Run (Join-Path $Root 'scripts\merge-json.mjs') @($mcp, $patch.FullName) | Out-Null } catch { Warn "mcp.json merge failed: $_" }
   Remove-Item $patch -ErrorAction SilentlyContinue
+  # The PAT is now written as a literal into mcp.json. Lock the file to the
+  # current user (no inherited access) — the Windows equivalent of the bash
+  # side's `chmod 600 mcp.json`.
+  if ($gh) { Lock-FileToCurrentUser $mcp }
   Ok "mcp.json merged ($(if ($gh) { 'github enabled' } else { 'github present (add a PAT to enable)' }))"
 }
 
