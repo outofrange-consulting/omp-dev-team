@@ -105,9 +105,20 @@ export function compressOldMessages(
 	opts: CompressMessagesOpts,
 ): number {
 	if (!Array.isArray(messages)) return 0;
-	const cutoff = messages.length - Math.max(0, opts.keepRecent);
+	// The recency guarantee applies to the most recent N COMPRESSIBLE messages,
+	// not the last N messages overall: counting all roles would let trailing
+	// user/system messages push the assistant/tool messages we meant to protect
+	// before the cutoff. Walk from the end, counting only compressible messages,
+	// and treat everything from there on as protected.
+	const keep = Math.max(0, opts.keepRecent);
+	let cutoff = messages.length;
+	let reserved = 0;
+	while (cutoff > 0 && reserved < keep) {
+		cutoff--;
+		if (COMPRESSIBLE_ROLES.has(messageRole(messages[cutoff]))) reserved++;
+	}
 	let saved = 0;
-	for (let i = 0; i < messages.length && i < cutoff; i++) {
+	for (let i = 0; i < cutoff; i++) {
 		if (!COMPRESSIBLE_ROLES.has(messageRole(messages[i]))) continue;
 		for (const blob of textBlobs(messages[i])) {
 			const text = blob.get();

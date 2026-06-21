@@ -1,8 +1,12 @@
 # token-diet config — appended to ~/.omp/agent/config.yml by install.sh.
 # Enables skills/commands and isolates OMP from all foreign-tool user configs
-# (~/.claude, ~/.codex, ~/.gemini, ~/.cursor, ~/.codeium/windsurf, ~/.copilot,
+# (~/.claude, ~/.codex, ~/.gemini, ~/.cursor, ~/.codeium/windsurf,
 # ~/.config/opencode) so OMP only loads its own plugins and project-level files.
-# (ctx-wire: PATH shims; CodeGraph + context7 MCPs: plugin's .mcp.json)
+# NOTE: the `github` provider (~/.copilot / .github) is intentionally NOT disabled
+# here, to stay consistent with the global installer and keep copilot-preset's
+# `.github`/Copilot integration intact. Keep this list identical to install.sh's
+# write_config so the two install paths never write conflicting blocks.
+# (ctx-wire: PATH shims; CodeGraph MCP: plugin's .mcp.json)
 
 # Lean tool surface — token-diet's biggest startup-context win. OMP loads every
 # tool's JSON schema into the system prompt on every request; with dev-team that
@@ -32,7 +36,6 @@ disabledProviders:
   - cursor          # ~/.cursor/ and .cursor/ — Cursor MCP + rules
   - windsurf        # ~/.codeium/windsurf/ and .windsurf/ — Windsurf rules
   - opencode        # ~/.config/opencode/ and .opencode/ — OpenCode MCP
-  - github          # ~/.copilot/ and .github/ — Copilot CLI + instructions
   - cline           # .clinerules — Cline project rules
 
 # Context-transform extensions (installed as files by install.sh into

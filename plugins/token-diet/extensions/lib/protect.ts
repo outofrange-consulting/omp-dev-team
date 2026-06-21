@@ -72,6 +72,11 @@ function mapGaps(s: string, fn: (gap: string) => string): string {
 
 /** Replace every high-value span with a placeholder; return spans to restore. */
 export function protect(text: string): { masked: string; spans: string[] } {
+	// If the raw sentinel char already occurs in the input, masking is unsafe:
+	// a pre-existing NUL<digits>NUL would be misread by restore() as one of our
+	// placeholders and silently dropped. Bail out — the lossless guarantee beats
+	// compressing that (vanishingly rare) input.
+	if (text.includes(NUL)) return { masked: text, spans: [] };
 	const spans: string[] = [];
 	let work = text;
 	for (const re of PROTECT) {
@@ -84,7 +89,10 @@ export function protect(text: string): { masked: string; spans: string[] } {
 
 /** Inverse of protect(): splice the original spans back in, byte-identical. */
 export function restore(masked: string, spans: string[]): string {
-	return masked.replace(PH, (_full, d: string) => spans[Number(d)] ?? "");
+	// An out-of-range index means the matched text was NOT one of our
+	// placeholders (a pre-existing NUL<digits>NUL in the original) — return it
+	// verbatim rather than converting it to a deletion.
+	return masked.replace(PH, (full, d: string) => spans[Number(d)] ?? full);
 }
 
 const FILLER_LITE = [
@@ -121,9 +129,10 @@ function dropFiller(s: string, list: string[]): string {
 
 /**
  * Shorten prose only (placeholders are inert). Levels mirror the caveman skill:
- *  - safe: lossless-ish — strip ANSI, trailing spaces, collapse blank-line and
- *          mid-line space runs (indentation preserved).
- *  - lite: + drop curated filler words/phrases.
+ *  - safe: genuinely near-lossless — strip ANSI, trailing spaces, collapse
+ *          blank-line runs. Interior column spacing is PRESERVED (tables, diffs,
+ *          ASCII art keep their alignment); no word drop.
+ *  - lite: + collapse interior multi-space runs + drop curated filler words.
  *  - full: + drop articles (a/an/the).
  */
 export function compressProse(masked: string, level: Level): string {
@@ -131,8 +140,10 @@ export function compressProse(masked: string, level: Level): string {
 	s = s.replace(ANSI, "");
 	s = s.replace(/[ \t]+$/gm, "");
 	s = s.replace(/\n{3,}/g, "\n\n");
-	s = s.replace(/(\S) {2,}(\S)/g, "$1 $2"); // keep leading indentation
+	// `safe` must keep interior single-space-significant runs intact (column
+	// alignment), so the mid-line space collapse is reserved for lite/full.
 	if (level === "safe") return s;
+	s = s.replace(/(\S) {2,}(\S)/g, "$1 $2"); // keep leading indentation
 	s = dropFiller(s, FILLER_LITE);
 	if (level === "lite") return s.replace(/ {2,}/g, " ");
 	s = s.replace(/\b(?:a|an|the)\b[ \t]/gi, "");

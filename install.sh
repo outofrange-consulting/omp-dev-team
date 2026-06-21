@@ -98,11 +98,19 @@ ask() {
   ans="${ans:-$def}"
   case "$ans" in [Yy]*) return 0 ;; *) return 1 ;; esac
 }
-# prompt "label" -> echoes the typed value (empty if none / non-interactive)
+# prompt "label" [hidden] -> echoes the typed value (empty if none / non-interactive)
+# Pass "hidden" as the 2nd arg for secrets (PATs/keys): uses `read -s` so the
+# input is NOT echoed to the terminal, and prints a trailing newline (since -s
+# suppresses the echo of the Enter keypress). Matches the sibling installers.
 prompt() {
-  local label="$1" ans=""
+  local label="$1" mode="${2:-}" ans=""
   { [ "$YES" = 1 ] || [ ! -r /dev/tty ]; } && { printf '%s' ""; return 0; }
-  read -r -p "    $label: " ans </dev/tty || ans=""
+  if [ "$mode" = hidden ]; then
+    read -r -s -p "    $label: " ans </dev/tty || ans=""
+    printf '\n' >/dev/tty
+  else
+    read -r -p "    $label: " ans </dev/tty || ans=""
+  fi
   printf '%s' "$ans"
 }
 
@@ -215,7 +223,15 @@ plug() {  # plug <name> <dir>
 }
 
 # --- config merge helpers (preserve existing user values) -------------------
-cfg_has() { grep -qE "^$1:" "$CFG" 2>/dev/null; }
+# cfg_has detects a TRUE top-level YAML key only: anchored at column 0
+# (`^<key>:`), so an indented key or the key appearing inside a string/comment
+# does NOT count as a match. This prevents cfg_add from appending a SECOND
+# top-level block for a key that already exists (most YAML parsers then clobber
+# one or error). The key is regex-escaped before anchoring.
+cfg_has() {
+  local k; k="$(printf '%s' "$1" | sed 's/[][\.*^$/]/\\&/g')"
+  grep -qE "^${k}:([[:space:]]|\$)" "$CFG" 2>/dev/null
+}
 cfg_add() {  # cfg_add <topkey> ; YAML block on stdin ; append only if topkey absent
   local key="$1" block; block="$(cat)"
   cfg_has "$key" && return 0
@@ -295,6 +311,13 @@ commands:
   enableClaudeUser: false
   enableClaudeProject: false
 EOF
+  # disabledProviders — the global installer and token-diet's standalone
+  # installer now write an IDENTICAL list (github intentionally omitted, so the
+  # Copilot/`.github` integration and copilot-preset keep working). The global
+  # plug() also runs token-diet with --no-config so only one path writes here.
+  # cfg_add is top-level-anchored, so a pre-existing block (e.g. from a prior
+  # standalone token-diet run) is detected and we skip rather than append a
+  # duplicate top-level key.
   cfg_add disabledProviders <<'EOF'
 disabledProviders:
   - claude-plugins
@@ -315,7 +338,7 @@ write_mcp() {
   have node || have bun || { warn "no node/bun — skipping mcp.json (re-run after runtimes)"; return 0; }
   local mcp="$HOME/.omp/agent/mcp.json" patch gh ghblock=""
   gh="${GITHUB_TOKEN:-${GH_TOKEN:-${GITHUB_PERSONAL_ACCESS_TOKEN:-}}}"
-  [ -z "$gh" ] && gh="$(prompt 'GitHub PAT for the GitHub MCP (optional, blank to skip)')"
+  [ -z "$gh" ] && gh="$(prompt 'GitHub PAT for the GitHub MCP (optional, blank to skip)' hidden)"
   # Only GitHub is configured as an MCP, and only when a token is available.
   # Atlassian -> acli, Context7 -> ctx7 CLI, both as CLI+skill (not MCP). No Miro.
   if [ -n "$gh" ]; then

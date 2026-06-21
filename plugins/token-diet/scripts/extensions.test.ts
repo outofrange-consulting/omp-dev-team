@@ -8,6 +8,7 @@
 import {
 	type Level,
 	compress,
+	compressProse,
 	protect,
 	restore,
 } from "../extensions/lib/protect.ts";
@@ -141,6 +142,30 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("old message kept a path detail", oldMsg.content.includes("src/app/main.ts"));
 	check("recent message untouched (recency window)", recentMsg.content === PROSE);
 	check("user message untouched", userMsg.content === PROSE);
+}
+
+// 8b) protect/restore is lossless even when the ORIGINAL text already contains a
+// NUL<digits>NUL sequence that looks exactly like our runtime placeholder. The
+// round-trip must NOT silently delete it (regression for the sentinel-collision
+// data loss).
+{
+	const NUL = String.fromCharCode(0);
+	const sample = `before ${NUL}999${NUL} after`;
+	const { masked, spans } = protect(sample);
+	check("protect bails out on pre-existing NUL sentinel", spans.length === 0, spans.length);
+	check("restore round-trips a pre-existing NUL sentinel losslessly", restore(masked, spans) === sample);
+	check("compress is a lossless no-op on a NUL-sentinel input", compress(sample, { level: "full" }) === sample);
+}
+
+// 8c) `safe`-level compression preserves multi-space column alignment (tables,
+// diffs, ASCII art). Interior single-space-significant runs must survive safe.
+{
+	const table = "NAME    VALUE\nfoo     1\nbarbaz  22";
+	const out = compress(table, { level: "safe" });
+	check("safe preserves multi-space column alignment", out === table, out);
+	// And the lossy levels are still allowed to collapse interior runs.
+	const lite = compressProse(table, "lite");
+	check("lite collapses interior multi-space runs", !lite.includes("NAME    VALUE"), lite);
 }
 
 // 9) context-compress level parsing: safe by default, off disables.

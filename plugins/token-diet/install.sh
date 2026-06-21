@@ -218,7 +218,9 @@ if [ "$NO_CONFIG" = 0 ]; then
   if grep -q "token-diet config" "$CFG" 2>/dev/null; then say "token-diet config already in $CFG"
   else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; say "Applied token-diet config to $CFG"; fi
   if ! grep -q "disabledProviders" "$CFG" 2>/dev/null; then
-    printf '\ndisabledProviders:\n  - claude-plugins\n  - codex\n  - gemini\n  - cursor\n  - windsurf\n  - opencode\n  - github\n  - cline\n' >> "$CFG"
+    # Keep this list identical to install.sh's write_config (github intentionally
+    # omitted) so the global and standalone install paths never disagree.
+    printf '\ndisabledProviders:\n  - claude-plugins\n  - codex\n  - gemini\n  - cursor\n  - windsurf\n  - opencode\n  - cline\n' >> "$CFG"
   fi
 fi
 
