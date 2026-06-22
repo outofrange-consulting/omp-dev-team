@@ -410,6 +410,7 @@ check git      required    "git --version"
 check bun      required    "bun --version"
 check node     recommended "node --version"
 check omp      required    "omp --version"
+check codegraph optional    "codegraph --version"
 
 bold "OMP launch check"
 if have omp && omp --version >/dev/null 2>&1; then

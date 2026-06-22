@@ -42,6 +42,16 @@ if (";$env:Path;" -notlike "*;$BinDir;*") {
   [Environment]::SetEnvironmentVariable('Path', "$userPath;$BinDir", 'User')
   $env:Path = "$env:Path;$BinDir"
 }
+# Ensure CodeGraph bin is on PATH (Windows: %LOCALAPPDATA%\codegraph\current\bin)
+if ($env:OS -eq 'Windows_NT' -or $IsWindows) {
+  $cgBin = Join-Path $env:LOCALAPPDATA 'codegraph\current\bin'
+  if ((Test-Path $cgBin) -and (";$env:Path;" -notlike "*;$cgBin;*")) {
+    Say "Adding CodeGraph bin to user PATH"
+    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    [Environment]::SetEnvironmentVariable('Path', "$userPath;$cgBin", 'User')
+    $env:Path = "$env:Path;$cgBin"
+  }
+}
 
 # --- acli (official Atlassian CLI — our go-to for Atlassian) -----------------
 if ((Have acli) -and $NoUpdate) { Say "acli present" }

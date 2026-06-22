@@ -294,6 +294,7 @@ Check git  'required'    'git --version'
 Check bun  $(if ($OnWindows) { 'optional' } else { 'required' }) 'bun --version'
 Check node 'recommended' 'node --version'
 Check omp  'required'    'omp --version'
+Check codegraph 'optional' 'codegraph --version'
 
 Bold "OMP launch check"
 if ((Have omp) -and (omp --version 2>$null)) {

@@ -31,6 +31,18 @@ say()  { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
 run()  { eval "$@"; }
+PROFILES=("$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc")
+ensure_path() {  # add $1 to PATH in this session + persist to shell profiles (idempotent)
+  local dir="$1" p
+  [ -d "$dir" ] || return 0
+  case ":$PATH:" in *":$dir:"*) ;; *) PATH="$dir:$PATH"; export PATH ;; esac
+  [ -e "$HOME/.profile" ] || : > "$HOME/.profile"
+  for p in "${PROFILES[@]}"; do
+    [ -e "$p" ] || continue
+    grep -qsF "$dir" "$p" 2>/dev/null && continue
+    printf '\n# omp-dev-team\nexport PATH="%s:$PATH"\n' "$dir" >> "$p"
+  done
+}
 # Corporate TLS-intercepting proxy (Zscaler / Trend Micro under WSL): opt-in bypass.
 enable_insecure_tls() {
   warn "Insecure TLS: certificate verification DISABLED for this run (corporate MITM proxy)."
@@ -143,6 +155,7 @@ else
   elif have npm; then run "npm i -g @colbymchenry/codegraph@latest || true"
   else warn "need curl or npm to install codegraph — skipping"; fi
 fi
+ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
 
 # --- Scan/index source repos with CodeGraph ---------------------------------
 if [ -z "$SROOT" ]; then
@@ -198,7 +211,7 @@ if have dotnet; then
   if have csharp-ls && [ "$NO_UPDATE" = 1 ]; then say "csharp-ls present"
   elif have csharp-ls; then say "Updating csharp-ls"; run "dotnet tool update -g csharp-ls || true"
   else say "Installing csharp-ls (.NET C# language server)"; run "dotnet tool install -g csharp-ls || true"; fi
-  export PATH="$HOME/.dotnet/tools:$PATH"; hash -r 2>/dev/null || true
+  ensure_path "$HOME/.dotnet/tools"; hash -r 2>/dev/null || true
 else
   warn "dotnet not found — skipping csharp-ls (C# LSP)"
 fi
