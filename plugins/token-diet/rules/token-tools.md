@@ -20,6 +20,16 @@ description: Token-saving tool routing (ctx-wire + CodeGraph)
   replaces dozens of grep+read round-trips.
 - Reserve full-file `Read` for when you actually need to edit or read prose; for
   structure, query the graph first.
+- **Edit symbols structurally, not whole files.** To change a known function /
+  class / block, prefer the native AST editor (`astEdit`, and `blockRangeAt` /
+  `summarizeCode` to locate it) over `Read` the whole file → `write` it back. A
+  targeted `astEdit` touches only the symbol's range — it avoids re-reading and
+  re-emitting the entire file (the dominant token cost on large files) and is
+  less merge-error-prone. Full-file `write` is for new files or genuine
+  whole-file rewrites; `edit` (anchored) for small textual changes; `astEdit`
+  for structural changes to existing code. (We do **not** route edits through a
+  symbol-server MCP — CodeGraph is read-only and OMP's native AST tools cover the
+  edit side.)
 - **Re-reads are deduped.** Reading the same unchanged file again returns a short
   stub, not the bytes — the earlier read is still in context, so reuse it instead
   of re-reading to "refresh". (Editing the file, or compaction, lets a real

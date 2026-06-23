@@ -41,13 +41,29 @@ that cannot name the friction it removes does not ship.
   then `read` just that section with offset/limit.
 - **Workflow commands** live in `.omp/commands/*.md`: `/specs`, `/plan`,
   `/build`, `/pr`, `/code-review`, `/review-agent`, `/continue`, `/triage`, …
-- **Guardrails** are OMP **extensions** in `.omp/extensions/` (the "blocking
-  scripts"): `path-guard` (secrets), `destructive-guard` + `/careful`,
-  `freeze-guard` (`/freeze` `/unfreeze`), `review-gate` (blocks `git commit`
-  until `/code-review` + `/review-approve`), `tdd-guard` (advisory nudge **+ blocks
-  edits to existing `.feature` specs** so you fix code, not tests; `/allow-feature-edits`
-  to override), and
-  `model-routing` (dispatch tier log + `/routing` diagnostic).
+- **Guardrails** are OMP **extensions** in `.omp/extensions/`. They split into
+  two honestly-different classes — don't conflate them:
+  - **Enforcement** (`PreToolUse` that returns `block: true` — the agent cannot
+    proceed): `path-guard` (denies writing secrets/credentials via edit **and**
+    shell — `>`, `tee`, `sed -i`, `cp/mv`), `review-gate` (blocks `git commit`
+    until `/code-review` + `/review-approve`; explicit `--no-verify` is the
+    documented human override), `freeze-guard` (`/freeze` `/unfreeze` — blocks
+    edits/shell-writes to frozen globs), and `tdd-guard`'s `.feature` block (you
+    fix code, not the spec; `/allow-feature-edits` to override).
+  - **Advisory** (warns, does not block): `destructive-guard` (caution on
+    hard-to-reverse shell commands; *blocks* only under `/careful on`),
+    `tdd-guard`'s RED→GREEN nudge, and `model-routing` (dispatch tier log +
+    `/routing` diagnostic).
+  - **State trust.** Toggle state (`freeze`, `careful`, `review-gate`) lives
+    **outside the working tree** (`~/.omp/state/dev-team/<repo>/`, override
+    `OMP_DEVTEAM_STATE_DIR`) so the agent can't flip a guard off with an in-repo
+    write. This is advisory-grade enforcement against a cooperative agent and
+    accidental footguns — **not a security sandbox**: an agent running arbitrary
+    shell could still reach the out-of-tree path. Treat secrets/destruction as
+    defense-in-depth, not a hard boundary.
+- **Verification** of a quality gate is by the toolchain, not by vibes: a step
+  is "done" only with fresh build/test output (see the `no-disable-analyzers`
+  and `source-of-truth` rules; `/impl-verify` runs the stack's real build+test).
 
 ## Model routing (tiers → models)
 

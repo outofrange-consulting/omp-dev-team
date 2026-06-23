@@ -9,7 +9,12 @@ Arguments: `$ARGUMENTS` (optional `--plan <path>`; else newest approved plan in 
 
 1. `read skill://build` and follow it exactly.
 2. **Every step is TDD** (RED → GREEN → REFACTOR). No implementation without a
-   failing test first. Paste fresh failing → passing output as evidence.
+   failing test first. Paste fresh failing → passing output as evidence. At GREEN
+   and before claiming a unit done, run **`/impl-verify`** (deterministic gate:
+   strict stack build — e.g. `dotnet build -warnaserror` — + tests, bounded fix
+   counter). Act on its verdict: PASS → proceed; FAIL → fix the cause and re-run
+   (never silence the gate — `no-disable-analyzers`); HALT → escalate to the
+   human. Configure stacks/budget in `.omp/dev-team.json` (`implVerify`).
 3. Execute the plan **wave by wave** (from its `## Parallelization` section):
    independent slices in a wave build concurrently via the `task` tool with
    `isolation: "worktree"` (effective concurrency `min(wave width,

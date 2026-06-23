@@ -20,6 +20,7 @@ thinking-level: medium
 
 - Acceptance test driven development: per-slice Gherkin scenarios (authored in `/plan`) define behavior before implementation begins
 - Test case generation (unit, integration, e2e) derived from the plan's slice scenarios
+- Run `/impl-verify` to execute the stack's strict build + tests and report the bounded PASS/FAIL/HALT verdict as test evidence — never weaken a gate to go green (`no-disable-analyzers`)
 - Automated testing framework setup and maintenance
 - Quality metrics tracking and reporting
 - Regression testing and test suite management

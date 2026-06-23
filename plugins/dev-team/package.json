@@ -12,6 +12,7 @@
       "./extensions/freeze-guard.ts",
       "./extensions/tdd-guard.ts",
       "./extensions/review-gate.ts",
+      "./extensions/impl-verify.ts",
       "./extensions/telemetry.ts"
     ]
   }
