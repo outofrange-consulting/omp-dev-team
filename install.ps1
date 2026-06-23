@@ -117,7 +117,7 @@ if ($OnWindows) {
 if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this" }
 
 # --- 2) Register the marketplace -------------------------------------------
-if (Have omp) { Say "Registering marketplace ($Market)"; Run "omp plugin marketplace add `"$Root`"" }
+if (Have omp) { Say "Registering marketplace ($Market)"; Run "omp plugin marketplace add `"$Root`" 2>`$null"; Run "omp plugin marketplace update $Market" }
 
 # Mirror a plugin's extension modules into OMP's native user-extension dir
 # (~/.omp/agent/extensions/<name>/) so its tool/guard/provider actually loads.

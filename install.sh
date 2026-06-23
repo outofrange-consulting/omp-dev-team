@@ -197,7 +197,7 @@ for d in "$HOME/.local/bin" "$HOME/.bun/bin"; do mkdir -p "$d" 2>/dev/null || tr
 have omp || warn "omp not on PATH yet — open a new shell or 'source ~/.profile' after this"
 
 # --- 2) Register the marketplace -------------------------------------------
-if have omp; then say "Registering marketplace ($MARKET)"; run "omp plugin marketplace add \"$ROOT\" || true"; fi
+if have omp; then say "Registering marketplace ($MARKET)"; run "omp plugin marketplace add \"$ROOT\" || true"; run "omp plugin marketplace update \"$MARKET\" || true"; fi
 
 # OMP does NOT load extension modules from marketplace cache installs — only from
 # the native extension dirs. Mirror a plugin's extension modules into the user

@@ -157,6 +157,44 @@ else
 fi
 ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
 
+# --- Register CodeGraph MCP server in OMP (absolute path avoids PATH dependency) ---
+# OMP spawns Claude without sourcing shell profiles, so the binary must be resolved
+# to its absolute path now and written into mcp.json — never rely on PATH at runtime.
+if have codegraph || [ -x "$HOME/.local/bin/codegraph" ]; then
+  CGGRAPH="$(command -v codegraph 2>/dev/null || echo "$HOME/.local/bin/codegraph")"
+  OMP_MCP="$HOME/.omp/agent/mcp.json"
+  mkdir -p "$(dirname "$OMP_MCP")"
+  [ -f "$OMP_MCP" ] || printf '{"mcpServers":{}}\n' > "$OMP_MCP"
+  say "Registering CodeGraph MCP server in OMP: $CGGRAPH"
+  if have python3; then
+    python3 - "$OMP_MCP" "$CGGRAPH" <<'PYEOF'
+import json, sys
+mcp_path, cg_bin = sys.argv[1], sys.argv[2]
+with open(mcp_path) as f: cfg = json.load(f)
+cfg.setdefault("mcpServers", {})["codegraph"] = {
+    "type": "stdio", "command": cg_bin, "args": ["serve", "--mcp"]
+}
+with open(mcp_path, "w") as f: json.dump(cfg, f, indent=2); f.write("\n")
+PYEOF
+  elif have node; then
+    node -e "
+const fs=require('fs'),p=process.argv[1],b=process.argv[2];
+const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
+(cfg.mcpServers||(cfg.mcpServers={}))[\"codegraph\"]={type:\"stdio\",command:b,args:[\"serve\",\"--mcp\"]};
+fs.writeFileSync(p,JSON.stringify(cfg,null,2)+'\n');
+" "$OMP_MCP" "$CGGRAPH" || true
+  elif have bun; then
+    bun -e "
+const fs=require('fs'),p=process.argv[1],b=process.argv[2];
+const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
+(cfg.mcpServers||(cfg.mcpServers={}))[\"codegraph\"]={type:\"stdio\",command:b,args:[\"serve\",\"--mcp\"]};
+fs.writeFileSync(p,JSON.stringify(cfg,null,2)+'\n');
+" "$OMP_MCP" "$CGGRAPH" || true
+  else
+    warn "python3/node/bun not available — add codegraph to OMP mcp.json manually"
+  fi
+fi
+
 # --- Scan/index source repos with CodeGraph ---------------------------------
 if [ -z "$SROOT" ]; then
   if [ "$YES" = 0 ] && [ -r /dev/tty ]; then
