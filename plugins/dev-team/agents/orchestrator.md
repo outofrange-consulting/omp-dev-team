@@ -9,14 +9,6 @@ thinking-level: medium
 
 # Orchestrator Agent
 
-## Output discipline
-
-- Write artifacts (plans, designs, ADRs, reports) to files, not chat.
-- No preamble or "I will…" narration. State results directly.
-- End-of-turn: one sentence on what changed and what's next.
-- For structured deliverables (JSON, plan, ADR), emit only the structure.
-- Status updates: one paragraph max.
-
 ## Technical Responsibilities
 
 - Central dispatcher that routes tasks to appropriate specialized agents
