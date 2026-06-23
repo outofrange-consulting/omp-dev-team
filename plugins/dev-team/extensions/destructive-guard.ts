@@ -3,7 +3,7 @@
 // `destructive-commands.json`.
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { readJSON, statePath } from "./lib/shared.ts";
+import { readState } from "./lib/shared.ts";
 
 // NOTE: destructive-command detection here is best-effort / advisory. It does
 // NOT parse the shell — it matches normalized command text with a small set of
@@ -140,8 +140,9 @@ export default function destructiveGuard(pi: ExtensionAPI) {
 		}
 		if (!match) return;
 
-		const careful = readJSON<{ active: boolean }>(
-			statePath(ctx.cwd, "careful.json"),
+		const careful = readState<{ active: boolean }>(
+			ctx.cwd,
+			"careful.json",
 			{ active: false },
 		).active;
 

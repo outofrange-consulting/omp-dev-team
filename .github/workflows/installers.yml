@@ -73,6 +73,16 @@ jobs:
             fi
           done
           exit $rc
+      - name: bun unit tests (pure extension logic)
+        run: |
+          rc=0
+          for t in \
+            plugins/token-diet/scripts/extensions.test.ts \
+            plugins/dev-team/scripts/extensions.test.ts; do
+            echo "== $t =="
+            if bun "$t"; then echo "ok $t"; else echo "FAIL $t"; rc=1; fi
+          done
+          exit $rc
 
   # 2) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
   #    verifies OMP launches and lists all plugins).

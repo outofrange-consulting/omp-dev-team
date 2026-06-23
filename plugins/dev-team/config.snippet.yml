@@ -63,6 +63,28 @@ eval:
 # workspace instead of an installed plugin.)
 
 # ---------------------------------------------------------------------------
+# IMPL-VERIFY (deterministic build+test gate — /impl-verify)
+# ---------------------------------------------------------------------------
+# The /impl-verify command (extension, auto-loaded) detects the stack and runs
+# the STRICT build + tests with a bounded fix counter. It is configured NOT here
+# but per-project in `.omp/dev-team.json` (so build/test commands travel with the
+# repo, not your global config):
+#
+#   {
+#     "implVerify": {
+#       "maxFixes": 3,
+#       "stacks": {
+#         "dotnet": { "build": "dotnet build -warnaserror", "test": "dotnet test" },
+#         "node":   { "build": "bun run build", "test": "bun test" }
+#       }
+#     }
+#   }
+#
+# Defaults (strict) ship per stack; override only what differs. Detection:
+# .csproj/.sln -> dotnet, Cargo.toml -> rust, go.mod -> go, pyproject.toml ->
+# python, package.json -> node (dotnet wins a mixed repo).
+
+# ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH
 # ---------------------------------------------------------------------------
 task:

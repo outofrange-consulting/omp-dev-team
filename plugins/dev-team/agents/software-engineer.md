@@ -37,6 +37,21 @@ thinking-level: medium
 - [Mutation Testing](skill://mutation-testing) - invoke when assessing whether tests for new or modified code are catching meaningful faults
 - [Code Review](skill://code-review) - invoked by orchestrator after each discrete unit of work and before committing; do not invoke independently
 
+## Verification gate (deterministic)
+
+After each implemented unit — at GREEN, and again before claiming done — run
+`/impl-verify` instead of hand-running and eyeballing build/test output. It
+detects the stack and runs the **strict** build (e.g. `dotnet build -warnaserror`,
+`npm run build`, `ruff check`) plus tests, and returns a single bounded verdict:
+
+- **PASS** — build + tests green; proceed.
+- **FAIL (attempt n/max)** — fix the *cause* and re-run; never silence the gate
+  (see the `no-disable-analyzers` rule). Use `/impl-verify --skip-tests` mid-RED.
+- **HALT** — the fix budget is spent; stop auto-fixing and escalate to the human.
+
+Paste the verdict as your verification evidence (`source-of-truth` rung 3). This
+keeps the loop bounded and the token cost flat — one line back, not full logs.
+
 ## Review Feedback Protocol
 
 When the orchestrator sends review findings as correction context:

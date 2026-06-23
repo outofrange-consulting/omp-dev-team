@@ -16,7 +16,7 @@
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readJSON, statePath, writeJSON } from "./lib/shared.ts";
+import { readState, writeState } from "./lib/shared.ts";
 
 interface GateState {
 	approvedHash?: string;
@@ -86,7 +86,7 @@ export default function reviewGate(pi: ExtensionAPI) {
 				ctx.ui.notify("nothing staged to approve", "warn");
 				return;
 			}
-			writeJSON(statePath(ctx.cwd, "review-gate.json"), {
+			writeState(ctx.cwd, "review-gate.json", {
 				approvedHash: staged.hash,
 				approvedAt: new Date().toISOString(),
 			} satisfies GateState);
@@ -110,7 +110,7 @@ export default function reviewGate(pi: ExtensionAPI) {
 		const staged = stagedHash(ctx.cwd);
 		if (!staged) return; // nothing staged; let git report it
 
-		const state = readJSON<GateState>(statePath(ctx.cwd, "review-gate.json"), {});
+		const state = readState<GateState>(ctx.cwd, "review-gate.json", {});
 		if (state.approvedHash === staged.hash) return; // approved
 
 		return {

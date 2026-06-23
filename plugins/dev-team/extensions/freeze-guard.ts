@@ -6,9 +6,8 @@ import {
 	bashWriteTargets,
 	matchesAny,
 	pathsFromToolInput,
-	readJSON,
-	statePath,
-	writeJSON,
+	readState,
+	writeState,
 } from "./lib/shared.ts";
 
 interface FreezeState {
@@ -16,7 +15,7 @@ interface FreezeState {
 }
 
 function load(cwd: string): FreezeState {
-	return readJSON<FreezeState>(statePath(cwd, "freeze.json"), { globs: [] });
+	return readState<FreezeState>(cwd, "freeze.json", { globs: [] });
 }
 
 export default function freezeGuard(pi: ExtensionAPI) {
@@ -36,7 +35,7 @@ export default function freezeGuard(pi: ExtensionAPI) {
 			}
 			const state = load(ctx.cwd);
 			state.globs = [...new Set([...state.globs, ...globs])];
-			writeJSON(statePath(ctx.cwd, "freeze.json"), state);
+			writeState(ctx.cwd, "freeze.json", state);
 			ctx.ui.notify(`frozen: ${state.globs.join(", ")}`, "warn");
 		},
 	});
@@ -46,14 +45,14 @@ export default function freezeGuard(pi: ExtensionAPI) {
 		handler: async (args, ctx) => {
 			const arg = (args ?? "").trim();
 			if (arg === "all" || arg === "") {
-				writeJSON(statePath(ctx.cwd, "freeze.json"), { globs: [] });
+				writeState(ctx.cwd, "freeze.json", { globs: [] });
 				ctx.ui.notify("unfroze all", "info");
 				return;
 			}
 			const state = load(ctx.cwd);
 			const drop = new Set(arg.split(/\s+/));
 			state.globs = state.globs.filter((g) => !drop.has(g));
-			writeJSON(statePath(ctx.cwd, "freeze.json"), state);
+			writeState(ctx.cwd, "freeze.json", state);
 			ctx.ui.notify(`frozen: ${state.globs.join(", ") || "(none)"}`, "info");
 		},
 	});
