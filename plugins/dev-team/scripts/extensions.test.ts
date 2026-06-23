@@ -11,6 +11,7 @@ import {
 	type VerifyState,
 } from "../extensions/lib/impl-verify-core.ts";
 import { globToRegExp, matchesAny } from "../extensions/lib/shared.ts";
+import { gateDecision, isGatedSource } from "../extensions/plan-gate.ts";
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -76,6 +77,21 @@ check(
 	matchesAny("config/app.key", ["*.pem", "*.key"]) === "*.key",
 );
 check("matchesAny: null when nothing matches", matchesAny("main.ts", ["*.pem", "*.key"]) === null);
+
+// --- plan-gate: what counts as gated source -------------------------------
+check("plan-gate: .ts source is gated", isGatedSource("src/app/main.ts"));
+check("plan-gate: .cs source is gated", isGatedSource("Api/Service.cs"));
+check("plan-gate: test file is NOT gated", !isGatedSource("src/app/main.test.ts"));
+check("plan-gate: __tests__ path is NOT gated", !isGatedSource("src/__tests__/x.ts"));
+check("plan-gate: .feature spec is NOT gated", !isGatedSource("features/login.feature"));
+check("plan-gate: markdown doc is NOT gated", !isGatedSource("README.md"));
+check("plan-gate: json config is NOT gated", !isGatedSource("package.json"));
+
+// --- plan-gate: stage -> decision -----------------------------------------
+check("plan-gate: undefined stage -> need-scope", gateDecision(undefined) === "need-scope");
+check("plan-gate: needs-plan -> need-plan", gateDecision("needs-plan") === "need-plan");
+check("plan-gate: trivial -> allow", gateDecision("trivial") === "allow");
+check("plan-gate: plan-approved -> allow", gateDecision("plan-approved") === "allow");
 
 if (failures) {
 	console.error(`\n${failures} check(s) failed`);

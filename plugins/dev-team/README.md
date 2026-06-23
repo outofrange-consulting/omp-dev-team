@@ -4,13 +4,16 @@
 
 An **agentic development team** for [Oh-My-Pi](https://github.com/can1357/oh-my-pi),
 ported from Bryan Finster's [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team).
-An orchestrator routes work through a **spec → plan → build → PR** workflow with
-**strict TDD** and **human gates**, backed by 32 specialist and critic agents and
-blocking guard extensions.
+An orchestrator routes work through a **spec → plan → build → PR** workflow with a
+**forced plan gate** (pre-analysis → plan → build → review), **tests required**,
+and **human gates**, backed by 32 specialist and critic agents and blocking guard
+extensions.
 
 > Philosophy (Finster): AI is a high-pass filter for engineering discipline. The
-> win comes from continuous delivery, TDD, and defining what you build before you
-> build it — not from picking a model. This plugin encodes that discipline.
+> win comes from continuous delivery and defining what you build before you build
+> it — not from picking a model. This plugin encodes that discipline as a forced
+> plan gate plus tests as the safety net. (Test-first/TDD ordering is **not**
+> enforced — it adds little for AI agents; the leverage is the plan gate.)
 
 ## Install
 
@@ -32,12 +35,15 @@ bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, can app
 
 1. **`/specs`** — capture a feature as Intent + BDD scenarios + Architecture +
    Acceptance Criteria. Human approves.
-2. **`/plan`** — turn the approved spec into a TDD step-plan, with per-slice
-   `Depends-on` metadata grouping slices into build **waves**. Five **plan-review
-   critics** (acceptance-test, design, UX, strategic, parallelization) challenge
-   it in parallel *before* you see it.
-3. **`/build`** — execute the approved plan under **RED → GREEN → REFACTOR** hard
-   gates (`tdd-guard`), building independent slices concurrently wave by wave.
+2. **`/plan`** — turn the approved spec into a step-plan (each slice names its
+   tests), with per-slice `Depends-on` metadata grouping slices into build
+   **waves**. Five **plan-review critics** (acceptance-test, design, UX,
+   strategic, parallelization) challenge it in parallel *before* you see it.
+   Approve with **`/plan-approve`** to unlock the build (`plan-gate`); for a
+   genuinely trivial task, `/scope --trivial` instead.
+3. **`/build`** — execute the approved plan, building independent slices
+   concurrently wave by wave. Tests are required per unit (test-first optional),
+   verified green by **`/impl-verify`**.
 4. **`/pr`** — run the quality gates and open the pull request.
 
 For complex work the **orchestrator** runs **Research → Plan → Implement** with a
@@ -65,13 +71,16 @@ with **token-diet** to cut tokens further. Source of truth:
 
 ## Guardrails (extensions)
 
-`path-guard` (secrets), `destructive-guard` + `/careful`, `freeze-guard`
-(`/freeze` `/unfreeze`), `tdd-guard` (RED-GREEN-REFACTOR nudge + **blocks edits to
-existing `.feature` specs** — fix code, not tests; `/allow-feature-edits` to override),
-`review-gate` (blocks
-`git commit` until `/code-review` + `/review-approve`), `telemetry` +
-`/cost-report`, `model-routing` (dispatch tier log + `/routing`). They intercept
-`tool_call` and block with a reason — OMP's native blocking mechanism.
+`plan-gate` (**blocks edits to production source until the task is scoped and a
+plan is approved** — enforces pre-analysis → plan → build → review; `/scope`,
+`/trivial`, `/plan-approve`, `/plan-reset`), `path-guard` (secrets),
+`destructive-guard` + `/careful`, `freeze-guard` (`/freeze` `/unfreeze`),
+`spec-guard` (**blocks edits to existing `.feature` specs** — fix code, not the
+spec; `/allow-feature-edits` to override), `review-gate` (blocks `git commit`
+until `/code-review` + `/review-approve`), `impl-verify` (`/impl-verify` strict
+build + tests), `telemetry` + `/cost-report`, `model-routing` (dispatch tier log
++ `/routing`). They intercept `tool_call` and block with a reason — OMP's native
+blocking mechanism.
 
 ## Layout
 

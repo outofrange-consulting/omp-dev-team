@@ -24,7 +24,7 @@ thinking-level: medium
 ## Skills
 
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke before delivery (Phase 1: self-validation), before signing off (Phase 2: verification evidence), and during peer validation or rework (Phase 3: review-correction loop)
-- [Test-Driven Development](skill://test-driven-development) - invoke when generating tests to ensure proper RED-GREEN-REFACTOR discipline and TDD compliance
+- [Testing Discipline](skill://testing-discipline) - invoke when generating tests: cover behavior + edge/error cases, real code over mocks, verified by `/impl-verify`
 - [Systematic Debugging](skill://systematic-debugging) - invoke when investigating test failures or defects; enforce 4-phase protocol
 - [Governance & Compliance](skill://governance-compliance) - invoke when enforcing quality gates and multi-layer validation procedures
 - [Specs](skill://specs) - invoke after the consistency gate passes; the spec sets intent, architecture, and acceptance criteria. The per-slice Gherkin you treat as acceptance-test contracts is authored in `/plan`.

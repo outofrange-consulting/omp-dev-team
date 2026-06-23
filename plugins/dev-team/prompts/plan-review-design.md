@@ -8,7 +8,7 @@ You are not reviewing scenario quality, scope, UX, or parallelization — other 
 
 ## What you receive
 
-- The implementation plan: goal, acceptance criteria, slices with `Files` and TDD steps.
+- The implementation plan: goal, acceptance criteria, slices with `Files` and test steps.
 - Any spec artifacts (architecture notes, design doc) under `docs/specs/**`, if they exist.
 - The existing codebase — you may read files referenced in the plan to compare against established patterns.
 

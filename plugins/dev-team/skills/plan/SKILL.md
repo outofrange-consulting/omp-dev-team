@@ -2,7 +2,7 @@
 name: plan
 description: >-
   Create a structured implementation plan with goal, acceptance criteria,
-  incremental TDD steps, and a pre-PR quality gate. Use this for tasks that
+  incremental steps with their tests, and a pre-PR quality gate. Use this for tasks that
   need a plan but not the full three-phase orchestration, or when the user
   says "plan this", "make a plan", "break this down", or "how should I
   implement this".
@@ -20,9 +20,9 @@ You have been invoked with the `/plan` command.
 ## Orchestrator constraints
 
 1. **Do not implement.** Produce only the plan. No code, no scaffolding, no file edits beyond the plan file itself.
-2. **Every step must be TDD.** Each step follows RED → GREEN → REFACTOR.
+2. **Every step names its tests.** Tests are required for behavior changes; test-first ordering is **not** (write code and tests in either order — see the `tests-required` rule).
 3. **Incremental.** Each step must leave the codebase in a working, committable state.
-4. **Human approval required.** Present the plan for approval before any implementation begins.
+4. **Human approval required.** Present the plan for approval before any implementation begins; on approval run `/plan-approve` to unlock the build (the `plan-gate` extension blocks source edits until then).
 5. **Be concise.** The plan is the artifact; keep chat to decisions and gaps.
 
 ## Parse Arguments
