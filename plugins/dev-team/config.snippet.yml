@@ -85,6 +85,22 @@ eval:
 # python, package.json -> node (dotnet wins a mixed repo).
 
 # ---------------------------------------------------------------------------
+# EFFORT-BAND MODEL ROUTING (model-routing extension)
+# ---------------------------------------------------------------------------
+# The model is derived from the TASK SIZE (trivial/standard/complex, set by
+# /scope), not only from the agent's static tier: the base band shifts along
+# [small, balanced, deep] — trivial downshifts (cheaper), complex upshifts
+# (stronger), a `deep` base never downshifts. Configured in
+# skills/dev-team-knowledge/model-routing.json -> effortBand. copilot-preset is
+# unaffected (the band picks a tier; modelRoles resolves the model).
+#
+# Enforcement is set there (default "advisory") and overridable per-run by env:
+#   DEV_TEAM_EFFORT_ROUTING=advisory   # log + warn on mismatch (default)
+#   DEV_TEAM_EFFORT_ROUTING=enforce    # block a mis-banded dispatch
+#   DEV_TEAM_EFFORT_ROUTING=off        # disable the band (pure static tiers)
+# Inspect with /routing or /model-routing-check.
+
+# ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH
 # ---------------------------------------------------------------------------
 task:

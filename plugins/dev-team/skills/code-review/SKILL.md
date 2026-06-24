@@ -21,7 +21,7 @@ allowed-tools: >-
 
 # Code Review
 
-Role: orchestrator. Route work to review agents; do not review code yourself. Pass each agent's tier alias (from its `model:` frontmatter) when dispatching — the PreToolUse hook `hooks/agent-model-resolve.sh` resolves it to the active snapshot per the Resolution Procedure in `agents/orchestrator.md`.
+Role: orchestrator. Route work to review agents; do not review code yourself. Pass each agent's tier alias (from its `model:` frontmatter) when dispatching — OMP resolves the tier natively (`modelRoles`) and the `model-routing` extension applies effort-band routing per the Resolution Procedure in `agents/orchestrator.md`.
 
 Output templates and JSON schemas: [`code-review/output-format.md`](code-review/output-format.md). Example report: [`code-review/examples/sample-report.md`](code-review/examples/sample-report.md).
 
@@ -29,7 +29,7 @@ Output templates and JSON schemas: [`code-review/output-format.md`](code-review/
 
 1. **Do not review code yourself.** Delegate all semantic analysis to review agents.
 2. **Minimize context per agent.** Pass only what each agent's `Context needs` field requires.
-3. **Route to the right model tier.** Each agent's `model:` frontmatter declares its tier alias (`haiku`/`sonnet`/`opus`); the PreToolUse hook `hooks/agent-model-resolve.sh` resolves it to the active snapshot per `agents/orchestrator.md` → Resolution Procedure. Do not override the frontmatter value.
+3. **Route to the right model tier.** Each agent's `model:` frontmatter declares its tier alias (`haiku`/`sonnet`/`opus`); OMP resolves the tier natively (`modelRoles`) and the `model-routing` extension applies effort-band routing per `agents/orchestrator.md` → Resolution Procedure. Do not override the frontmatter value.
 4. **Run deterministic gates first.** Lint, type-check, secret scan are cheaper than AI. Stop if they fail.
 5. **Return structured results.** Aggregate agent JSON; do not add your own findings.
 6. **Be concise.** Tables and JSON, no preambles, no filler.
@@ -168,7 +168,7 @@ Spawn agents as parallel subagents in a single message using the `task` tool.
   - `full-file` → complete files
   - `project-structure` → full files + directory tree
   - When reviewing full repository (clean auto-scope, `--all`, or `--path`), always pass full files.
-- **Model**: pass each agent's declared tier alias (`haiku`/`sonnet`/`opus`) from its `model:` frontmatter. The PreToolUse hook `hooks/agent-model-resolve.sh` resolves the tier to the active snapshot per `agents/orchestrator.md` → Resolution Procedure.
+- **Model**: pass each agent's declared tier alias (`haiku`/`sonnet`/`opus`) from its `model:` frontmatter. The PreToolUse hook the `model-routing` extension resolves the tier to the active snapshot per `agents/orchestrator.md` → Resolution Procedure.
 - **Static analysis context**: if step 2b produced findings, inject into every agent's prompt using the format in `skill://static-analysis-integration`: "These issues were detected by static analysis. Do not re-report them. Focus on semantic concerns."
 - **Per-agent output**: `{"agentName": "<name>", "status": "pass|warn|fail", "issues": [], "summary": "..."}` (full schema in `output-format.md`).
 

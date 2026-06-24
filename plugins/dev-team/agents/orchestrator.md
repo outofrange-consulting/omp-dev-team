@@ -26,19 +26,19 @@ thinking-level: medium
 - Task classification algorithm
 - Load balancing logic
 
-## Resolution Procedure
+## Resolution Procedure (base tier + effort band)
 
-Each agent's `model:` frontmatter encodes the tier alias (`haiku`, `sonnet`, `opus`) appropriate for its task. Tier-to-snapshot resolution is **enforced by OMP extension `model-routing` + `.omp/config.yml` `modelRoles`**. The LLM cannot bypass it.
+Each agent's `model:` frontmatter declares its **base tier** — `pi/smol` (small), `claude-sonnet-4-6` (balanced), or `claude-opus-4-8` (deep). Base resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
 
-When the orchestrator (or any caller) spawns a subagent via the `task` tool with `model: <tier>`, the extension:
+On top of the base, the `model-routing` extension applies **effort-band routing**: the dispatched model shifts along the ladder `[small, balanced, deep]` by the **task size** recorded at pre-analysis (`/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`):
 
-1. Reads `skill://dev-team-knowledge/model-routing.json` — the single source of truth for tier → snapshot mapping.
-2. Reads `.claude/model-overrides.json` if present (per-user, gitignored, populated by the `/init-dev-team` probe or by hand for restricted endpoints).
-3. Walks the alias chain up to 3 hops along the `haiku → sonnet → opus` cascade. Each tier alias resolves to either another tier (bumped) or the literal `"unavailable"` sentinel (refusal).
-4. On any bump, rewrites `tool_input.model` via `hookSpecificOutput.updatedInput` and appends one JSONL event to `.claude/metrics/model-routing.log`.
-5. On exhaustion, cycle, missing routing.json, or malformed overrides, emits `permissionDecision: "deny"` with an actionable `permissionDecisionReason`. The dispatch never reaches the harness.
+- `trivial` → shift **down** one band (fast path, token saving) — a `deep` base is protected and does not downshift.
+- `standard` → no shift (use the base).
+- `complex` → shift **up** one band (quality), clamped at `deep`.
 
-For triage, run `/model-routing-check` — read-only diagnostic that prints the effective map, overrides, recent bumps, and probe applicability. See `docs/model-routing.md` for contract, fallback firing, hand-writing overrides, and Bedrock/Vertex/proxy troubleshooting. See [ADR 0004](../../../docs/adr/0004-pre-dispatch-model-resolution.md) for the design rationale (pre-dispatch vs. runtime retry; hook vs. orchestrator instruction).
+So when you spawn a subagent via `task`, **pass the effort-band tier**, not just the base: compute it from the agent's base and the current task size (rule above; data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** that names the model to use; `=off` disables the band (pure static tiers).
+
+For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per base, the effective band for the current task size.
 
 ### Tier guidance (informational)
 

@@ -40,8 +40,11 @@ export function isGatedSource(p: string): boolean {
 //   trivial     — scoped trivial; source edits allowed
 //   plan-approved — a plan was approved; source edits allowed
 export type Stage = "needs-plan" | "trivial" | "plan-approved";
+// Task size from the pre-analysis, also consumed by model-routing (effort-band).
+export type Size = "trivial" | "standard" | "complex";
 interface PlanGateState {
 	stage?: Stage;
+	size?: Size;
 	planPath?: string;
 	at?: string;
 }
@@ -58,28 +61,30 @@ export function gateDecision(stage: Stage | undefined): Decision {
 export default function planGate(pi: ExtensionAPI) {
 	pi.setLabel("plan-gate");
 
-	const set = (cwd: string, stage: Stage, planPath?: string) =>
+	const set = (cwd: string, stage: Stage, size: Size, planPath?: string) =>
 		writeState(cwd, "plan-gate.json", {
 			stage,
+			size,
 			planPath,
 			at: new Date().toISOString(),
 		} satisfies PlanGateState);
 
 	pi.registerCommand("scope", {
 		description:
-			"Pre-analysis: classify the task trivial vs needs-a-plan. Usage: /scope [--trivial]",
+			"Pre-analysis: classify the task per the task-size-classifier. Usage: /scope [--trivial | --complex]",
 		handler: async (args, ctx) => {
-			const trivial = /(^|\s)--trivial(\s|$)/.test(` ${args ?? ""} `);
-			if (trivial) {
-				set(ctx.cwd, "trivial");
+			const a = ` ${args ?? ""} `;
+			if (/(^|\s)--trivial(\s|$)/.test(a)) {
+				set(ctx.cwd, "trivial", "trivial");
 				ctx.ui.notify(
-					"scoped TRIVIAL — source edits unlocked for this task. /plan-reset to re-arm.",
+					"scoped TRIVIAL — fast path: source edits unlocked; agents may downshift a band. /plan-reset to re-arm.",
 					"warn",
 				);
 			} else {
-				set(ctx.cwd, "needs-plan");
+				const size: Size = /(^|\s)--complex(\s|$)/.test(a) ? "complex" : "standard";
+				set(ctx.cwd, "needs-plan", size);
 				ctx.ui.notify(
-					"scoped NON-TRIVIAL — draft a plan with /plan, get human sign-off, then /plan-approve to unlock implementation.",
+					`scoped NON-TRIVIAL (${size}) — draft a plan with /plan, get human sign-off, then /plan-approve to unlock implementation.`,
 					"info",
 				);
 			}
@@ -90,7 +95,7 @@ export default function planGate(pi: ExtensionAPI) {
 		description:
 			"Shortcut for /scope --trivial: mark the current task trivial and unlock source edits",
 		handler: async (_args, ctx) => {
-			set(ctx.cwd, "trivial");
+			set(ctx.cwd, "trivial", "trivial");
 			ctx.ui.notify(
 				"scoped TRIVIAL — source edits unlocked for this task. /plan-reset to re-arm.",
 				"warn",
@@ -111,7 +116,7 @@ export default function planGate(pi: ExtensionAPI) {
 				return;
 			}
 			const planPath = (args ?? "").trim() || st.planPath;
-			set(ctx.cwd, "plan-approved", planPath);
+			set(ctx.cwd, "plan-approved", st.size ?? "standard", planPath);
 			ctx.ui.notify(
 				`plan approved${planPath ? ` (${planPath})` : ""} — implementation unlocked`,
 				"info",

@@ -18,5 +18,18 @@
       "rationale": "Cross-file reasoning, high-stakes design synthesis, threat modeling, broad reconnaissance (security-review, domain-review, arch-review, architect, security-engineer, codebase-recon)."
     }
   },
+  "effortBand": {
+    "$comment": "Effort-band routing: the model is derived from the TASK SIZE (from the task-size-classifier, recorded by /scope in plan-gate state), not only from the agent's static tier. The agent's declared tier is the BASE band; the task size shifts it along the ladder. More deterministic than one-model-per-agent, and ties model spend to the work. Resolution: idx = clamp(ladder.indexOf(base) + effort[size].shift, 0, len-1); a `base` in `protectDownshift` never shifts DOWN (safety agents). copilot-preset is unaffected — the shift picks a tier, then modelRoles resolves the model.",
+    "ladder": ["small", "balanced", "deep"],
+    "effort": {
+      "trivial": { "shift": -1, "note": "no-plan fast path — downshift to save tokens (except protected bases)" },
+      "standard": { "shift": 0, "note": "use the agent's declared base band" },
+      "complex": { "shift": 1, "note": "upshift the implementer and reviewers for quality" }
+    },
+    "protectDownshift": ["deep"],
+    "biasUp": true,
+    "enforcement": "advisory",
+    "$enforcementNote": "advisory: the extension logs + warns on a dispatch whose tier != the effort-band tier (the orchestrator applies the rule). Set env DEV_TEAM_EFFORT_ROUTING=enforce to upgrade the warning to a block, or =off to disable the band entirely (pure static tiers)."
+  },
   "notes": "Keep the high-volume `small` tier on the cheapest capable model to limit token spend; reserve balanced/deep for work that needs them. Pair with the copilot-preset and token-diet plugins for further cost control."
 }

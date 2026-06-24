@@ -10,8 +10,14 @@ import {
 	tail,
 	type VerifyState,
 } from "../extensions/lib/impl-verify-core.ts";
-import { globToRegExp, matchesAny } from "../extensions/lib/shared.ts";
+import { effectiveBand, globToRegExp, matchesAny } from "../extensions/lib/shared.ts";
 import { gateDecision, isGatedSource } from "../extensions/plan-gate.ts";
+
+const BAND = {
+	ladder: ["small", "balanced", "deep"],
+	effort: { trivial: { shift: -1 }, standard: { shift: 0 }, complex: { shift: 1 } },
+	protectDownshift: ["deep"],
+};
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -92,6 +98,19 @@ check("plan-gate: undefined stage -> need-scope", gateDecision(undefined) === "n
 check("plan-gate: needs-plan -> need-plan", gateDecision("needs-plan") === "need-plan");
 check("plan-gate: trivial -> allow", gateDecision("trivial") === "allow");
 check("plan-gate: plan-approved -> allow", gateDecision("plan-approved") === "allow");
+
+// --- effort-band model routing ------------------------------------------
+check("band: trivial downshifts balanced -> small", effectiveBand("balanced", "trivial", BAND) === "small");
+check("band: complex upshifts balanced -> deep", effectiveBand("balanced", "complex", BAND) === "deep");
+check("band: standard keeps base", effectiveBand("balanced", "standard", BAND) === "balanced");
+check("band: deep is protected from downshift", effectiveBand("deep", "trivial", BAND) === "deep");
+check("band: small clamps on downshift", effectiveBand("small", "trivial", BAND) === "small");
+check("band: deep clamps on upshift", effectiveBand("deep", "complex", BAND) === "deep");
+check("band: small upshifts to balanced on complex", effectiveBand("small", "complex", BAND) === "balanced");
+check("band: off-ladder (default) unchanged", effectiveBand("default", "trivial", BAND) === "default");
+check("band: off-ladder (pinned) unchanged", effectiveBand("pinned", "complex", BAND) === "pinned");
+check("band: missing size defaults to no shift", effectiveBand("balanced", undefined, BAND) === "balanced");
+check("band: no config returns base", effectiveBand("balanced", "trivial", undefined) === "balanced");
 
 if (failures) {
 	console.error(`\n${failures} check(s) failed`);

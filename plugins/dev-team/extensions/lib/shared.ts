@@ -148,8 +148,35 @@ export interface RoutingTier {
 	rationale: string;
 }
 
+export interface EffortBandConfig {
+	ladder: string[];
+	effort: Record<string, { shift: number; note?: string }>;
+	protectDownshift: string[];
+	enforcement?: string;
+	biasUp?: boolean;
+}
+
 export interface RoutingConfig {
 	tiers: Record<string, RoutingTier>;
+	effortBand?: EffortBandConfig;
+}
+
+// Resolve the effective band for a base band + task size. Pure: no I/O.
+//   - bands outside the ladder (default/pinned) are returned unchanged
+//   - a base in protectDownshift never shifts DOWN (safety agents)
+//   - the shifted index is clamped to the ladder ends
+export function effectiveBand(
+	base: string,
+	size: string | undefined,
+	cfg: EffortBandConfig | undefined,
+): string {
+	if (!cfg || !Array.isArray(cfg.ladder)) return base;
+	const i = cfg.ladder.indexOf(base);
+	if (i === -1) return base; // default/pinned — not on the ladder
+	const shift = cfg.effort?.[size ?? "standard"]?.shift ?? 0;
+	if (shift < 0 && cfg.protectDownshift?.includes(base)) return base;
+	const j = Math.max(0, Math.min(cfg.ladder.length - 1, i + shift));
+	return cfg.ladder[j];
 }
 
 export function loadRouting(): RoutingConfig | null {

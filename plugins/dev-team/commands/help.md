@@ -4,9 +4,10 @@
 
 - **Pipeline** (enforced order): `/scope` (pre-analysis) → `/specs` → `/plan` →
   `/plan-approve` → `/build` → `/code-review` → `/review-approve` → `/pr`
-- **Plan gate**: `/scope [--trivial]`, `/trivial`, `/plan-approve [path]`,
-  `/plan-reset` — source edits are blocked until the task is scoped and (if
-  non-trivial) a plan is approved.
+- **Plan gate**: `/scope [--trivial | --complex]`, `/trivial`,
+  `/plan-approve [path]`, `/plan-reset` — source edits are blocked until the task
+  is scoped and (if non-trivial) a plan is approved. The scope size also drives
+  effort-band model routing (`/routing`).
 - **Verify**: `/impl-verify` (strict build + tests, bounded verdict)
 - **Review**: `/code-review` (`/review`), `/review-agent`, `/review-approve`
 - **Guardrails**: `/careful on|off`, `/freeze <glob>`, `/unfreeze`,
