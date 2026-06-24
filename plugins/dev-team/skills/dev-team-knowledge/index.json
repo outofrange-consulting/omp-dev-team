@@ -3931,64 +3931,6 @@
       "anchor": "5-report"
     }
   },
-  "plugins/dev-team/skills/test-driven-development/SKILL.md": {
-    "Overview": {
-      "summary": "Enforces strict RED-GREEN-REFACTOR discipline with verifiable gates.",
-      "anchor": "overview"
-    },
-    "Iron Law": {
-      "summary": "**No production code without a failing test first.** If you didn't watch the test fail, you don't know if it tests the right thing.",
-      "anchor": "iron-law"
-    },
-    "Constraints": {
-      "summary": "Do not write implementation code without a failing test first",
-      "anchor": "constraints"
-    },
-    "The Cycle": {
-      "summary": "Each unit of work follows three phases with hard gates between them:",
-      "anchor": "the-cycle"
-    },
-    "1. RED — Write a failing test": {
-      "summary": "Write the smallest test that describes the next behavior",
-      "anchor": "1-red-write-a-failing-test"
-    },
-    "2. GREEN — Make it pass": {
-      "summary": "Write the minimum implementation to make the failing test pass",
-      "anchor": "2-green-make-it-pass"
-    },
-    "3. REFACTOR — Clean up": {
-      "summary": "Improve structure, naming, duplication — without changing behavior",
-      "anchor": "3-refactor-clean-up"
-    },
-    "Rationalization Prevention": {
-      "summary": "LLMs generate plausible excuses for skipping TDD.",
-      "anchor": "rationalization-prevention"
-    },
-    "Red Flags Requiring Restart": {
-      "summary": "Stop immediately and restart from RED if you notice:",
-      "anchor": "red-flags-requiring-restart"
-    },
-    "Verification Checklist": {
-      "summary": "Before completing a unit of work:",
-      "anchor": "verification-checklist"
-    },
-    "Exception Permissions": {
-      "summary": "Ask your human partner before skipping TDD for:",
-      "anchor": "exception-permissions"
-    },
-    "Anti-Pattern: Horizontal Slicing": {
-      "summary": "**DO NOT write all tests first, then all implementation.** This is \"horizontal slicing\" — treating RED as \"write all tests\" and GREEN as \"write all code.\"",
-      "anchor": "anti-pattern-horizontal-slicing"
-    },
-    "Integration with Phases": {
-      "summary": "**Phase 2 (Plan)**: Test strategy is part of the plan — identify what tests will be written for each unit",
-      "anchor": "integration-with-phases"
-    },
-    "Output": {
-      "summary": "Verified RED-GREEN-REFACTOR cycle evidence: failing test output, passing test output, and refactored code with passing tests for each unit of work.",
-      "anchor": "output"
-    }
-  },
   "plugins/dev-team/skills/test-health/SKILL.md": {
     "Overview": {
       "summary": "An **advisory, project-wide** skill: it produces the *strategic-health* view of a test suite that a team needs periodically — the suite's **shape** vs. its architecture, **Agile Testing Quadrant** coverage, **coverage + mutation** health rolled up to ROI, flaky-test management, and **automation maturity** — then an ordered improvement plan.",
@@ -4237,6 +4179,32 @@
     "Steps": {
       "summary": "Find the installed plugin version by checking these locations in order:",
       "anchor": "steps"
+    }
+  },
+  "plugins/dev-team/skills/testing-discipline/SKILL.md": {
+    "Overview": {
+      "summary": "Tests are required for behavior changes; test-first ordering is NOT — the leverage is the plan gate, not the test sequence.",
+      "anchor": "overview"
+    },
+    "Iron law": {
+      "summary": "No behavior change is \"done\" until its tests pass; verify with /impl-verify and paste the verdict.",
+      "anchor": "iron-law"
+    },
+    "Constraints": {
+      "summary": "Don't edit a failing test to pass; don't delete/skip/weaken tests; prefer real code over mocks.",
+      "anchor": "constraints"
+    },
+    "What to test (and how well)": {
+      "summary": "Cover behavior + edge/error cases; test user-facing behavior; vertical slices over horizontal.",
+      "anchor": "what-to-test-and-how-well"
+    },
+    "Verification checklist": {
+      "summary": "Each behavior change tested; /impl-verify green; no gate silenced.",
+      "anchor": "verification-checklist"
+    },
+    "Integration with the pipeline": {
+      "summary": "Plan names the tests; build implements + tests in any order, gated on /impl-verify.",
+      "anchor": "integration-with-the-pipeline"
     }
   }
 }

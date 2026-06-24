@@ -1,7 +1,7 @@
 {
   "name": "dev-team",
   "version": "1.1.0",
-  "description": "Dev-team plugin manifest for Oh-My-Pi. Declares the blocking-guard + routing extensions so a marketplace install loads them; agents/skills/commands/.mcp.json are discovered by their conventional sibling directories.",
+  "description": "Dev-team plugin manifest for Oh-My-Pi. Declares the blocking-guard (plan-gate, review-gate, path/freeze/spec guards) + routing extensions so a marketplace install loads them; agents/skills/commands/.mcp.json are discovered by their conventional sibling directories.",
   "private": true,
   "omp": {
     "extensions": [
@@ -10,7 +10,8 @@
       "./extensions/destructive-guard.ts",
       "./extensions/careful-mode.ts",
       "./extensions/freeze-guard.ts",
-      "./extensions/tdd-guard.ts",
+      "./extensions/spec-guard.ts",
+      "./extensions/plan-gate.ts",
       "./extensions/review-gate.ts",
       "./extensions/impl-verify.ts",
       "./extensions/telemetry.ts"

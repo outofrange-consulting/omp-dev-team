@@ -37,7 +37,7 @@ Minimalism stops at correctness and safety. Always keep:
 - **data-loss** handling (transactions, idempotency, careful migrations);
 - error handling at real boundaries; **accessibility**;
 - the **tests** for the behavior (and never edit a `.feature`/test to dodge work
-  — fix the code; `tdd-guard` enforces this).
+  — fix the code; `spec-guard` enforces this).
 
 ## Levels (`/yagni <level>`)
 

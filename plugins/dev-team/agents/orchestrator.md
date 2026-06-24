@@ -93,6 +93,26 @@ Whole-file load: each linked skill is loaded in full when invoked; per-section a
 - [Design Doc](skill://design-doc) - invoke during Research phase for non-trivial features; produces a written design document with user approval before planning
 - [Branch Workflow](skill://branch-workflow) - invoke after Phase 3 human gate approval to formalize PR creation, merge strategy, and branch cleanup
 
+## Pipeline order (enforced)
+
+The order is **enforced**, not merely advised — the `plan-gate` extension blocks
+edits to production source until the task is scoped and (if non-trivial) a plan
+is approved. This binds **both** the agent and the human: neither can implement
+source before the plan step. Sequence: **pre-analysis → (trivial | plan) → build
+→ review**.
+
+1. **Pre-analysis (`/scope`)** — classify the task. Trivial (typo, comment,
+   one-line doc/config, a tiny obvious fix) → `/scope --trivial` (or `/trivial`)
+   and go straight to the fix. Non-trivial → `/scope` marks it needs-a-plan and
+   it enters the three phases below.
+2. **Plan approved** → `/plan-approve` (after the human signs off) unlocks the
+   build; `/plan-reset` re-arms the gate for the next task.
+3. **Review** → enforced at commit by `review-gate` (`/code-review` →
+   `/review-approve`).
+
+Tests are required for behavior changes but **test-first is not** (see the
+`tests-required` rule); verify with `/impl-verify`.
+
 ## Three-Phase Workflow
 
 Every non-trivial task follows three explicit phases. Each phase runs in minimal context, and a human review gate separates each phase. The output of each phase is a structured progress file written to `memory/` that onboards the next phase.
@@ -116,7 +136,7 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
 
   | Reviewer | Template | Model | What it challenges |
   |----------|----------|-------|--------------------|
-  | Acceptance Test Critic | `prompts/plan-review-acceptance.md` | `sonnet` | Criteria verifiability, scenario completeness, error paths, TDD traceability |
+  | Acceptance Test Critic | `prompts/plan-review-acceptance.md` | `sonnet` | Criteria verifiability, scenario completeness, error paths, test traceability |
   | Design & Architecture Critic | `prompts/plan-review-design.md` | `sonnet` | Coupling, abstraction quality, structural risks, pattern consistency |
   | UX Critic | `prompts/plan-review-ux.md` | `sonnet` | User journey, error experience, cognitive load, accessibility |
   | Strategic Critic | `prompts/plan-review-strategic.md` | `sonnet` | Problem-solution fit, scope, risk, opportunity cost |
@@ -125,7 +145,7 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
   Each returns a `verdict` of `approve` or `needs-revision`. If **any** reviewer returns `needs-revision`, address the blocker issues before presenting to the human. Aggregate all findings (including warnings from approving reviewers) into the plan review summary.
 
   The UX Critic self-skips for plans with no user-facing changes; the Parallelization Critic approves trivially when every wave has one slice. The remaining three always run.
-- **Human gate**: Human reviews the plan and the aggregated review findings. This is the primary review artifact — 200 lines of plan is far more reviewable than 2,000 lines of code. If the plan is wrong, fix it here, not in code.
+- **Human gate**: Human reviews the plan and the aggregated review findings. This is the primary review artifact — 200 lines of plan is far more reviewable than 2,000 lines of code. If the plan is wrong, fix it here, not in code. **On approval, run `/plan-approve`** — this unlocks source edits in Phase 3 (the `plan-gate` extension blocks them until then).
 - **Context**: Compact after this phase — write progress file, start fresh context for Phase 3
 
 ### Phase 3: Implement
@@ -134,7 +154,7 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
 - **Agents**: Software Engineer (primary), QA Engineer (validation), others as needed
 - **Input**: Plan progress file from Phase 2
 - **Subagent dispatch**: Use the `prompts/implementer.md` template when dispatching implementation subagents via the `task` tool. For parallel implementation of independent units, use `isolation: "worktree"` on the `task` tool to give each subagent its own git worktree — this prevents file conflicts when multiple units are implemented concurrently.
-- **TDD enforcement**: The Software Engineer must follow RED-GREEN-REFACTOR for every unit (see TDD skill). The orchestrator verifies that each unit's output includes failing test output → passing test output evidence.
+- **Tests required (not test-first)**: every behavior change ships with tests, written in whatever order fits (no enforced RED-GREEN-REFACTOR). A unit is done only when `/impl-verify` reports its strict build + tests green; the orchestrator requires that verdict as evidence (`tests-required` rule).
 - **Output**: Working code that passes all tests, acceptance criteria, and code review
 - **Three-stage inline review**: After each discrete unit of work completes, run spec-compliance first, then quality, then browser verification for UI changes:
   1. **Stage 1 — Spec compliance**: Run `spec-compliance-review` using the `prompts/spec-reviewer.md` template. Does the code match the spec? If fail → fix before proceeding to Stage 2.

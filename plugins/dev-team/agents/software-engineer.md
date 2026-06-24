@@ -20,7 +20,7 @@ thinking-level: medium
 ## Skills
 
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke before delivery (Phase 1: self-validation), before completion claims (Phase 2: verification evidence), and during rework (Phase 3: review-correction loop)
-- [Test-Driven Development](skill://test-driven-development) - invoke for every unit of work: RED-GREEN-REFACTOR with hard gates, no exceptions
+- [Testing Discipline](skill://testing-discipline) - invoke when writing or modifying code: tests are required (test-first optional), verified green by `/impl-verify` before a unit is done
 - [Systematic Debugging](skill://systematic-debugging) - invoke when any test fails or unexpected behavior occurs; no guess-and-fix
 - [Hexagonal Architecture](skill://hexagonal-architecture) - invoke when structuring new services or modules with port/adapter separation
 - [Domain-Driven Design](skill://domain-driven-design) - invoke when modeling business domains, defining aggregates, or mapping bounded contexts

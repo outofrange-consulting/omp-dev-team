@@ -37,7 +37,7 @@ Specifically, do **not**, in order to clear a failure:
   the lint config.
 - Skip or delete the failing check: `--no-verify`, `[Skip]`/`it.skip`/`xit`,
   `@pytest.mark.skip`, commenting out a test or assertion, deleting the test.
-- Edit the test/spec to match buggy behavior (see `tdd-first` — fix the code).
+- Edit the test/spec to match buggy behavior (see `tests-required` — fix the code).
 
 **The only legitimate suppression** is a *narrow, local, justified* one for a
 true false-positive: scope it as tightly as the tool allows, add an inline

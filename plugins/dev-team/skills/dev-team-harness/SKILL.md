@@ -34,19 +34,22 @@ Guards are OMP **extensions** in `.omp/extensions/`, in two honestly-different
 classes:
 
 - **Enforcement** (`PreToolUse` that returns `block: true` — the agent cannot
-  proceed): `path-guard` (denies writing secrets/credentials via edit **and**
-  shell — `>`, `tee`, `sed -i`, `cp/mv`), `review-gate` (blocks `git commit`
-  until `/code-review` + `/review-approve`; explicit `--no-verify` is the
-  documented human override), `freeze-guard` (`/freeze` `/unfreeze` — blocks
-  edits/shell-writes to frozen globs), and `tdd-guard`'s `.feature` block (you
-  fix code, not the spec; `/allow-feature-edits` to override).
+  proceed): `plan-gate` (blocks edits to production source until the task is
+  scoped and, if non-trivial, a plan is approved — enforces **pre-analysis →
+  (trivial | plan) → build → review** for agent and human alike; commands
+  `/scope`, `/trivial`, `/plan-approve`, `/plan-reset`), `path-guard` (denies
+  writing secrets/credentials via edit **and** shell — `>`, `tee`, `sed -i`,
+  `cp/mv`), `review-gate` (blocks `git commit` until `/code-review` +
+  `/review-approve`; explicit `--no-verify` is the documented human override),
+  `freeze-guard` (`/freeze` `/unfreeze` — blocks edits/shell-writes to frozen
+  globs), and `spec-guard`'s `.feature` block (you fix code, not the spec;
+  `/allow-feature-edits` to override).
 - **Advisory** (warns, does not block): `destructive-guard` (caution on
-  hard-to-reverse shell commands; *blocks* only under `/careful on`),
-  `tdd-guard`'s RED→GREEN nudge, and `model-routing` (dispatch tier log +
-  `/routing` diagnostic).
+  hard-to-reverse shell commands; *blocks* only under `/careful on`) and
+  `model-routing` (dispatch tier log + `/routing` diagnostic).
 
-**State trust.** Toggle state (`freeze`, `careful`, `review-gate`) lives
-**outside the working tree** (`~/.omp/state/dev-team/<repo>/`, override
+**State trust.** Toggle state (`freeze`, `careful`, `review-gate`, `plan-gate`)
+lives **outside the working tree** (`~/.omp/state/dev-team/<repo>/`, override
 `OMP_DEVTEAM_STATE_DIR`) so the agent can't flip a guard off with an in-repo
 write. This is advisory-grade enforcement against a cooperative agent and
 accidental footguns — **not a security sandbox**: an agent running arbitrary
@@ -61,9 +64,12 @@ silence a gate) and `source-of-truth` rule (cite code/data/telemetry, not
 memory). `/impl-verify` runs the stack's real strict build + tests and returns a
 bounded PASS/FAIL/HALT verdict.
 
-## ATDD
+## Plan-first, tests required (not test-first)
 
-All development is Acceptance-Test-Driven: `/plan` decomposes a spec into
-vertical slices and authors the Gherkin scenarios before implementation. No
-implementation without a corresponding scenario; no scenario without a
-corresponding test (`tdd-first` rule).
+The process leverage is the **plan gate**, not test ordering. `/plan` decomposes
+a spec into vertical slices and authors the Gherkin scenarios (the behavioral
+contract) and each slice's test list before the build is unlocked
+(`/plan-approve`). Tests are **required** for behavior changes but **test-first
+is not** — write code and tests in any order; a unit is done only when
+`/impl-verify` is green (`tests-required` rule). This replaces the former
+test-first (TDD) enforcement.

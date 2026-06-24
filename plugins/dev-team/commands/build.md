@@ -1,20 +1,25 @@
-# /build — execute an approved plan with TDD
+# /build — execute an approved plan
 
-Role: **orchestrator**. Phase 3. Implements an approved plan; does not create
-plans or specs.
+Role: **orchestrator**. Phase 3 (build). Implements an approved plan; does not
+create plans or specs.
+
+**Gate:** the `plan-gate` extension blocks source edits until the task is scoped
+and a plan is approved. Run `/plan-approve` (after the human signs off on the
+plan) before building — non-trivial work cannot reach this phase otherwise.
 
 Arguments: `$ARGUMENTS` (optional `--plan <path>`; else newest approved plan in `plans/`).
 
 ## Run it
 
 1. `read skill://build` and follow it exactly.
-2. **Every step is TDD** (RED → GREEN → REFACTOR). No implementation without a
-   failing test first. Paste fresh failing → passing output as evidence. At GREEN
-   and before claiming a unit done, run **`/impl-verify`** (deterministic gate:
-   strict stack build — e.g. `dotnet build -warnaserror` — + tests, bounded fix
-   counter). Act on its verdict: PASS → proceed; FAIL → fix the cause and re-run
-   (never silence the gate — `no-disable-analyzers`); HALT → escalate to the
-   human. Configure stacks/budget in `.omp/dev-team.json` (`implVerify`).
+2. **Tests are required for every behavior change, but test-first is not** (write
+   code and tests in either order — see the `tests-required` rule). Before
+   claiming a unit done, run **`/impl-verify`** (deterministic gate: strict stack
+   build — e.g. `dotnet build -warnaserror` — + tests, bounded fix counter).
+   Act on its verdict: PASS → proceed; FAIL → fix the cause and re-run (never
+   silence the gate — `no-disable-analyzers`); HALT → escalate to the human.
+   Paste the verdict as evidence. Configure stacks/budget in `.omp/dev-team.json`
+   (`implVerify`).
 3. Execute the plan **wave by wave** (from its `## Parallelization` section):
    independent slices in a wave build concurrently via the `task` tool with
    `isolation: "worktree"` (effective concurrency `min(wave width,

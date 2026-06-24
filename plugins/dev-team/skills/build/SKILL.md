@@ -1,10 +1,11 @@
 ---
 name: build
 description: >-
-  Execute an approved implementation plan using TDD. Reads the plan, implements
-  each step with RED-GREEN-REFACTOR, runs inline review checkpoints, and
-  produces verification evidence. Use when the user says "build this", "implement
-  the plan", "start building", or after /plan has been approved.
+  Execute an approved implementation plan. Reads the plan, implements each step
+  (tests required for behavior changes; test-first ordering is not), gates each
+  step on /impl-verify, runs inline review checkpoints, and produces verification
+  evidence. Use when the user says "build this", "implement the plan", "start
+  building", or after /plan has been approved.
 argument-hint: "[--plan <path>]"
 user-invocable: true
 allowed-tools: read, write, edit, find, search, bash, task, ask
@@ -19,9 +20,9 @@ You have been invoked with the `/build` command.
 ## Orchestrator constraints
 
 1. **Follow the plan exactly.** If the plan is wrong, stop and ask the user — do not deviate silently.
-2. **Every step must be TDD.** Each step follows RED → GREEN → REFACTOR. No implementation without a failing test first.
+2. **Every step ships tests.** Tests are required for behavior changes; test-first ordering is **not** (write code and tests in any order). A step is done only when `/impl-verify` reports its strict build + tests green (`tests-required` rule).
 3. **Incremental.** Each step must leave the codebase in a working, committable state.
-4. **Verification evidence required.** Paste fresh test output before claiming a step is done.
+4. **Verification evidence required.** Paste the fresh `/impl-verify` verdict before claiming a step is done.
 5. **Review checkpoints.** After each unit of work, run inline review (spec-compliance first, then quality agents). Max 2 correction iterations before escalating.
 6. **Be concise.** Report step status and verification evidence, no narration.
 
@@ -66,7 +67,7 @@ Work the plan **wave by wave** using the `## Parallelization` section (the waves
 
 - **Sequential fallback (effective concurrency = 1):** a fully-dependent plan (every wave has one slice), `DEV_TEAM_MAX_PARALLEL_BUILDS=1`, or a harness without parallel `task` fan-out → build slices one at a time in dependency order in a single worktree. No worktree fan-out, no reconcile step.
 - **Concurrent dispatch (effective concurrency > 1):**
-  1. Dispatch each independent slice in the wave to its **own** git worktree via the `task` tool (`isolation: "worktree"`), up to the effective concurrency. Each slice's changes stay isolated until reconcile, and each slice still runs its full RED-GREEN-REFACTOR and inline review gates.
+  1. Dispatch each independent slice in the wave to its **own** git worktree via the `task` tool (`isolation: "worktree"`), up to the effective concurrency. Each slice's changes stay isolated until reconcile, and each slice still runs its tests via `/impl-verify` and inline review gates.
   2. **Report the concrete level and cost**, e.g. *"building wave 2 — 2 slices concurrently; faster wall-clock but burns token budget faster."*
   3. **Barrier + reconcile** once the wave's slices finish: merge the slice worktrees into the integration branch order-independently and run the full test suite before any next-wave slice starts.
   4. **Loud halt, never silent:**
@@ -75,9 +76,9 @@ Work the plan **wave by wave** using the `## Parallelization` section (the waves
 
 For each step within a slice, dispatch implementation following the implementer template (`${CLAUDE_PLUGIN_ROOT}/prompts/implementer.md`). Pass the implementer its step **and the slice's Gherkin scenario(s)** — the scenarios are the behavioral contract the step's test must satisfy.
 
-1. **RED** — Write the failing test described in the step, covering the slice scenario it traces to. Run the test suite. **Hard gate: the new test must fail.** Paste the failing output. If the test passes without new code, the behavior already exists — pick a different test. Do NOT proceed to GREEN without pasted failing output.
-2. **GREEN** — Write the minimum implementation to make the failing test pass. Do not add behavior beyond what the test requires. Run the test suite. **Hard gate: all tests must pass.** Paste the passing output. Do NOT proceed without pasted passing output.
-3. **REFACTOR** — Clean up structure, naming, duplication without changing behavior. Run tests again — they must still pass. If tests break, undo and try a smaller change.
+1. **Implement** — Write the step's code **and its tests** (in whichever order fits — test-first is not required), covering the slice scenario it traces to. Don't add behavior beyond what the step and its tests require.
+2. **Verify (hard gate)** — Run **`/impl-verify`** (strict stack build + tests, bounded fix counter). **PASS** → proceed. **FAIL** → fix the *cause* and re-run; never silence the gate (`no-disable-analyzers`). **HALT** (fix budget spent) → escalate to the human. Paste the verdict as evidence.
+3. **Refactor (optional)** — Clean up structure, naming, duplication without changing behavior; re-run `/impl-verify` and keep it green.
 4. **Inline review checkpoint** — Route review depth based on the step's **Complexity** classification:
    - **trivial**: Skip inline review. The final `/code-review` (step 6) covers all modified files.
    - **standard**: Run `/review-agent spec-compliance-review` against changed files. If it passes, run quality review agents relevant to what changed. If review finds actionable issues (error/warning with high/medium confidence), auto-fix and re-run failed agents (up to 5 iterations per the review-fix loop in `agents/orchestrator.md`). Escalate to user if the loop doesn't converge.
