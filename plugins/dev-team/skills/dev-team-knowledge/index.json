@@ -347,6 +347,18 @@
     "Ubiquitous Language Drift": {
       "summary": "Flag only internal inconsistency observable in code:",
       "anchor": "ubiquitous-language-drift"
+    },
+    "Supple Design Smells (Evans)": {
+      "summary": "Method named how-not-what, boolean flag params, mutable value objects.",
+      "anchor": "supple-design-smells-evans"
+    },
+    "Implicit Concepts (missing Specification / Policy)": {
+      "summary": "A named business rule scattered across conditionals -> surface as a Specification/Policy.",
+      "anchor": "implicit-concepts-missing-specification--policy"
+    },
+    "Construction Without Invariants": {
+      "summary": "Objects built into invalid state -> enforce invariants in constructor/Factory.",
+      "anchor": "construction-without-invariants"
     }
   },
   "plugins/dev-team/skills/dev-team-knowledge/exploratory-testing-field-guide.md": {
@@ -4307,6 +4319,52 @@
     "Notes that matter": {
       "summary": "Distinct over random; generate only for uniqueness; significant loud / anonymous quiet; dummy != stub.",
       "anchor": "notes-that-matter"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/legacy-test-strategy.md": {
+    "1. Reason about effects": {
+      "summary": "List what changes a method's observable result to decide what's worth testing.",
+      "anchor": "1-reason-about-effects"
+    },
+    "3. Find interception & pinch points": {
+      "summary": "Pinch point = narrow spot where 1-2 methods detect many changes; ideal characterization-test anchor.",
+      "anchor": "3-find-interception--pinch-points"
+    },
+    "5. Edit safely while getting there": {
+      "summary": "Lean on the compiler, preserve signatures, single-goal + hyperaware editing in untested code.",
+      "anchor": "5-edit-safely-while-getting-there"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/database-test-patterns.md": {
+    "Does this test need a real DB at all?": {
+      "summary": "Business logic -> Fake; mapping/schema/ORM -> real DB is the SUT; stored procs -> real engine.",
+      "anchor": "does-this-test-need-a-real-db-at-all"
+    },
+    "Isolation (no Test Run Wars)": {
+      "summary": "Sandbox per run (dedicated or schema-per-runner); within-run independence still needs fresh fixture + teardown.",
+      "anchor": "isolation-no-test-run-wars"
+    },
+    "Teardown (leave no trace)": {
+      "summary": "Prefer transaction rollback; truncate (FK-safe) when the SUT commits.",
+      "anchor": "teardown-leave-no-trace"
+    },
+    "CD pipeline placement": {
+      "summary": "Real DB ~50x slower -> Fakes pre-merge, narrow real-DB band later; no manual seeding.",
+      "anchor": "cd-pipeline-placement"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-automation-principles.md": {
+    "Goals (what the suite buys you)": {
+      "summary": "Spec/docs/defect-localization/bug-repellent/automated/self-checking/repeatable/robust/simple.",
+      "anchor": "goals-what-the-suite-buys-you"
+    },
+    "Principles (rule → remedy)": {
+      "summary": "Design for testability, front door, communicate intent, independent, isolate, one condition, commensurate effort.",
+      "anchor": "principles-rule--remedy"
+    },
+    "Using this as a rubric": {
+      "summary": "Name at-risk goals -> trace to violated principle -> locate remedy; severity buggy/erratic > obscure/fragile.",
+      "anchor": "using-this-as-a-rubric"
     }
   }
 }
