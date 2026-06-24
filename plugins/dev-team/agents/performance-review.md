@@ -68,3 +68,7 @@ Algorithmic:
 ## Ignore
 
 Code structure, naming, tests, domain modeling, security, concurrency (handled by other agents)
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#performance-review` (the shared challenger loop + the performance-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

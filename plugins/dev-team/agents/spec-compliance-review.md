@@ -81,3 +81,7 @@ Return `{"status": "skip", "issues": [], "summary": "No spec artifacts found"}` 
 - Scope violation → `warning` (may be intentional)
 - Plan deviation → `warning` (may be justified)
 - Cosmetic divergence from the plan that meets every criterion (naming, file placement, ordering) → `suggestion`
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#spec-compliance-review` (the shared challenger loop + the spec-compliance-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

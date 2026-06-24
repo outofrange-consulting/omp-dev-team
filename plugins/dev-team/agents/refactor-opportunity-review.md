@@ -65,3 +65,7 @@ Before flagging duplication, ask: "If the business rule changes, would both copi
 ## Ignore
 
 Naming (naming-review), test quality (test-review), architecture (arch-review), security (security-review). This agent focuses exclusively on refactoring opportunities within the TDD cycle.
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#refactor-opportunity-review` (the shared challenger loop + the refactor-opportunity-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

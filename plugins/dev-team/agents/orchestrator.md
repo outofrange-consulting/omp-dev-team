@@ -101,10 +101,16 @@ is approved. This binds **both** the agent and the human: neither can implement
 source before the plan step. Sequence: **pre-analysis → (trivial | plan) → build
 → review**.
 
-1. **Pre-analysis (`/scope`)** — classify the task. Trivial (typo, comment,
-   one-line doc/config, a tiny obvious fix) → `/scope --trivial` (or `/trivial`)
-   and go straight to the fix. Non-trivial → `/scope` marks it needs-a-plan and
-   it enters the three phases below.
+1. **Pre-analysis (`/scope`)** — classify the task with the **objective** task-
+   size classifier (`skill://dev-team-knowledge/task-size-classifier.md`):
+   objective signals only (`files_changed`, `loc_delta`, `slice_count`,
+   `wave_count`, `has_complex_step`, `decision_axis_triggered`), never a fresh
+   judgement; when ambiguous, classify **up**. **`trivial`** → `/scope --trivial`
+   (or `/trivial`): the no-plan fast path — skip the Research/Plan ceremony and go
+   straight to the fix (review + `/impl-verify` gates still apply). **`standard`/
+   `complex`** → `/scope` marks it needs-a-plan and it enters the three phases
+   below (`complex` also escalates review to the opus-tier agents). Log the
+   classification to `memory/decisions.md`.
 2. **Plan approved** → `/plan-approve` (after the human signs off) unlocks the
    build; `/plan-reset` re-arms the gate for the next task.
 3. **Review** → enforced at commit by `review-gate` (`/code-review` →

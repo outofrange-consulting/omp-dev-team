@@ -60,3 +60,7 @@ Consistency:
 ## Ignore
 
 Structure, tests, domain modeling (handled by other agents)
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#naming-review` (the shared challenger loop + the naming-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.
