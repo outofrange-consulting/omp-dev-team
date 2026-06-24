@@ -48,8 +48,8 @@ bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, can app
 
 For complex work the **orchestrator** runs **Research → Plan → Implement** with a
 human gate between phases. Plus `/code-review` (`/review`), `/review-agent`,
-`/continue`, `/triage`, `/design-doc`, `/issues-from-plan`, `/model-routing-check`.
-Every skill is also available as `/skill:<name>`.
+`/continue`, `/triage`, `/design-doc`, `/issues-from-plan`, and the `/routing`
+diagnostic. Every skill is also available as `/skill:<name>`.
 
 ## Model tiers (all cloud)
 
@@ -66,8 +66,7 @@ The high-volume **small tier** is where token spend concentrates — keep it che
 Point `modelRoles.smol` at `claude-haiku-4-5`, or (with the **copilot-preset**
 plugin) at `github-copilot/gpt-5-mini` to run it on your Copilot license. Pair
 with **token-diet** to cut tokens further. Source of truth:
-`skills/dev-team-knowledge/model-routing.json`; diagnose with `/routing` or
-`/skill:model-routing-check`.
+`skills/dev-team-knowledge/model-routing.json`; diagnose with `/routing`.
 
 ## Guardrails (extensions)
 

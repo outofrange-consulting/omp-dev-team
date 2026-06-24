@@ -13,7 +13,7 @@
 - **Guardrails**: `/careful on|off`, `/freeze <glob>`, `/unfreeze`,
   `/allow-feature-edits`, `/protect-features`, `/routing`, `/cost-report`
 - **Flow**: `/continue`, `/triage`, `/design-doc`, `/issues-from-plan`
-- **Diagnostics**: `/model-routing-check`, `/routing`
+- **Diagnostics**: `/routing`
 - **Everything else**: every ported skill is available as `/skill:<name>`
   (e.g. `/skill:testing-discipline`, `/skill:threat-modeling`).
 

@@ -38,7 +38,7 @@ On top of the floor, the `model-routing` extension applies **phase-aware effort-
 
 So when you spawn a subagent via `task`, **pass the effort-band tier** = `(stage in bumpStages) ? max(floor, sizeBand[size]) : floor` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
 
-For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per floor, the effective band for the current stage + task size.
+For triage, run `/routing` (read-only): the tier map plus, per floor, the effective band for the current stage + task size.
 
 ### Tier guidance (informational)
 
@@ -67,7 +67,7 @@ All review commands are executed under orchestrator direction. When a user trigg
 
 ## Knowledge index — consumer usage pattern
 
-Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `skill://dev-team-knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `skill://dev-team-knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `skill://dev-team-knowledge/X.md` or `skill://Y` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. `/model-routing-check` is the analogous diagnostic command; for routing, `/model-routing-check`; for knowledge freshness, `bash plugins/dev-team/hooks/lib/build-knowledge-index.sh --check`.
+Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `skill://dev-team-knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `skill://dev-team-knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `skill://dev-team-knowledge/X.md` or `skill://Y` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. For routing, `/routing` is the diagnostic command (the `model-routing` extension's tier map + effective band per floor for the current stage and task size).
 
 ## Skills
 

@@ -3047,28 +3047,6 @@
       "anchor": "adding-a-diagram-to-an-existing-file"
     }
   },
-  "plugins/dev-team/skills/model-routing-check/SKILL.md": {
-    "Worker constraints": {
-      "summary": "1.",
-      "anchor": "worker-constraints"
-    },
-    "What it shows": {
-      "summary": "Four sections, in order:",
-      "anchor": "what-it-shows"
-    },
-    "How to fix common findings": {
-      "summary": "**Bumps appearing in the log** — the resolver is silently rerouting a",
-      "anchor": "how-to-fix-common-findings"
-    },
-    "Execution": {
-      "summary": "The exec block below is the literal script the command runs.",
-      "anchor": "execution"
-    },
-    "Notes": {
-      "summary": "Defaults to `N=10` bump events in the tail.",
-      "anchor": "notes"
-    }
-  },
   "plugins/dev-team/skills/mutation-testing/SKILL.md": {
     "Constraints": {
       "summary": "**Always ask the user before running.** Present the time estimate and scope; get explicit approval.",

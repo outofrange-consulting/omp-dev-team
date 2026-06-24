@@ -29,7 +29,7 @@ cannot name the friction it removes does not ship.
   the verification stance: `skill://dev-team-harness`.
 - **Model routing** (tier → model) — source of truth is
   `skill://dev-team-knowledge/model-routing.json`, enforced by the
-  `model-routing` extension; inspect with `/routing` or `/model-routing-check`.
+  `model-routing` extension; inspect with `/routing`.
   Tiers: `pi/smol` (cheap, high-volume lexical/checklist review),
   `claude-sonnet-4-6` (balanced; most agents + the orchestrator),
   `claude-opus-4-8` (deep reasoning). Keep `smol` on the cheapest capable model.
