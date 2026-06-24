@@ -30,15 +30,15 @@ thinking-level: medium
 
 Each agent's `model:` frontmatter declares its **floor tier** — `pi/smol` (small), `claude-sonnet-4-6` (balanced), or `claude-opus-4-8` (deep). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
 
-On top of the floor, the `model-routing` extension applies **effort-band routing (bump-from-floor)**: the **task size** (recorded at pre-analysis — `/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`) picks a target band on the ladder `[small, balanced, deep]`, and the effective band is the **higher of the agent's floor and that target**:
+On top of the floor, the `model-routing` extension applies **phase-aware effort-band routing (bump-from-floor)**. The effort goes into **spec/plan**, not the build: the **task size** (recorded at `/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`) raises the band **only while planning** (`stage = needs-plan`, i.e. `/scope` → `/specs` → `/plan`):
 
-- `trivial` → target `small`; `standard` → target `balanced`; `complex` → target `deep`.
-- An agent is **never routed below its floor** — a high-stakes agent (deep floor: security/domain/arch-review, architect, security-engineer, codebase-recon) holds at deep regardless of size.
-- No size signal → the floor (static, fully backward-compatible).
+- During planning, target band: `trivial` → `small`, `standard` → `balanced`, `complex` → `deep`; effective = the **higher of the agent's floor and that target**. So a `complex` plan runs the architect and plan-review critics at `deep`.
+- Once the plan is **approved** (`stage = plan-approved`, the build/review phase), there is **no bump** — implementers and reviewers run at their **floor**. A solid plan makes the build routine, so don't spend `deep` on mechanical implementation.
+- An agent is **never routed below its floor** (high-stakes deep agents — security/domain/arch-review, architect, security-engineer, codebase-recon — always hold at deep). No signal / trivial / unscoped → the floor (static, backward-compatible).
 
-So when you spawn a subagent via `task`, **pass the effort-band tier** = `max(floor, sizeBand[size])` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
+So when you spawn a subagent via `task`, **pass the effort-band tier** = `(stage in bumpStages) ? max(floor, sizeBand[size]) : floor` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
 
-For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per floor, the effective band for the current task size.
+For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per floor, the effective band for the current stage + task size.
 
 ### Tier guidance (informational)
 

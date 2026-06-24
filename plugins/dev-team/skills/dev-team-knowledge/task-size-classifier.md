@@ -64,13 +64,15 @@ Expected saving on small tasks (upstream measurement): **~65% fewer turns,
 
 ## Drives effort-band model routing
 
-The size is also the **effort signal for model routing** (bump-from-floor).
-`/scope` records it in plan-gate state; the `model-routing` extension maps the
-size to a target band (`trivial`→small, `standard`→balanced, `complex`→deep) and
-routes each agent at **max(its floor tier, that target)** — never below the
-agent's declared tier, so high-stakes deep agents always hold. A precise size
-estimate therefore controls token spend per dispatch. See `model-routing.json` →
-`effortBand`; inspect with `/routing`.
+The size is also the **effort signal for model routing** (phase-aware
+bump-from-floor). `/scope` records the size and stage in plan-gate state; the
+`model-routing` extension raises the band **only during planning**
+(`stage = needs-plan`): target `trivial`→small, `standard`→balanced,
+`complex`→deep, and each agent routes at **max(its floor tier, that target)** —
+never below its declared tier. **Once the plan is approved, there is no bump** —
+the build/review runs at the floor (a solid plan makes implementation routine).
+So a complex task spends `deep` on spec/plan, not on mechanical build. See
+`model-routing.json` → `effortBand`; inspect with `/routing`.
 
 ## Decision logging
 

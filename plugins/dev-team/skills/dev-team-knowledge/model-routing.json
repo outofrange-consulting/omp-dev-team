@@ -19,13 +19,14 @@
     }
   },
   "effortBand": {
-    "$comment": "Effort-band routing (bump-from-floor): the model is derived from the TASK SIZE (from the task-size-classifier, recorded by /scope in plan-gate state), floored by the agent's declared tier. The agent tier is a FLOOR — it is never routed BELOW it (so high-stakes deep agents hold). The size picks a target band; effective = the higher of (floor, sizeBand[size]) on the ladder. No size signal -> the floor (static, retro-compatible). More deterministic than one-model-per-agent, and ties spend to the work. copilot-preset is unaffected — the band picks a tier, then modelRoles resolves the model.",
+    "$comment": "Effort-band routing (phase-aware bump-from-floor): the model is derived from the TASK SIZE (task-size-classifier, recorded by /scope in plan-gate state) and the PIPELINE STAGE, floored by the agent's declared tier. Put the effort into spec/plan: the size raises the band ONLY while planning (stage in bumpStages, default needs-plan); once the plan is approved, build/review run at the floor (a solid plan makes the build routine). effective = (stage in bumpStages) ? max(floor, sizeBand[size]) : floor. The agent tier is a FLOOR — never routed below it (high-stakes deep agents hold). No signal -> floor (static, retro-compatible). copilot-preset is unaffected — the band picks a tier, then modelRoles resolves the model.",
     "ladder": ["small", "balanced", "deep"],
     "sizeBand": {
       "trivial": "small",
       "standard": "balanced",
       "complex": "deep"
     },
+    "bumpStages": ["needs-plan"],
     "enforcement": "advisory",
     "$enforcementNote": "advisory: the extension logs + warns on a dispatch whose tier != the effort-band tier (the orchestrator applies the rule). Set env DEV_TEAM_EFFORT_ROUTING=enforce to upgrade the warning to a block, or =off to disable the band entirely (pure static tiers, agent tier only)."
   },

@@ -87,14 +87,14 @@ eval:
 # ---------------------------------------------------------------------------
 # EFFORT-BAND MODEL ROUTING (model-routing extension)
 # ---------------------------------------------------------------------------
-# The model is derived from the TASK SIZE (trivial/standard/complex, set by
-# /scope), floored by the agent's tier (bump-from-floor): the size picks a target
-# band on [small, balanced, deep] (trivial->small, standard->balanced,
-# complex->deep) and the effective band = max(agent floor, target). An agent is
-# never routed BELOW its tier, so high-stakes deep agents always hold at deep; no
-# size signal -> the floor (static). Configured in
-# skills/dev-team-knowledge/model-routing.json -> effortBand. copilot-preset is
-# unaffected (the band picks a tier; modelRoles resolves the model).
+# Phase-aware bump-from-floor: the effort goes into spec/plan, not the build. The
+# TASK SIZE (set by /scope) raises the band ONLY while planning (stage
+# needs-plan): target trivial->small, standard->balanced, complex->deep, and
+# effective = max(agent floor, target). Once the plan is approved, build/review
+# run at the floor (no bump) — a solid plan makes the build routine. An agent is
+# never routed BELOW its tier (high-stakes deep agents hold). No signal -> floor.
+# Configured in skills/dev-team-knowledge/model-routing.json -> effortBand;
+# copilot-preset unaffected (the band picks a tier; modelRoles resolves it).
 #
 # Enforcement is set there (default "advisory") and overridable per-run by env:
 #   DEV_TEAM_EFFORT_ROUTING=advisory   # log + warn on mismatch (default)
