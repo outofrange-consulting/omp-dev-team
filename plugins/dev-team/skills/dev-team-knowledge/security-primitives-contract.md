@@ -252,7 +252,7 @@ Explicitly NOT part of this contract:
 
 Schemas live at `plugins/dev-team/knowledge/schemas/{recon-envelope,unified-finding,disposition-register}-v1.json` and must validate using any Draft 2020-12 JSON Schema validator.
 
-Conformance fixtures at `evals/primitives-contract/fixtures/` exercise each envelope against positive and negative cases. The `/agent-audit` command validates references to this file (agent IDs cited elsewhere in the plugin must match the registry above).
+Conformance fixtures at `evals/primitives-contract/fixtures/` exercise each envelope against positive and negative cases. References to this file must stay consistent: agent IDs cited elsewhere in the plugin must match the registry above.
 
 A mutation test alters a field in a conformance fixture; CI must fail. A version-mismatch mock (producer 2.0.0 vs. consumer `^1.0.0`) exercises the `install.sh` refusal path.
 

@@ -18,7 +18,6 @@ thinking-level: medium
 
 ## Skills
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke before delivering infrastructure or pipeline recommendations (Phase 1: verify against actual system state)
-- [Governance & Compliance](skill://governance-compliance) - invoke when enforcing operational compliance, audit logging, and change management procedures
 
 ## Knowledge (continuous delivery)
 

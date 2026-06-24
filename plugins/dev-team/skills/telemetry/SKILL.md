@@ -27,12 +27,12 @@ Telemetry is **OFF by default**. It activates only when
 
 This beacon is intentionally a **cheap, always-on local counter**: which
 commands/skills run, how often the commit gate is bypassed. It is **not** the
-self-improvement loop and must not grow into one. The loop is `/session-review`,
-whose digest already extracts a superset of these signals (token, rework,
+self-improvement loop and must not grow into one. The self-improvement loop's
+digest already extracts a superset of these signals (token, rework,
 accuracy, utilization) from transcripts and routes suggestions to governed
 machinery. Cross-machine aggregation also belongs to the **session-digest**
 (Delta D / #178), not this beacon. If you find yourself adding analysis or
-network egress here, that work belongs in `/session-review` instead.
+network egress here, that work belongs in the self-improvement loop instead.
 
 ## Argument: $ARGUMENTS
 

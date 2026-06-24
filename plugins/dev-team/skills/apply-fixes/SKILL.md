@@ -159,4 +159,3 @@ unclear names), the
 [refactoring](https://github.com/elifiner/refactoring) plugin provides
 incremental, verified refactorings one at a time — better suited for
 complex structural changes than batch correction prompts.
-Install: `/add-plugin refactoring@refactoring --repo elifiner/refactoring`

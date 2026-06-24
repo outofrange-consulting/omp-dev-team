@@ -26,7 +26,6 @@ If the step's complexity is `trivial`, return `status: skip` immediately — the
 | API surface / auth | security-review | opus |
 | Domain / business logic | domain-review | opus |
 | UI components | a11y-review, structure-review | haiku / sonnet |
-| Agent or command files | run `/agent-audit` | — |
 | Dockerfile / .dockerignore | docker-image-audit skill | — |
 | Documentation (.md) | doc-review | sonnet |
 | Architecture / dependency changes | arch-review | opus |

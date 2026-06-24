@@ -22,7 +22,6 @@ thinking-level: high
 Whole-file load: each linked skill is loaded in full when invoked; per-section anchors don't apply to skill bodies because the skill machinery consumes the whole file.
 
 - [Threat Modeling](skill://threat-modeling) - invoke when analyzing new or modified components for security risks, trust boundary changes, or attack surface expansion
-- [Governance & Compliance](skill://governance-compliance) - invoke when enforcing security-related compliance requirements, audit trails, and change management
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke before delivering security assessments (Phase 1: verify claims against actual system state)
 
 ## Behavioral Guidelines
