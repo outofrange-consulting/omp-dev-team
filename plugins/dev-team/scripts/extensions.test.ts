@@ -18,6 +18,8 @@ const BAND = {
 	sizeBand: { trivial: "small", standard: "balanced", complex: "deep" },
 	bumpStages: ["needs-plan"],
 };
+// Opt-in trivial downshift (one band below floor on the fast path).
+const BAND_DS = { ...BAND, trivialDownshift: true, downshiftStages: ["trivial"], protectDownshift: ["deep"] };
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -115,6 +117,13 @@ check("band: unscoped (no stage) -> floor", effectiveBand("balanced", "complex",
 // Off-ladder + no config.
 check("band: off-ladder floor (pinned) unchanged", effectiveBand("pinned", "complex", "needs-plan", BAND) === "pinned");
 check("band: no config -> floor", effectiveBand("small", "complex", "needs-plan", undefined) === "small");
+// Opt-in trivial downshift: one band below floor on trivial, deep protected.
+check("ds: balanced floor, trivial -> small (one below)", effectiveBand("balanced", "trivial", "trivial", BAND_DS) === "small");
+check("ds: small floor, trivial -> small (clamp)", effectiveBand("small", "trivial", "trivial", BAND_DS) === "small");
+check("ds: deep floor protected on trivial", effectiveBand("deep", "trivial", "trivial", BAND_DS) === "deep");
+check("ds: bump still works on complex planning", effectiveBand("balanced", "complex", "needs-plan", BAND_DS) === "deep");
+check("ds: no downshift on build stage", effectiveBand("balanced", "standard", "plan-approved", BAND_DS) === "balanced");
+check("default config: trivial keeps floor (no downshift)", effectiveBand("balanced", "trivial", "trivial", BAND) === "balanced");
 
 if (failures) {
 	console.error(`\n${failures} check(s) failed`);

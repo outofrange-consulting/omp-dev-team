@@ -34,7 +34,7 @@ On top of the floor, the `model-routing` extension applies **phase-aware effort-
 
 - During planning, target band: `trivial` → `small`, `standard` → `balanced`, `complex` → `deep`; effective = the **higher of the agent's floor and that target**. So a `complex` plan runs the architect and plan-review critics at `deep`.
 - Once the plan is **approved** (`stage = plan-approved`, the build/review phase), there is **no bump** — implementers and reviewers run at their **floor**. A solid plan makes the build routine, so don't spend `deep` on mechanical implementation.
-- An agent is **never routed below its floor** (high-stakes deep agents — security/domain/arch-review, architect, security-engineer, codebase-recon — always hold at deep). No signal / trivial / unscoped → the floor (static, backward-compatible).
+- An agent is **never routed below its floor** by default (high-stakes deep agents — security/domain/arch-review, architect, security-engineer, codebase-recon — always hold at deep). No signal / trivial / unscoped → the floor (static, backward-compatible). *(Opt-in: `effortBand.trivialDownshift` routes non-deep agents one band below floor on a trivial fast-path task — extra saving; off by default.)*
 
 So when you spawn a subagent via `task`, **pass the effort-band tier** = `(stage in bumpStages) ? max(floor, sizeBand[size]) : floor` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
 
