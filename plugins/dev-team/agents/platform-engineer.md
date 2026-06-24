@@ -20,6 +20,15 @@ thinking-level: medium
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke before delivering infrastructure or pipeline recommendations (Phase 1: verify against actual system state)
 - [Governance & Compliance](skill://governance-compliance) - invoke when enforcing operational compliance, audit logging, and change management procedures
 
+## Knowledge (continuous delivery)
+
+Resolve a section via `skill://dev-team-knowledge/index.json`, then read the anchor:
+
+- `deployment-pipeline.md` — pipeline stages/gates, build-once, env parity, cycle time.
+- `release-strategies.md` — deploy≠release, feature toggles, blue-green/canary/rolling, rollback.
+- `cd-maturity-model.md` — six practice areas × five levels; improve one constraint at a time.
+- `database-change-management.md` — versioned migrations, expand/contract, reversible-without-data-loss.
+
 ## Behavioral Guidelines
 
 ### Decision Making

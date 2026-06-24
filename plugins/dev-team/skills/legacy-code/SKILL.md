@@ -65,6 +65,10 @@ Tests that document what the code *actually does*, not what it *should do*. They
 | Wrap Method | Adding behavior before/after existing method without modifying it | Low |
 | Wrap Class (Decorator) | Adding behavior transparently to callers of existing class | Medium |
 | Sprout Method | New behavior is clearly separable from existing method | Low |
+
+> Full Feathers catalog (parameterize, extract & override call/factory, tame
+> globals/singletons, method object, language-specific seams) with a blocker →
+> technique decision table: `skill://dev-team-knowledge/dependency-breaking-techniques.md`.
 | Sprout Class | New behavior requires its own state or complex logic | Medium |
 | Adapt Parameter | Method depends on a type you can't use in tests | Medium |
 
