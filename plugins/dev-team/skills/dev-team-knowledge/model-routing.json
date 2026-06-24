@@ -27,6 +27,10 @@
       "complex": "deep"
     },
     "bumpStages": ["needs-plan"],
+    "trivialDownshift": false,
+    "downshiftStages": ["trivial"],
+    "protectDownshift": ["deep"],
+    "$downshiftNote": "Off by default. Set trivialDownshift:true to route agents ONE band below their floor on the fast path (downshiftStages, default trivial) for extra token saving — except a floor in protectDownshift (deep), which holds. This is the only case an agent goes below its declared tier; leave it off to keep the never-below-floor guarantee.",
     "enforcement": "advisory",
     "$enforcementNote": "advisory: the extension logs + warns on a dispatch whose tier != the effort-band tier (the orchestrator applies the rule). Set env DEV_TEAM_EFFORT_ROUTING=enforce to upgrade the warning to a block, or =off to disable the band entirely (pure static tiers, agent tier only)."
   },

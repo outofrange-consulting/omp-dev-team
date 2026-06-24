@@ -64,6 +64,16 @@ Copilot remap) resolves the concrete model.
   extension audits and warns. `enforce` is opt-in so a not-yet-updated caller
   isn't bricked; `off` is the escape hatch.
 
+## Optional: trivial downshift (off by default)
+
+For teams that want to squeeze the fast path further, set
+`effortBand.trivialDownshift: true`. On a **trivial**-staged task (`downshiftStages`,
+default `["trivial"]`) each agent routes **one band below its floor** — except a
+floor in `protectDownshift` (default `["deep"]`, the safety agents), which holds.
+This is the **only** case an agent is routed below its declared tier; left off,
+the never-below-floor guarantee stands. The bump-on-planning behavior is
+unchanged.
+
 ## Pre-existing routing debt cleaned up
 
 - The orchestrator's **Resolution Procedure** described a Claude-Code hook

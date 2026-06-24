@@ -156,6 +156,13 @@ export interface EffortBandConfig {
 	// (`needs-plan`); once the plan is approved, implementation/review run at the
 	// floor — a solid plan makes the build routine. Default: ["needs-plan"].
 	bumpStages?: string[];
+	// Optional, off by default. When true, agents route ONE band BELOW their floor
+	// during a downshiftStages stage (default ["trivial"]) — extra token saving on
+	// the fast path — except a floor in protectDownshift (default ["deep"]), which
+	// holds. This is the only case an agent goes below its declared tier.
+	trivialDownshift?: boolean;
+	downshiftStages?: string[];
+	protectDownshift?: string[];
 	enforcement?: string;
 }
 
@@ -167,11 +174,13 @@ export interface RoutingConfig {
 // Resolve the effective band from the agent's FLOOR tier, the task size, and the
 // pipeline stage. Phase-aware bump-from-floor: the size raises the band ONLY
 // during the planning phase(s) (`bumpStages`, default ["needs-plan"]) — put the
-// effort into spec/plan; post-plan build/review runs at the floor. An agent is
-// never routed BELOW its tier (high-stakes deep agents hold). Pure, no I/O.
+// effort into spec/plan; post-plan build/review runs at the floor. By default an
+// agent is never routed BELOW its tier (high-stakes deep agents hold). Pure, no I/O.
 //   - a floor outside the ladder (pinned/default) -> unchanged
-//   - stage not in bumpStages (build, trivial, unscoped) -> the floor
-//   - else -> the higher of (floor, sizeBand[size]) on the ladder
+//   - opt-in trivialDownshift + a downshiftStages stage -> one band below floor
+//     (except protected floors) — the only case an agent goes below its tier
+//   - stage not in bumpStages (build, unscoped) -> the floor
+//   - else (planning) -> the higher of (floor, sizeBand[size]) on the ladder
 export function effectiveBand(
 	floor: string,
 	size: string | undefined,
@@ -181,6 +190,12 @@ export function effectiveBand(
 	if (!cfg || !Array.isArray(cfg.ladder)) return floor;
 	const fi = cfg.ladder.indexOf(floor);
 	if (fi === -1) return floor; // pinned/default — not on the ladder
+	// Optional trivial downshift (off by default): one band below floor on the
+	// fast path, except protected (deep) floors.
+	if (cfg.trivialDownshift && stage && (cfg.downshiftStages ?? ["trivial"]).includes(stage)) {
+		if ((cfg.protectDownshift ?? ["deep"]).includes(floor)) return floor;
+		return cfg.ladder[Math.max(0, fi - 1)];
+	}
 	const bumpStages = cfg.bumpStages ?? ["needs-plan"];
 	if (!stage || !bumpStages.includes(stage)) return floor; // no bump outside planning
 	const target = size ? cfg.sizeBand?.[size] : undefined;

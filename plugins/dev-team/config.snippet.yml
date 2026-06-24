@@ -101,6 +101,11 @@ eval:
 #   DEV_TEAM_EFFORT_ROUTING=enforce    # block a mis-banded dispatch
 #   DEV_TEAM_EFFORT_ROUTING=off        # disable the band (pure static tiers)
 # Inspect with /routing or /model-routing-check.
+#
+# Optional extra saving (off by default): set effortBand.trivialDownshift=true in
+# model-routing.json to route agents ONE band BELOW their floor on a trivial
+# (fast-path) task — except a deep floor (protectDownshift), which holds. The only
+# case an agent goes below its tier; leave off to keep the never-below-floor rule.
 
 # ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH
