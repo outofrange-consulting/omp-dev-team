@@ -17,7 +17,6 @@ This file contains the complete registry tables. CLAUDE.md references this file 
 | Platform Engineer | `agents/platform-engineer.md` | 320 | Pipeline, deployment, reliability |
 | ADR Author | `agents/adr-author.md` | 320 | Creates and manages Architecture Decision Records |
 | Codebase Recon | `agents/codebase-recon.md` | ~900 | Repo reconnaissance — surfaces entry points, dependencies, security surface, git history. Produces RECON artifact per security-primitives-contract. Dispatched on demand by architect and domain-analysis. |
-| Session Analysis | `agents/session-analysis.md` | ~500 | Map an aggregated session digest to probable plugin causes and ranked, tagged improvement suggestions |
 | **All team agents** | | **~5,010** | |
 
 ## Review Agents
@@ -29,7 +28,6 @@ Spawned by the orchestrator during Phase 3 inline checkpoints and full `/code-re
 | spec-compliance-review | `agents/spec-compliance-review.md` | mid | Spec-to-code matching — first gate before quality review |
 | a11y-review | `agents/a11y-review.md` | mid | WCAG 2.1 AA, ARIA, keyboard nav, focus management |
 | arch-review | `agents/arch-review.md` | frontier | ADR compliance, layer boundary violations, dependency direction, pattern consistency |
-| claude-setup-review | `agents/claude-setup-review.md` | small | CLAUDE.md completeness, rules, skills, path accuracy |
 | complexity-review | `agents/complexity-review.md` | small | Function size, cyclomatic complexity, nesting, parameters |
 | concurrency-review | `agents/concurrency-review.md` | mid | Race conditions, async pitfalls, shared state |
 | doc-review | `agents/doc-review.md` | mid | README accuracy, API doc alignment, inline comment drift, ADR update triggers |
@@ -59,8 +57,6 @@ Skills are reusable knowledge modules in `.claude/skills/` that agents reference
 | Human Oversight Protocol | `skills/human-oversight-protocol/SKILL.md` | 1,020 | Orchestrator, Product Manager |
 | Performance Metrics | `skills/performance-metrics/SKILL.md` | 890 | Orchestrator |
 | Quality Gate Pipeline | `skills/quality-gate-pipeline/SKILL.md` | 900 | All agents |
-| Governance & Compliance | `skills/governance-compliance/SKILL.md` | 990 | QA Engineer, Technical Writer |
-| Agent & Skill Authoring | `skills/agent-skill-authoring/SKILL.md` | 1,300 | Orchestrator, Technical Writer |
 | Hexagonal Architecture | `skills/hexagonal-architecture/SKILL.md` | 420 | Architect, Software Engineer |
 | Domain-Driven Design | `skills/domain-driven-design/SKILL.md` | 710 | Architect, Software Engineer, Product Manager |
 | Domain Analysis | `skills/domain-analysis/SKILL.md` | 650 | Architect, Product Manager, Orchestrator |
@@ -80,7 +76,6 @@ Skills are reusable knowledge modules in `.claude/skills/` that agents reference
 | Test Health | `skills/test-health/SKILL.md` | ~900 | QA Engineer, `/test-health` command |
 | Browser Testing | `skills/browser-testing/SKILL.md` | 700 | QA Engineer |
 | Exploratory Testing | `skills/exploratory-testing/SKILL.md` | ~900 | QA Engineer, `/explore` command |
-| Competitive Analysis | `skills/competitive-analysis/SKILL.md` | 600 | Orchestrator, Product Manager |
 | Design Interrogation | `skills/design-interrogation/SKILL.md` | 500 | Architect, Product Manager, Orchestrator |
 | Design It Twice | `skills/design-it-twice/SKILL.md` | 550 | Architect, Software Engineer |
 | Static Analysis Integration | `skills/static-analysis-integration/SKILL.md` | 650 | Orchestrator, `/code-review` |
@@ -89,7 +84,6 @@ Skills are reusable knowledge modules in `.claude/skills/` that agents reference
 | Docker Image Audit | `skills/docker-image-audit/SKILL.md` | 750 | Orchestrator (inline review), Platform Engineer, Security Engineer |
 | Performance Benchmark | `skills/performance-benchmark/SKILL.md` | 800 | QA Engineer, Platform Engineer, `/benchmark` command |
 | Semantic Duplication Scan | `skills/semantic-duplication-scan/SKILL.md` | ~4,500 | Orchestrator, Software Engineer, Architect |
-| Agent Create | `skills/agent-create/SKILL.md` | ~2,100 | Orchestrator, Software Engineer, all team agents |
 | ADR Tools | `skills/adr-tools/SKILL.md` | ~1,350 | Orchestrator, adr-author, Software Engineer, Architect |
 | Mermaid Diagramming | `skills/mermaid-diagramming/SKILL.md` | ~400 | Architect, Software Engineer, Tech Writer |
 | Ubiquitous Language | `skills/ubiquitous-language/SKILL.md` | ~800 | Architect, domain-review, Product Manager |

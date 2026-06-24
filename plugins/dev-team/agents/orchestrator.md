@@ -44,7 +44,7 @@ For triage, run `/routing` (read-only): the tier map plus, per floor, the effect
 
 Each agent's `model:` frontmatter is the authoritative routing input. Below is the rationale by tier class, so new agents have a guide for which tier to declare:
 
-- `haiku` — lexical/structural pattern matching, checklist-style verification (naming-review, complexity-review, claude-setup-review, token-efficiency-review, a11y-review, svelte-review, js-fp-review, progress-guardian).
+- `haiku` — lexical/structural pattern matching, checklist-style verification (naming-review, complexity-review, token-efficiency-review, a11y-review, svelte-review, js-fp-review, progress-guardian).
 - `sonnet` — semantic analysis with balanced cost/quality (spec-compliance-review, test-review, structure-review, concurrency-review, doc-review, refactor-opportunity-review, data-flow-tracer, performance-review, orchestrator, software-engineer, qa-engineer, tech-writer, platform-engineer, product-manager, ui-ux-designer, adr).
 - `opus` — cross-file reasoning, high-stakes decisions, design synthesis, threat modeling, broad reconnaissance (security-review, domain-review, arch-review, architect, security-engineer, codebase-recon).
 
@@ -56,14 +56,10 @@ All review commands are executed under orchestrator direction. When a user trigg
 |---|---|---|
 | `/code-review` | Full suite review with pre-flight gates | End of Phase 3, or user request |
 | `/review-agent` | Single-agent review | Inline checkpoint during Phase 3 |
-| `/agent-audit` | Compliance check for agents/skills/hooks | After adding or modifying agents or commands |
-| `/agent-eval` | Accuracy validation against fixtures | When validating review agent quality |
 | `/add-agent` | Scaffold new review agent | When a new review capability is needed |
-| `/add-plugin` | Install and register a plugin | When a new plugin is needed |
 | `/apply-fixes` | Apply correction prompts | After `/code-review` generates corrections |
 | `/review-summary` | Persist session summary | At phase transitions |
 | `/semgrep-analyze` | Static analysis | As pre-flight context for security-review |
-| `/harness-audit` | Harness effectiveness analysis | Periodically to review harness staleness |
 
 ## Knowledge index — consumer usage pattern
 
@@ -78,17 +74,12 @@ Whole-file load: each linked skill is loaded in full when invoked; per-section a
 - [Feedback & Learning](skill://feedback-learning) - invoke when user uses amend/learn/remember/forget keywords, or during learning loop at task completion
 - [Human Oversight Protocol](skill://human-oversight-protocol) - invoke when approval gates fire, when user issues override/pause/stop, or when escalating decisions
 - [Performance Metrics](skill://performance-metrics) - invoke at task completion to log metrics, and during learning loop to review trends
-- [Agent & Skill Authoring](skill://agent-skill-authoring) - invoke when creating or editing a skill, or when reviewing the agent-vs-skill separation (for new agent files, prefer `/agent-add` which invokes the `agent-create` skill)
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke to enforce the three-phase quality gate: self-validation (Phase 1), verification evidence (Phase 2), and review-correction loops (Phase 3)
 - [Specs](skill://specs) - invoke when routing a new feature request; verify the consistency gate passed before loading implementing agents
 - [Code Review](skill://code-review) - invoke after each Phase 3 checkpoint and before committing; runs all relevant review agents with orchestrator-assigned models
 - [Review Agent](skill://review-agent) - invoke for targeted single-agent inline review during Phase 3 checkpoints
-- [Eval Audit](skill://agent-audit) - invoke after adding or modifying any agent or command file
-- [Agent Eval](skill://agent-eval) - invoke to validate review agent accuracy when fixtures are added or changed
 - [Apply Fixes](skill://apply-fixes) - invoke after `/code-review` generates correction prompts; passes corrections to coding agent
 - [Review Summary](skill://review-summary) - invoke at phase transitions to persist review state before context compaction
-- [Agent Add](skill://agent-add) - invoke when a new review capability is needed; runs agent-audit and doc updates automatically
-- [Agent Remove](skill://agent-remove) - invoke when retiring any agent; handles file deletion, registry cleanup, and doc updates
 - [Semgrep Analyze](skill://semgrep-analyze) - invoke as pre-flight context for security-review when SAST findings are needed
 - [Design Doc](skill://design-doc) - invoke during Research phase for non-trivial features; produces a written design document with user approval before planning
 - [Branch Workflow](skill://branch-workflow) - invoke after Phase 3 human gate approval to formalize PR creation, merge strategy, and branch cleanup
@@ -203,7 +194,7 @@ After each discrete unit of work classified as **standard** or **complex** (a fu
 | API surface / auth | security-review |
 | Domain/business logic | domain-review |
 | UI components | a11y-review, structure-review |
-| Agent or command files | eval-compliance-check hook runs automatically; also run /agent-audit |
+| Agent or command files | eval-compliance-check hook runs automatically |
 | Dockerfile or .dockerignore | docker-image-audit skill |
 | Documentation files (.md) | doc-review |
 | Architecture/dependency changes | arch-review |

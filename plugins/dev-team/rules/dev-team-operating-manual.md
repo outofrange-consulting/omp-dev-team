@@ -24,9 +24,6 @@ cannot name the friction it removes does not ship.
   five plan-review personas, the three-stage inline review, ATDD, and the
   decision log: owned by the **orchestrator** agent prompt (`## Three-Phase
   Workflow` / `## Decision Log`). Don't restate it in always-loaded context.
-- **Harness map + guardrails** — how agents/skills/knowledge/commands map to
-  OMP, the influence-vs-enforcement guard taxonomy, out-of-tree guard state, and
-  the verification stance: `skill://dev-team-harness`.
 - **Model routing** (tier → model) — source of truth is
   `skill://dev-team-knowledge/model-routing.json`, enforced by the
   `model-routing` extension; inspect with `/routing`.

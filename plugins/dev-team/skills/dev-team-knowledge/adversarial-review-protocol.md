@@ -138,12 +138,6 @@ Repeat until the challenger finds no new issues, or a maximum of 3 rounds is rea
 - Does any suggestion remove capability or correctness for marginal tokens? That's false economy — reject it.
 - Did you check the always-loaded surface (rules, agent prompts) before micro-optimizing on-demand content?
 
-### claude-setup-review
-
-- Does each agent/skill/command file have valid frontmatter and a tool scope no broader than it needs?
-- Are referenced skills/commands/hooks/anchors real (no dangling `skill://` or `#anchor`)?
-- For each guard/extension claim, did you check it's actually registered (manifest `omp.extensions`)?
-
 ## Output
 
 After the challenger pass, append to the `summary` field in your JSON output:

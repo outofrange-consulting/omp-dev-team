@@ -16,8 +16,6 @@ thinking-level: medium
 - Enforce ubiquitous language alignment between docs and code
 
 ## Skills
-- [Agent & Skill Authoring](skill://agent-skill-authoring) - invoke when documenting how agents and skills work, how to author skills, and the registration/documentation-sync policy (the agent-creation procedure itself lives in the `agent-create` skill)
-- [Governance & Compliance](skill://governance-compliance) - invoke when documenting audit, ethics, and compliance procedures
 
 ## Behavioral Guidelines
 

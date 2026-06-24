@@ -154,7 +154,7 @@ If `--background`: run only `doc-review`, `arch-review`, `naming-review`, `struc
 
 Otherwise enumerate review agents from `agents/*.md` (identified by a `Model tier:` field in body). All are enabled by default.
 
-**Language-agnostic agents always run** regardless of tech stack: `doc-review`, `arch-review`, `claude-setup-review`, `token-efficiency-review`.
+**Language-agnostic agents always run** regardless of tech stack: `doc-review`, `arch-review`, `token-efficiency-review`.
 
 If `review-config.json` exists at the repo root, honor its per-agent `"enabled": false` flags.
 

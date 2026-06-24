@@ -17,4 +17,4 @@ globs:
 - Agents that dispatch others declare `spawns` (e.g. `spawns: explore` or `"*"`).
 - Review/verdict agents set `blocking: true` so the orchestrator waits on them.
 - Keep agents lean — the registry tracks token budgets. See
-  `skill://agent-skill-authoring` and `skill://dev-team-knowledge/agent-registry.md`.
+  `skill://dev-team-knowledge/agent-registry.md`.
