@@ -4207,6 +4207,24 @@
       "anchor": "integration-with-the-pipeline"
     }
   },
+  "plugins/dev-team/skills/dev-team-knowledge/task-size-classifier.md": {
+    "Signals": {
+      "summary": "Objective signals: files_changed, loc_delta, slice_count, wave_count, has_complex_step, decision_axis_triggered.",
+      "anchor": "signals-estimate-before-implementation-measure-after"
+    },
+    "Tiers": {
+      "summary": "trivial (all small thresholds) / complex (any large threshold or decision axis) / standard (between); bias up when ambiguous.",
+      "anchor": "tiers"
+    },
+    "What each tier triggers (mapped to the plan gate)": {
+      "summary": "trivial -> /scope --trivial fast path (gates kept); standard/complex -> /scope needs-plan; complex escalates opus-tier review.",
+      "anchor": "what-each-tier-triggers-mapped-to-the-plan-gate"
+    },
+    "Decision logging": {
+      "summary": "Record signals, tier, and rationale in memory/decisions.md.",
+      "anchor": "decision-logging"
+    }
+  },
   "plugins/dev-team/skills/dev-team-knowledge/deployment-pipeline.md": {
     "Principles (non-negotiable)": {
       "summary": "Build once, deploy the same way everywhere, prod-like envs, instant propagation, prod locked down, stop the line.",

@@ -85,3 +85,7 @@ Focus management:
 ## Ignore
 
 Code style, naming, test coverage, performance (handled by other agents)
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#a11y-review` (the shared challenger loop + the a11y-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

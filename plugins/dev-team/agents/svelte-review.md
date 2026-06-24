@@ -87,3 +87,7 @@ Lifecycle issues:
 ## Ignore
 
 Generic array mutation style (handled by js-fp-review), race conditions in non-reactive paths (handled by concurrency-review), accessibility (handled by a11y-review), code structure, naming, domain modeling, security, complexity (handled by other agents)
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#svelte-review` (the shared challenger loop + the svelte-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

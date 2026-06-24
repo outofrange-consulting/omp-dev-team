@@ -88,3 +88,7 @@ Resource ordering:
 ## Ignore
 
 Code style, naming, domain modeling, security, complexity (handled by other agents)
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#concurrency-review` (the shared challenger loop + the concurrency-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

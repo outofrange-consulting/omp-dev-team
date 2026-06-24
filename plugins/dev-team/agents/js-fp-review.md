@@ -75,3 +75,7 @@ Impure patterns:
 ## Ignore
 
 Code structure, naming, tests, domain modeling, security (handled by other agents)
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#js-fp-review` (the shared challenger loop + the js-fp-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.
