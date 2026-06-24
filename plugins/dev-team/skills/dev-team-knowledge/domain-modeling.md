@@ -89,3 +89,36 @@ Flag only internal inconsistency observable in code:
 - Generic names where domain terms exist (`process`, `handle`, `data`, `info`, `manager`)
 
 Do not flag terminology as wrong based on assumed business language.
+
+### Supple Design Smells (Evans)
+
+Design that's hard to change because intent isn't in the code:
+
+- A domain method named for **how**, not **what** (`recalc`, `doProcess`,
+  `update2`) — rename to an intention-revealing operation.
+- A **boolean flag parameter** that switches behavior (`charge(amount, true)`) —
+  split into two intention-revealing methods or a strategy.
+- A **mutable value object**: a type used as a value (money, range, coordinate,
+  date span) with public setters or in-place mutation — make it immutable; return
+  new instances. Value objects compared by *value*, not identity.
+
+### Implicit Concepts (missing Specification / Policy)
+
+A named business rule hiding inside scattered conditionals:
+
+- The same compound predicate (`if order.total > 100 && customer.tenureDays > 365
+  && …`) repeated across services — surface it as a named **Specification**
+  (`PreferredCustomerSpec.isSatisfiedBy(...)`) or **Policy** object.
+- A constraint everyone "just knows" but that lives nowhere as a type — give it a
+  name and a home. Implicit concepts are where bugs and language drift breed.
+
+### Construction Without Invariants
+
+Objects that can be built into an invalid state:
+
+- A public constructor / setter chain that lets a caller create an entity missing
+  required fields or violating a rule (negative balance, end-before-start) —
+  enforce invariants in the constructor or a **Factory**; reject invalid input at
+  construction, not later.
+- An aggregate assembled field-by-field by an application service instead of via
+  a factory method that guarantees a consistent whole.

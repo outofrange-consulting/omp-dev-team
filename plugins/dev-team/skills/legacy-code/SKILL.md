@@ -69,6 +69,8 @@ Tests that document what the code *actually does*, not what it *should do*. They
 > Full Feathers catalog (parameterize, extract & override call/factory, tame
 > globals/singletons, method object, language-specific seams) with a blocker →
 > technique decision table: `skill://dev-team-knowledge/dependency-breaking-techniques.md`.
+> For *where* to place a characterization test (effect sketch, pinch points) and
+> how to edit safely meanwhile: `skill://dev-team-knowledge/legacy-test-strategy.md`.
 | Sprout Class | New behavior requires its own state or complex logic | Medium |
 | Adapt Parameter | Method depends on a type you can't use in tests | Medium |
 

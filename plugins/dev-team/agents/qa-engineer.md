@@ -11,7 +11,7 @@ thinking-level: medium
 ## Technical Responsibilities
 
 - Acceptance test driven development: per-slice Gherkin scenarios (authored in `/plan`) define behavior before implementation begins
-- Test case generation (unit, integration, e2e) derived from the plan's slice scenarios
+- Test case generation (unit, integration, e2e) derived from the plan's slice scenarios — judged against `skill://dev-team-knowledge/test-automation-principles.md` (goals + principles rubric); DB tests follow `skill://dev-team-knowledge/database-test-patterns.md` (Fake vs real DB, isolation, teardown)
 - Run `/impl-verify` to execute the stack's strict build + tests and report the bounded PASS/FAIL/HALT verdict as test evidence — never weaken a gate to go green (`no-disable-analyzers`)
 - Automated testing framework setup and maintenance
 - Quality metrics tracking and reporting
