@@ -15,8 +15,7 @@ import { gateDecision, isGatedSource } from "../extensions/plan-gate.ts";
 
 const BAND = {
 	ladder: ["small", "balanced", "deep"],
-	effort: { trivial: { shift: -1 }, standard: { shift: 0 }, complex: { shift: 1 } },
-	protectDownshift: ["deep"],
+	sizeBand: { trivial: "small", standard: "balanced", complex: "deep" },
 };
 
 let failures = 0;
@@ -99,18 +98,20 @@ check("plan-gate: needs-plan -> need-plan", gateDecision("needs-plan") === "need
 check("plan-gate: trivial -> allow", gateDecision("trivial") === "allow");
 check("plan-gate: plan-approved -> allow", gateDecision("plan-approved") === "allow");
 
-// --- effort-band model routing ------------------------------------------
-check("band: trivial downshifts balanced -> small", effectiveBand("balanced", "trivial", BAND) === "small");
-check("band: complex upshifts balanced -> deep", effectiveBand("balanced", "complex", BAND) === "deep");
-check("band: standard keeps base", effectiveBand("balanced", "standard", BAND) === "balanced");
-check("band: deep is protected from downshift", effectiveBand("deep", "trivial", BAND) === "deep");
-check("band: small clamps on downshift", effectiveBand("small", "trivial", BAND) === "small");
-check("band: deep clamps on upshift", effectiveBand("deep", "complex", BAND) === "deep");
-check("band: small upshifts to balanced on complex", effectiveBand("small", "complex", BAND) === "balanced");
-check("band: off-ladder (default) unchanged", effectiveBand("default", "trivial", BAND) === "default");
-check("band: off-ladder (pinned) unchanged", effectiveBand("pinned", "complex", BAND) === "pinned");
-check("band: missing size defaults to no shift", effectiveBand("balanced", undefined, BAND) === "balanced");
-check("band: no config returns base", effectiveBand("balanced", "trivial", undefined) === "balanced");
+// --- effort-band model routing (bump-from-floor: max(floor, sizeBand[size])) ---
+check("band: small floor, trivial -> small", effectiveBand("small", "trivial", BAND) === "small");
+check("band: small floor, standard -> balanced", effectiveBand("small", "standard", BAND) === "balanced");
+check("band: small floor, complex -> deep", effectiveBand("small", "complex", BAND) === "deep");
+check("band: balanced floor never below floor on trivial", effectiveBand("balanced", "trivial", BAND) === "balanced");
+check("band: balanced floor, standard -> balanced", effectiveBand("balanced", "standard", BAND) === "balanced");
+check("band: balanced floor, complex -> deep", effectiveBand("balanced", "complex", BAND) === "deep");
+check("band: deep floor holds on trivial", effectiveBand("deep", "trivial", BAND) === "deep");
+check("band: deep floor holds on complex", effectiveBand("deep", "complex", BAND) === "deep");
+check("band: off-ladder floor (default) unchanged", effectiveBand("default", "complex", BAND) === "default");
+check("band: off-ladder floor (pinned) unchanged", effectiveBand("pinned", "trivial", BAND) === "pinned");
+check("band: no size signal -> floor", effectiveBand("small", undefined, BAND) === "small");
+check("band: unmapped size -> floor", effectiveBand("small", "weird", BAND) === "small");
+check("band: no config -> floor", effectiveBand("small", "complex", undefined) === "small");
 
 if (failures) {
 	console.error(`\n${failures} check(s) failed`);

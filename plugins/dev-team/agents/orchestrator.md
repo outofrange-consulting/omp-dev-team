@@ -26,19 +26,19 @@ thinking-level: medium
 - Task classification algorithm
 - Load balancing logic
 
-## Resolution Procedure (base tier + effort band)
+## Resolution Procedure (floor tier + effort band)
 
-Each agent's `model:` frontmatter declares its **base tier** — `pi/smol` (small), `claude-sonnet-4-6` (balanced), or `claude-opus-4-8` (deep). Base resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
+Each agent's `model:` frontmatter declares its **floor tier** — `pi/smol` (small), `claude-sonnet-4-6` (balanced), or `claude-opus-4-8` (deep). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
 
-On top of the base, the `model-routing` extension applies **effort-band routing**: the dispatched model shifts along the ladder `[small, balanced, deep]` by the **task size** recorded at pre-analysis (`/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`):
+On top of the floor, the `model-routing` extension applies **effort-band routing (bump-from-floor)**: the **task size** (recorded at pre-analysis — `/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`) picks a target band on the ladder `[small, balanced, deep]`, and the effective band is the **higher of the agent's floor and that target**:
 
-- `trivial` → shift **down** one band (fast path, token saving) — a `deep` base is protected and does not downshift.
-- `standard` → no shift (use the base).
-- `complex` → shift **up** one band (quality), clamped at `deep`.
+- `trivial` → target `small`; `standard` → target `balanced`; `complex` → target `deep`.
+- An agent is **never routed below its floor** — a high-stakes agent (deep floor: security/domain/arch-review, architect, security-engineer, codebase-recon) holds at deep regardless of size.
+- No size signal → the floor (static, fully backward-compatible).
 
-So when you spawn a subagent via `task`, **pass the effort-band tier**, not just the base: compute it from the agent's base and the current task size (rule above; data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** that names the model to use; `=off` disables the band (pure static tiers).
+So when you spawn a subagent via `task`, **pass the effort-band tier** = `max(floor, sizeBand[size])` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
 
-For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per base, the effective band for the current task size.
+For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per floor, the effective band for the current task size.
 
 ### Tier guidance (informational)
 

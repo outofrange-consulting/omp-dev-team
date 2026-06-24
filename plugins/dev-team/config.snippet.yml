@@ -88,9 +88,11 @@ eval:
 # EFFORT-BAND MODEL ROUTING (model-routing extension)
 # ---------------------------------------------------------------------------
 # The model is derived from the TASK SIZE (trivial/standard/complex, set by
-# /scope), not only from the agent's static tier: the base band shifts along
-# [small, balanced, deep] — trivial downshifts (cheaper), complex upshifts
-# (stronger), a `deep` base never downshifts. Configured in
+# /scope), floored by the agent's tier (bump-from-floor): the size picks a target
+# band on [small, balanced, deep] (trivial->small, standard->balanced,
+# complex->deep) and the effective band = max(agent floor, target). An agent is
+# never routed BELOW its tier, so high-stakes deep agents always hold at deep; no
+# size signal -> the floor (static). Configured in
 # skills/dev-team-knowledge/model-routing.json -> effortBand. copilot-preset is
 # unaffected (the band picks a tier; modelRoles resolves the model).
 #

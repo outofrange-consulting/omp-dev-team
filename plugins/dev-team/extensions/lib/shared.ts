@@ -150,10 +150,9 @@ export interface RoutingTier {
 
 export interface EffortBandConfig {
 	ladder: string[];
-	effort: Record<string, { shift: number; note?: string }>;
-	protectDownshift: string[];
+	// Task size -> target band (e.g. { trivial: "small", standard: "balanced", complex: "deep" }).
+	sizeBand: Record<string, string>;
 	enforcement?: string;
-	biasUp?: boolean;
 }
 
 export interface RoutingConfig {
@@ -161,22 +160,25 @@ export interface RoutingConfig {
 	effortBand?: EffortBandConfig;
 }
 
-// Resolve the effective band for a base band + task size. Pure: no I/O.
-//   - bands outside the ladder (default/pinned) are returned unchanged
-//   - a base in protectDownshift never shifts DOWN (safety agents)
-//   - the shifted index is clamped to the ladder ends
+// Resolve the effective band from the agent's FLOOR tier and the task size.
+// Bump-from-floor: the size sets a target band, but an agent is never routed
+// BELOW its declared tier (floor) — so high-stakes agents (deep floor) hold.
+// Pure, no I/O.
+//   - a floor outside the ladder (pinned/default) is returned unchanged
+//   - no size signal, or a size with no mapping -> the floor (static, retro-compatible)
+//   - otherwise -> the higher of (floor, sizeBand[size]) on the ladder
 export function effectiveBand(
-	base: string,
+	floor: string,
 	size: string | undefined,
 	cfg: EffortBandConfig | undefined,
 ): string {
-	if (!cfg || !Array.isArray(cfg.ladder)) return base;
-	const i = cfg.ladder.indexOf(base);
-	if (i === -1) return base; // default/pinned — not on the ladder
-	const shift = cfg.effort?.[size ?? "standard"]?.shift ?? 0;
-	if (shift < 0 && cfg.protectDownshift?.includes(base)) return base;
-	const j = Math.max(0, Math.min(cfg.ladder.length - 1, i + shift));
-	return cfg.ladder[j];
+	if (!cfg || !Array.isArray(cfg.ladder)) return floor;
+	const fi = cfg.ladder.indexOf(floor);
+	if (fi === -1) return floor; // pinned/default — not on the ladder
+	const target = size ? cfg.sizeBand?.[size] : undefined;
+	const ti = target ? cfg.ladder.indexOf(target) : -1;
+	if (ti === -1) return floor; // no signal -> static floor
+	return cfg.ladder[Math.max(fi, ti)];
 }
 
 export function loadRouting(): RoutingConfig | null {

@@ -60,30 +60,30 @@ export default function modelRouting(pi: ExtensionAPI) {
 		const band: EffortBandConfig | undefined = routing?.effortBand;
 		const mode = (process.env.DEV_TEAM_EFFORT_ROUTING ?? band?.enforcement ?? "advisory").toLowerCase();
 
-		const base = tierOf(agentModel(agent));
+		const floor = tierOf(agentModel(agent)); // the agent's declared tier = floor
 		const size = taskSize(ctx.cwd);
 		const dispatched = tierOf(input.model == null ? null : String(input.model)) === "default"
-			? base // no explicit model -> the agent's base tier is used
+			? floor // no explicit model -> the agent's floor tier is used
 			: tierOf(String(input.model));
-		const eff = mode === "off" ? base : effectiveBand(base, size, band);
+		const eff = mode === "off" ? floor : effectiveBand(floor, size, band);
 
 		appendJSONL(statePath(ctx.cwd, "model-routing.log"), {
 			ts: nowISO(),
 			agent,
-			base,
+			floor,
 			size,
 			effective: eff,
 			dispatched,
 			mode,
 		});
 
-		if (mode === "off" || eff === dispatched || base === "default" || base === "pinned") {
+		if (mode === "off" || eff === dispatched || floor === "default" || floor === "pinned") {
 			return;
 		}
 
 		const wantModel = routing?.tiers?.[eff]?.frontmatter ?? eff;
 		const msg =
-			`effort-band: ${agent} base=${base}, task size=${size} -> dispatch at "${eff}" ` +
+			`effort-band: ${agent} floor=${floor}, task size=${size} -> dispatch at "${eff}" ` +
 			`(model: ${wantModel}), but got "${dispatched}".`;
 		if (mode === "enforce") {
 			return {
@@ -111,7 +111,7 @@ export default function modelRouting(pi: ExtensionAPI) {
 				const mode = (process.env.DEV_TEAM_EFFORT_ROUTING ?? band.enforcement ?? "advisory").toLowerCase();
 				lines.push("", `effort-band [${mode}] — current task size: ${size}`);
 				for (const b of band.ladder) {
-					lines.push(`  base ${b} -> ${effectiveBand(b, size, band)}`);
+					lines.push(`  floor ${b} -> ${effectiveBand(b, size, band)}`);
 				}
 			}
 			ctx.ui.notify(lines.join("\n"), "info");
