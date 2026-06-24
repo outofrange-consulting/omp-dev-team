@@ -68,3 +68,7 @@ Return `{"status": "skip", "issues": [], "summary": "No documentation files foun
 
 Code correctness, naming conventions, test quality (handled by other agents)
 Doc style preferences (sentence case vs title case, oxford comma) — flag only when docs are wrong, not when they differ in style
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#doc-review` (the shared challenger loop + the doc-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

@@ -77,6 +77,73 @@ Repeat until the challenger finds no new issues, or a maximum of 3 rounds is rea
 - Are domain objects leaking persistence annotations, HTTP concerns, or infrastructure types?
 - Did you check aggregate boundary enforcement — are child entities accessed directly by external callers?
 
+### a11y-review
+
+- Did you verify each control is reachable and operable by **keyboard alone**, not just present in the DOM?
+- For every ARIA finding, did you confirm the native HTML element wouldn't have been the correct, simpler fix?
+- Did you check focus management on dynamic content (modals, route changes), not only static markup?
+- Are contrast/label claims based on the actual values, or assumed?
+
+### naming-review
+
+- For each "unclear name" finding, did you propose a concrete better name, or just flag it?
+- Did you check the name against the project's **ubiquitous language** rather than your own preference?
+- Are you flagging genuine ambiguity, or stylistic difference that the surrounding code already follows consistently?
+
+### performance-review
+
+- Is each finding on an actual hot path, or a micro-optimization with no measured impact? Say which.
+- Did you distinguish algorithmic issues (N+1, O(n²) on large n) from constant-factor noise?
+- For each claim, is there evidence (complexity, allocation, query count) — or is it a guess? Downgrade guesses.
+
+### concurrency-review
+
+- For each race finding, did you identify the specific shared mutable state and the interleaving that breaks it?
+- Did you check `await`/lock discipline across the whole call path, not just the flagged function?
+- Did you distinguish library code (must be thread-safe) from single-threaded application code?
+
+### js-fp-review
+
+- For each purity/immutability finding, did you confirm the mutation is observable (escapes the function), not a local optimization?
+- Did you check whether the "side effect" is at a legitimate boundary (I/O edge) vs. buried in pure logic?
+- Are you flagging real coupling, or imposing FP style the codebase doesn't adopt?
+
+### refactor-opportunity-review
+
+- Is each "duplication" genuinely the same concept, or coincidental similarity that will diverge?
+- Is every proposed refactor strictly behavior-preserving? Flag any that change semantics.
+- Did you keep within scope — no speculative re-architecture beyond the changeset?
+
+### spec-compliance-review
+
+- Did you trace **every** acceptance criterion to code or a test, and list any with no coverage?
+- For each scenario, did you check the error/negative paths, not only the happy path?
+- Did the implementation add behavior **not** in the spec (scope drift)? Flag it.
+
+### doc-review
+
+- Did you verify each statement against the **current** code, not an earlier version?
+- Did you check that referenced files, commands, anchors, and links actually exist?
+- Are there behavioral/config changes in the changeset that the docs still describe the old way?
+
+### svelte-review
+
+- For each reactivity finding, did you confirm the value is actually used reactively (not a one-time read)?
+- Did you check store subscription/cleanup and lifecycle (no leaks, no work after destroy)?
+- Did you apply the a11y basics to components (labels, roles, keyboard) within your scope?
+
+### token-efficiency-review
+
+- For each suggestion, is the saving **measured or estimable**, or speculative? Name the instrument.
+- Does any suggestion remove capability or correctness for marginal tokens? That's false economy — reject it.
+- Did you check the always-loaded surface (rules, agent prompts) before micro-optimizing on-demand content?
+
+### claude-setup-review
+
+- Does each agent/skill/command file have valid frontmatter and a tool scope no broader than it needs?
+- Are referenced skills/commands/hooks/anchors real (no dangling `skill://` or `#anchor`)?
+- For each guard/extension claim, did you check it's actually registered (manifest `omp.extensions`)?
+
 ## Output
 
 After the challenger pass, append to the `summary` field in your JSON output:

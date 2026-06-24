@@ -96,3 +96,7 @@ Flag as **suggestion** any top-level frontmatter key that is not in the official
 ## Ignore
 
 Code quality, tests, domain modeling (handled by other agents). Agent body content (system prompt quality) is out of scope for this agent.
+
+## Self-Challenge
+
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#claude-setup-review` (the shared challenger loop + the claude-setup-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.
