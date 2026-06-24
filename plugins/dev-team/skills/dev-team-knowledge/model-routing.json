@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension and the /model-routing-check command read this file. Agents declare a tier in their `model:` frontmatter: small/pattern agents use the `pi/smol` role (resolved by .omp/config.yml modelRoles.smol -> a cheap CLOUD model); balanced/deep agents pin a concrete cloud model id. The small tier is a CHEAP-CLOUD high-volume tier (it replaces the expensive Sonnet/Opus calls for lexical/structural checks), not a local-GPU tier.",
+  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Agents declare a tier in their `model:` frontmatter: small/pattern agents use the `pi/smol` role (resolved by .omp/config.yml modelRoles.smol -> a cheap CLOUD model); balanced/deep agents pin a concrete cloud model id. The small tier is a CHEAP-CLOUD high-volume tier (it replaces the expensive Sonnet/Opus calls for lexical/structural checks), not a local-GPU tier.",
   "tiers": {
     "small": {
       "role": "smol",

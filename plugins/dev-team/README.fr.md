@@ -50,8 +50,8 @@ bash plugins/dev-team/install.sh        # vérifie OMP/git/outils optionnels, pe
 Pour les tâches complexes, l'**orchestrateur** déroule **Research → Plan →
 Implement** avec un point de contrôle humain entre les phases. Plus `/code-review`
 (`/review`), `/review-agent`, `/continue`, `/triage`, `/design-doc`,
-`/issues-from-plan`, `/model-routing-check`. Chaque skill est aussi disponible en
-`/skill:<nom>`.
+`/issues-from-plan`, et le diagnostic `/routing`. Chaque skill est aussi
+disponible en `/skill:<nom>`.
 
 ## Tiers de modèles (tous cloud)
 
@@ -69,7 +69,7 @@ gardez-le bon marché. Pointez `modelRoles.smol` vers `claude-haiku-4-5`, ou (av
 le plugin **copilot-preset**) vers `github-copilot/gpt-5-mini` pour le faire
 tourner sur votre licence Copilot. Combinez avec **token-diet** pour réduire encore
 les tokens. Source de vérité : `skills/dev-team-knowledge/model-routing.json` ;
-diagnostic via `/routing` ou `/skill:model-routing-check`.
+diagnostic via `/routing`.
 
 ## Garde-fous (extensions)
 

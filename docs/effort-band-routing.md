@@ -83,9 +83,13 @@ unchanged.
 - 4 skills + the agent-registry referenced the same stale
   `hooks/agent-model-resolve.sh` — repointed to the `model-routing` extension.
 
-Left as-is (separate, larger debt): the `/model-routing-check` skill's exec block
-still targets the old `.claude/` resolver; `/routing` is the accurate effort-band
-diagnostic and the skill now points to it.
+Now removed: the legacy `/model-routing-check` skill + command described a
+`.claude/` resolver (`model-resolve.sh --dump-map`, `.claude/model-overrides.json`,
+`.claude/metrics/model-routing.log`, an endpoint probe, a non-existent
+`docs/model-routing.md`) that the OMP plugin never implemented — its exec block
+targeted only absent files. Deleted; the `model-routing` extension's `/routing`
+command is the single accurate diagnostic (tier map + effective band per floor for
+the current stage and task size), and all references now point to it.
 
 ## Verified
 `ci-validate-json` 23/23 · extensions compile · unit suite green (incl. 11

@@ -100,7 +100,7 @@ eval:
 #   DEV_TEAM_EFFORT_ROUTING=advisory   # log + warn on mismatch (default)
 #   DEV_TEAM_EFFORT_ROUTING=enforce    # block a mis-banded dispatch
 #   DEV_TEAM_EFFORT_ROUTING=off        # disable the band (pure static tiers)
-# Inspect with /routing or /model-routing-check.
+# Inspect with /routing.
 #
 # Optional extra saving (off by default): set effortBand.trivialDownshift=true in
 # model-routing.json to route agents ONE band BELOW their floor on a trivial
