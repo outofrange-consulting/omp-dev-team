@@ -62,6 +62,18 @@ rework than the saved ceremony.
 Expected saving on small tasks (upstream measurement): **~65% fewer turns,
 ~45% lower cost** vs the full pipeline.
 
+## Drives effort-band model routing
+
+The size is also the **effort signal for model routing** (phase-aware
+bump-from-floor). `/scope` records the size and stage in plan-gate state; the
+`model-routing` extension raises the band **only during planning**
+(`stage = needs-plan`): target `trivial`→small, `standard`→balanced,
+`complex`→deep, and each agent routes at **max(its floor tier, that target)** —
+never below its declared tier. **Once the plan is approved, there is no bump** —
+the build/review runs at the floor (a solid plan makes implementation routine).
+So a complex task spends `deep` on spec/plan, not on mechanical build. See
+`model-routing.json` → `effortBand`; inspect with `/routing`.
+
 ## Decision logging
 
 Record each classification in `memory/decisions.md`: the signal values, the

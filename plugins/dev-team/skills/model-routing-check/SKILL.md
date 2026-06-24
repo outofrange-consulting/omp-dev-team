@@ -44,6 +44,11 @@ Four sections, in order:
    probe-supported; Bedrock, Vertex, and any other host is
    probe-skipped (manual override file recommended).
 
+> **Effort-band routing** (task-size → band shift) is a separate, OMP-native
+> concern handled by the `model-routing` extension. For the effective band per
+> base at the current task size, run **`/routing`** — it reads
+> `model-routing.json` → `effortBand` and the plan-gate size directly.
+
 ## How to fix common findings
 
 - **Bumps appearing in the log** — the resolver is silently rerouting a

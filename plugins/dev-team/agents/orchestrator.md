@@ -26,19 +26,19 @@ thinking-level: medium
 - Task classification algorithm
 - Load balancing logic
 
-## Resolution Procedure
+## Resolution Procedure (floor tier + effort band)
 
-Each agent's `model:` frontmatter encodes the tier alias (`haiku`, `sonnet`, `opus`) appropriate for its task. Tier-to-snapshot resolution is **enforced by OMP extension `model-routing` + `.omp/config.yml` `modelRoles`**. The LLM cannot bypass it.
+Each agent's `model:` frontmatter declares its **floor tier** — `pi/smol` (small), `claude-sonnet-4-6` (balanced), or `claude-opus-4-8` (deep). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
 
-When the orchestrator (or any caller) spawns a subagent via the `task` tool with `model: <tier>`, the extension:
+On top of the floor, the `model-routing` extension applies **phase-aware effort-band routing (bump-from-floor)**. The effort goes into **spec/plan**, not the build: the **task size** (recorded at `/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`) raises the band **only while planning** (`stage = needs-plan`, i.e. `/scope` → `/specs` → `/plan`):
 
-1. Reads `skill://dev-team-knowledge/model-routing.json` — the single source of truth for tier → snapshot mapping.
-2. Reads `.claude/model-overrides.json` if present (per-user, gitignored, populated by the `/init-dev-team` probe or by hand for restricted endpoints).
-3. Walks the alias chain up to 3 hops along the `haiku → sonnet → opus` cascade. Each tier alias resolves to either another tier (bumped) or the literal `"unavailable"` sentinel (refusal).
-4. On any bump, rewrites `tool_input.model` via `hookSpecificOutput.updatedInput` and appends one JSONL event to `.claude/metrics/model-routing.log`.
-5. On exhaustion, cycle, missing routing.json, or malformed overrides, emits `permissionDecision: "deny"` with an actionable `permissionDecisionReason`. The dispatch never reaches the harness.
+- During planning, target band: `trivial` → `small`, `standard` → `balanced`, `complex` → `deep`; effective = the **higher of the agent's floor and that target**. So a `complex` plan runs the architect and plan-review critics at `deep`.
+- Once the plan is **approved** (`stage = plan-approved`, the build/review phase), there is **no bump** — implementers and reviewers run at their **floor**. A solid plan makes the build routine, so don't spend `deep` on mechanical implementation.
+- An agent is **never routed below its floor** (high-stakes deep agents — security/domain/arch-review, architect, security-engineer, codebase-recon — always hold at deep). No signal / trivial / unscoped → the floor (static, backward-compatible).
 
-For triage, run `/model-routing-check` — read-only diagnostic that prints the effective map, overrides, recent bumps, and probe applicability. See `docs/model-routing.md` for contract, fallback firing, hand-writing overrides, and Bedrock/Vertex/proxy troubleshooting. See [ADR 0004](../../../docs/adr/0004-pre-dispatch-model-resolution.md) for the design rationale (pre-dispatch vs. runtime retry; hook vs. orchestrator instruction).
+So when you spawn a subagent via `task`, **pass the effort-band tier** = `(stage in bumpStages) ? max(floor, sizeBand[size]) : floor` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
+
+For triage, run `/routing` or `/model-routing-check` (read-only): the tier map plus, per floor, the effective band for the current stage + task size.
 
 ### Tier guidance (informational)
 

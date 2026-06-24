@@ -148,8 +148,45 @@ export interface RoutingTier {
 	rationale: string;
 }
 
+export interface EffortBandConfig {
+	ladder: string[];
+	// Task size -> target band (e.g. { trivial: "small", standard: "balanced", complex: "deep" }).
+	sizeBand: Record<string, string>;
+	// Pipeline stages where the size bump applies. The effort goes into spec/plan
+	// (`needs-plan`); once the plan is approved, implementation/review run at the
+	// floor — a solid plan makes the build routine. Default: ["needs-plan"].
+	bumpStages?: string[];
+	enforcement?: string;
+}
+
 export interface RoutingConfig {
 	tiers: Record<string, RoutingTier>;
+	effortBand?: EffortBandConfig;
+}
+
+// Resolve the effective band from the agent's FLOOR tier, the task size, and the
+// pipeline stage. Phase-aware bump-from-floor: the size raises the band ONLY
+// during the planning phase(s) (`bumpStages`, default ["needs-plan"]) — put the
+// effort into spec/plan; post-plan build/review runs at the floor. An agent is
+// never routed BELOW its tier (high-stakes deep agents hold). Pure, no I/O.
+//   - a floor outside the ladder (pinned/default) -> unchanged
+//   - stage not in bumpStages (build, trivial, unscoped) -> the floor
+//   - else -> the higher of (floor, sizeBand[size]) on the ladder
+export function effectiveBand(
+	floor: string,
+	size: string | undefined,
+	stage: string | undefined,
+	cfg: EffortBandConfig | undefined,
+): string {
+	if (!cfg || !Array.isArray(cfg.ladder)) return floor;
+	const fi = cfg.ladder.indexOf(floor);
+	if (fi === -1) return floor; // pinned/default — not on the ladder
+	const bumpStages = cfg.bumpStages ?? ["needs-plan"];
+	if (!stage || !bumpStages.includes(stage)) return floor; // no bump outside planning
+	const target = size ? cfg.sizeBand?.[size] : undefined;
+	const ti = target ? cfg.ladder.indexOf(target) : -1;
+	if (ti === -1) return floor;
+	return cfg.ladder[Math.max(fi, ti)];
 }
 
 export function loadRouting(): RoutingConfig | null {

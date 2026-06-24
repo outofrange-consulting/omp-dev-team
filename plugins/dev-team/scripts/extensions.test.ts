@@ -10,8 +10,14 @@ import {
 	tail,
 	type VerifyState,
 } from "../extensions/lib/impl-verify-core.ts";
-import { globToRegExp, matchesAny } from "../extensions/lib/shared.ts";
+import { effectiveBand, globToRegExp, matchesAny } from "../extensions/lib/shared.ts";
 import { gateDecision, isGatedSource } from "../extensions/plan-gate.ts";
+
+const BAND = {
+	ladder: ["small", "balanced", "deep"],
+	sizeBand: { trivial: "small", standard: "balanced", complex: "deep" },
+	bumpStages: ["needs-plan"],
+};
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -92,6 +98,23 @@ check("plan-gate: undefined stage -> need-scope", gateDecision(undefined) === "n
 check("plan-gate: needs-plan -> need-plan", gateDecision("needs-plan") === "need-plan");
 check("plan-gate: trivial -> allow", gateDecision("trivial") === "allow");
 check("plan-gate: plan-approved -> allow", gateDecision("plan-approved") === "allow");
+
+// --- effort-band model routing (phase-aware bump-from-floor) -------------
+// During planning (needs-plan): effective = max(floor, sizeBand[size]).
+check("band: planning, small floor, complex -> deep", effectiveBand("small", "complex", "needs-plan", BAND) === "deep");
+check("band: planning, small floor, standard -> balanced", effectiveBand("small", "standard", "needs-plan", BAND) === "balanced");
+check("band: planning, small floor, trivial -> small", effectiveBand("small", "trivial", "needs-plan", BAND) === "small");
+check("band: planning never below floor (balanced/trivial)", effectiveBand("balanced", "trivial", "needs-plan", BAND) === "balanced");
+check("band: planning, deep floor holds", effectiveBand("deep", "standard", "needs-plan", BAND) === "deep");
+// Build (plan-approved): NO bump — everyone at floor (a solid plan makes the build routine).
+check("band: build, small floor, complex -> small (no bump)", effectiveBand("small", "complex", "plan-approved", BAND) === "small");
+check("band: build, balanced floor, complex -> balanced (no bump)", effectiveBand("balanced", "complex", "plan-approved", BAND) === "balanced");
+// Trivial stage / unscoped: no bump -> floor.
+check("band: trivial stage -> floor", effectiveBand("small", "complex", "trivial", BAND) === "small");
+check("band: unscoped (no stage) -> floor", effectiveBand("balanced", "complex", undefined, BAND) === "balanced");
+// Off-ladder + no config.
+check("band: off-ladder floor (pinned) unchanged", effectiveBand("pinned", "complex", "needs-plan", BAND) === "pinned");
+check("band: no config -> floor", effectiveBand("small", "complex", "needs-plan", undefined) === "small");
 
 if (failures) {
 	console.error(`\n${failures} check(s) failed`);

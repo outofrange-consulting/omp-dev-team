@@ -85,6 +85,24 @@ eval:
 # python, package.json -> node (dotnet wins a mixed repo).
 
 # ---------------------------------------------------------------------------
+# EFFORT-BAND MODEL ROUTING (model-routing extension)
+# ---------------------------------------------------------------------------
+# Phase-aware bump-from-floor: the effort goes into spec/plan, not the build. The
+# TASK SIZE (set by /scope) raises the band ONLY while planning (stage
+# needs-plan): target trivial->small, standard->balanced, complex->deep, and
+# effective = max(agent floor, target). Once the plan is approved, build/review
+# run at the floor (no bump) — a solid plan makes the build routine. An agent is
+# never routed BELOW its tier (high-stakes deep agents hold). No signal -> floor.
+# Configured in skills/dev-team-knowledge/model-routing.json -> effortBand;
+# copilot-preset unaffected (the band picks a tier; modelRoles resolves it).
+#
+# Enforcement is set there (default "advisory") and overridable per-run by env:
+#   DEV_TEAM_EFFORT_ROUTING=advisory   # log + warn on mismatch (default)
+#   DEV_TEAM_EFFORT_ROUTING=enforce    # block a mis-banded dispatch
+#   DEV_TEAM_EFFORT_ROUTING=off        # disable the band (pure static tiers)
+# Inspect with /routing or /model-routing-check.
+
+# ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH
 # ---------------------------------------------------------------------------
 task:
