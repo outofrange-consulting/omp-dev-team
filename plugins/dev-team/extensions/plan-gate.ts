@@ -77,7 +77,7 @@ export default function planGate(pi: ExtensionAPI) {
 			if (/(^|\s)--trivial(\s|$)/.test(a)) {
 				set(ctx.cwd, "trivial", "trivial");
 				ctx.ui.notify(
-					"scoped TRIVIAL — fast path: source edits unlocked; agents may downshift a band. /plan-reset to re-arm.",
+					"scoped TRIVIAL — fast path: source edits unlocked; agents route at their floor band (cheap agents stay cheap). /plan-reset to re-arm.",
 					"warn",
 				);
 			} else {
