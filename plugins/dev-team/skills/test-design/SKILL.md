@@ -60,7 +60,7 @@ production code they cover.
 Spawn both as sub-agents in one batch:
 
 - `test-review` — tactical quality gate (assertions, hygiene, non-determinism mechanics, testability blockers)
-- `test-smell-review` — xUnit smells, test-double selection, pyramid-layer placement
+- `test-smell-review` — xUnit smells, test-double selection, pyramid-layer placement (test-value sourcing per `skill://dev-team-knowledge/value-patterns.md`)
 
 Each returns its standard JSON (`status`/`issues`/`summary`). If no test files
 exist, both skip — proceed to Step 3 with `--advise`.

@@ -13,6 +13,11 @@ An **advisory, application-level** skill: it assesses how an existing applicatio
 
 Where `test-design-advisor` works at the unit/module level and `test-smell-review` finds smells in test files, this skill works at the **whole-application** level: test types, pipeline stages, and per-component patterns.
 
+For the **delivery** side around this test architecture, see the CD knowledge:
+`skill://dev-team-knowledge/deployment-pipeline.md` (stages/gates),
+`release-strategies.md` (deploy≠release, rollback), `cd-maturity-model.md` (where
+the team sits), and `database-change-management.md` (schema through the pipeline).
+
 Grounded in two knowledge references — read both before assessing:
 
 - `skill://dev-team-knowledge/cd-test-architecture.md` — the six test types, the determinism→pre-merge-gate rule, the adapter rule, double validation, pipeline stages, and MinimumCD-vs-Fowler terminology.

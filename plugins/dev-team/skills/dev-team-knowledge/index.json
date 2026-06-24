@@ -4224,5 +4224,89 @@
       "summary": "Record signals, tier, and rationale in memory/decisions.md.",
       "anchor": "decision-logging"
     }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/deployment-pipeline.md": {
+    "Principles (non-negotiable)": {
+      "summary": "Build once, deploy the same way everywhere, prod-like envs, instant propagation, prod locked down, stop the line.",
+      "anchor": "principles-non-negotiable"
+    },
+    "The stages (ordered)": {
+      "summary": "Commit (fast) -> Acceptance -> Capacity/nonfunctional -> Manual/UAT -> Release; same artifact promoted.",
+      "anchor": "the-stages-ordered"
+    },
+    "Review checks (flag in a pipeline review)": {
+      "summary": "Rebuilt-per-env, non-prod-like stage, slow commit stage, manual prod steps, no rollback.",
+      "anchor": "review-checks-flag-in-a-pipeline-review"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/cd-maturity-model.md": {
+    "Six practice areas": {
+      "summary": "Build/CI, environments/deploy, release/compliance, testing, data, configuration.",
+      "anchor": "six-practice-areas"
+    },
+    "Five levels (per area)": {
+      "summary": "-1 Regressive, 0 Repeatable, 1 Consistent, 2 Quantitatively managed, 3 Optimizing; score each area.",
+      "anchor": "five-levels-per-area"
+    },
+    "How to improve (Deming / PDCA)": {
+      "summary": "Map value stream, find constraint, smallest change up one level, measure, repeat.",
+      "anchor": "how-to-improve-deming-pdca"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/release-strategies.md": {
+    "Decouple deployment from release": {
+      "summary": "Feature toggles, branch by abstraction, dark launching, keep mainline releasable.",
+      "anchor": "decouple-deployment-from-release"
+    },
+    "Deployment patterns": {
+      "summary": "Blue-green / canary / rolling / recreate, each with rollback and trade-off.",
+      "anchor": "deployment-patterns"
+    },
+    "Rollback is a practiced capability, not a hope": {
+      "summary": "Rehearse rollback; redeploy last known-good; pair with expand/contract.",
+      "anchor": "rollback-is-a-practiced-capability-not-a-hope"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/database-change-management.md": {
+    "Everything is a versioned migration": {
+      "summary": "Scripted, version-controlled, tool-owned migrations with tested rollbacks; no manual SQL.",
+      "anchor": "everything-is-a-versioned-migration"
+    },
+    "Expand / contract (parallel-change)": {
+      "summary": "Expand -> migrate (write both, read new) -> contract in a later release.",
+      "anchor": "expand--contract-parallel-change"
+    },
+    "Review checks (flag these)": {
+      "summary": "Same-release drop/rename, missing rollback, NOT NULL without backfill, atomic app+schema assumption.",
+      "anchor": "review-checks-flag-these"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/dependency-breaking-techniques.md": {
+    "How to choose (by what blocks you)": {
+      "summary": "Decision table mapping the blocker to the lowest-risk seam technique.",
+      "anchor": "how-to-choose-by-what-blocks-you"
+    },
+    "The catalog (grouped)": {
+      "summary": "Sprout/Wrap, parameterize, extract & override, extract interface, tame globals, method object, language seams.",
+      "anchor": "the-catalog-grouped"
+    },
+    "Most common in practice": {
+      "summary": "Extract Interface, Parameterize Constructor, Subclass & Override, Extract & Override Call/Factory, Sprout/Wrap.",
+      "anchor": "most-common-in-practice"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/value-patterns.md": {
+    "The four value sources": {
+      "summary": "Literal, Derived, Generated, Dummy — each with use-case and risk.",
+      "anchor": "the-four-value-sources"
+    },
+    "Choosing a source": {
+      "summary": "Behavior-dependent -> literal; derived rule -> derived; unique/irrelevant -> generated (distinct, not random); unused -> dummy.",
+      "anchor": "choosing-a-source"
+    },
+    "Notes that matter": {
+      "summary": "Distinct over random; generate only for uniqueness; significant loud / anonymous quiet; dummy != stub.",
+      "anchor": "notes-that-matter"
+    }
   }
 }
