@@ -85,3 +85,21 @@ both `review-output-discipline` anchors (`#deterministic-status`,
 `#finding-grouping`) resolve from all 17 wired agents · no prescriptive TDD /
 test-first / RED-GREEN traces remain outside historical `docs/` and the one book
 citation.
+
+## CI: framework-compliance checks
+
+What earlier extraction PRs verified by hand is now enforced by CI —
+`scripts/ci-framework-compliance.mjs` (pure Node, new `compliance` job):
+
+- **Anchor resolution** — every `skill://dev-team-knowledge/<file>.md#<anchor>`
+  reference resolves (file exists; anchor matches a heading slug or a registered
+  `index.json` anchor). Catches exactly the rename/typo failure mode this work
+  risked across 17 agents.
+- **index.json integrity** — every keyed file exists.
+- **Review-agent wiring** — every finding-emitting agent references
+  `review-output-discipline.md` (allowlist: `progress-guardian`).
+- **Test-after stance** — the deliberately-removed TDD identifiers (`tdd-first`,
+  `tdd-guard`, `test-driven-development`, `RED-GREEN`) can't creep back in,
+  outside a small rationale/historical allowlist.
+
+Currently: 26 anchor refs + 39 index files checked — 0 violations.
