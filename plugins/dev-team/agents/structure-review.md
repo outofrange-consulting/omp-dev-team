@@ -72,6 +72,10 @@ Design smells:
 - For SRP violations and coupling issues, map to the smell → pattern table in `skill://dev-team-knowledge/design-smells.md#design-smells-pattern-mapping`. Every finding should name the smell, quote the code, and include a refactor sketch.
 - For method-level issues (nesting, long methods, flag arguments), check Object Calisthenics rules 1-2 and 7 in `skill://dev-team-knowledge/object-calisthenics.md`. Whole-file load: the nine-rule catalog is short enough that the agent reads the whole file rather than picking specific rule anchors.
 
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+
 ## Self-Challenge
 
 After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#structure-review` (structure-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.

@@ -89,6 +89,10 @@ Resource ordering:
 
 Code style, naming, domain modeling, security, complexity (handled by other agents)
 
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+
 ## Self-Challenge
 
 After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#concurrency-review` (the shared challenger loop + the concurrency-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

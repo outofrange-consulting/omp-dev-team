@@ -24,7 +24,7 @@ cohérence docs/registres — pas des cassures de build.**
 
 ### 1. Les « guards » de sécurité sont du théâtre de sécurité (le plus important)
 
-Les 6 guards de `dev-team` (destructive, path, freeze, tdd, review-gate,
+Les 6 guards de `dev-team` (destructive, path, freeze, spec, review-gate,
 careful) sont des hooks *PreToolUse consultatifs* basés sur du matching de
 sous-chaîne / glob. Ils donnent une **fausse confiance** : ils sont
 contournables trivialement, par accident comme volontairement.
@@ -34,7 +34,7 @@ contournables trivialement, par accident comme volontairement.
 | destructive-guard | `rm -rf`, drop/truncate, force-push, kill… | `find -delete`, `git clean -fdx`, `> f`, `truncate -s0`, `bash -c …`, obfuscation par variable ; **warn-only hors `/careful on`** ; la SAFE-list court-circuite tout (`rm -rf node_modules/../../etc`) | Très faible |
 | path-guard | édition de `.env`/`*.pem`/`*.key`/`id_rsa`… | aucune couverture `bash` (`tee`/`>`/`sed -i`) ; regex **sensible à la casse** → `ID_RSA`/`.PEM` passent ; lectures non gardées ; pass silencieux si le shape d'edit ne matche pas | Faible |
 | freeze-guard | écriture sur globs gelés | **aucune branche `bash`** ; écraser `.omp/state/freeze.json` suffit | Faible |
-| tdd-guard (.feature) | modif de specs BDD | `BASH_WRITE_RE` étroit (rate `python -c`/`ed`/heredoc) ; opt-out `OMP_ALLOW_FEATURE_EDITS=1` | Faible–moyenne |
+| spec-guard (.feature) | modif de specs BDD | `BASH_WRITE_RE` étroit (rate `python -c`/`ed`/heredoc) ; opt-out `OMP_ALLOW_FEATURE_EDITS=1` | Faible–moyenne |
 | review-gate | `git commit` avant approve | `--no-verify` **explicitement autorisé** ; `bash -c 'git commit'` ; le `--no-verify` est détecté par `includes` donc un message de commit le déclenche | Faible |
 | careful-mode | active le blocage | fichier d'état modifiable par l'agent ; **OFF par défaut** | Faible |
 

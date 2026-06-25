@@ -147,11 +147,12 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
 
 ### Phase 3: Implement
 
-- **Goal**: Execute the plan. Write code, run tests, verify at each step.
+- **Goal**: Execute the plan. Write code, run its tests, verify, and refactor at each step (test-after with refactoring).
 - **Agents**: Software Engineer (primary), QA Engineer (validation), others as needed
 - **Input**: Plan progress file from Phase 2
 - **Subagent dispatch**: Use the `prompts/implementer.md` template when dispatching implementation subagents via the `task` tool. For parallel implementation of independent units, use `isolation: "worktree"` on the `task` tool to give each subagent its own git worktree — this prevents file conflicts when multiple units are implemented concurrently.
-- **Tests required (not test-first)**: every behavior change ships with tests, written in whatever order fits (no enforced RED-GREEN-REFACTOR). A unit is done only when `/impl-verify` reports its strict build + tests green; the orchestrator requires that verdict as evidence (`tests-required` rule).
+- **Tests required (not test-first)**: every behavior change ships with tests, written in whatever order fits — order is not enforced. A unit is done only when `/impl-verify` reports its strict build + tests green; the orchestrator requires that verdict as evidence (`tests-required` rule).
+- **Refactor after green (every unit)**: once a unit's tests pass, take a deliberate refactor pass — structure, naming, duplication, use-the-platform (the `refactor-opportunity-review` lens) — keeping `/impl-verify` green, before the inline review. This is the *refactoring* half of test-after-with-refactoring; the pass is always taken, changes are made only when there's a real opportunity.
 - **Output**: Working code that passes all tests, acceptance criteria, and code review
 - **Three-stage inline review**: After each discrete unit of work completes, run spec-compliance first, then quality, then browser verification for UI changes:
   1. **Stage 1 — Spec compliance**: Run `spec-compliance-review` using the `prompts/spec-reviewer.md` template. Does the code match the spec? If fail → fix before proceeding to Stage 2.

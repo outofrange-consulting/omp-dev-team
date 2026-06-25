@@ -136,4 +136,4 @@ A concise advisory report (to chat for a single unit, or to `reports/test-design
 
 - Pairs with the `test-smell-review` agent (which *detects* smells) and the `test-design-reviewer` skill (which *scores* an existing suite). This skill *designs* tests forward.
 - For application-level test architecture (CD pipeline alignment, deterministic config-free CI gate, per-component UI/service/batch patterns), defer to the `cd-test-architecture` skill and its knowledge files (`cd-test-architecture.md`, `component-test-patterns.md`). This skill stays at unit/module altitude.
-- Hand the refactor sequence to `/plan` or `/build` for TDD implementation. This skill stops at the design.
+- Hand the refactor sequence to `/plan` or `/build` for implementation. This skill stops at the design.

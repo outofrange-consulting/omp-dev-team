@@ -101,6 +101,10 @@ Testability blockers:
 - Mocking of concrete classes (not interfaces) — flag as warning; extract an interface for the dependency
 - Tests using reflection into private members as primary strategy — flag as warning; the public API surface needs expanding
 
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+
 ## Self-Challenge
 
 After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#test-review` (test-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.

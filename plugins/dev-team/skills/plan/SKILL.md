@@ -55,7 +55,7 @@ When authoring each slice's Gherkin, cover:
 - **Edge cases** — empty collections, boundary values, concurrent access, idempotency.
 - **Error scenarios** — specify observable error behavior, not just "should fail".
 
-Keep scenarios implementation-independent (no databases, selectors, or internal data structures in step text) and deterministic. Every acceptance criterion from the spec must be covered by at least one scenario across the slices. Each TDD step traces back to one or more scenarios in its slice.
+Keep scenarios implementation-independent (no databases, selectors, or internal data structures in step text) and deterministic. Every acceptance criterion from the spec must be covered by at least one scenario across the slices. Each build step traces back to one or more scenarios in its slice.
 
 ### 3. Create the plan
 
@@ -81,7 +81,7 @@ Write the plan file using this structure:
 ## Slices
 
 A slice is a vertically deliverable increment. Each slice carries the Gherkin
-scenario(s) that define its behavior, followed by the TDD steps that satisfy them.
+scenario(s) that define its behavior, followed by the build steps that satisfy them.
 Steps are numbered `<slice>.<step>` (1.1, 1.2, 2.1, …).
 
 ### Slice 1: <Slice Name>
@@ -221,7 +221,7 @@ Before presenting to the user, dispatch **five plan review personas in parallel*
 
 | Reviewer | Template | Model | Focus |
 |----------|----------|-------|-------|
-| Acceptance Test Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-acceptance.md` | `sonnet` | Per-slice Gherkin quality (determinism, isolation, implementation-independence), scenario gaps, error paths, criteria coverage, TDD traceability |
+| Acceptance Test Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-acceptance.md` | `sonnet` | Per-slice Gherkin quality (determinism, isolation, implementation-independence), scenario gaps, error paths, criteria coverage, step-to-scenario traceability |
 | Design & Architecture Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-design.md` | `sonnet` | Coupling, abstractions, structural risks, pattern adherence |
 | UX Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-ux.md` | `sonnet` | User journey, error UX, cognitive load, accessibility |
 | Strategic Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-strategic.md` | `sonnet` | Problem fit, scope, slice boundaries, risk, opportunity cost |

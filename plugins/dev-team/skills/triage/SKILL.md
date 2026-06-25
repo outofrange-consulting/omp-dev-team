@@ -2,7 +2,7 @@
 name: triage
 description: >-
   Investigate a bug, find its root cause, and write a portable triage record to
-  .triage/<slug>.md with a TDD fix plan. Use when the user reports a bug and
+  .triage/<slug>.md with a fix plan (regression test + fix + refactor). Use when the user reports a bug and
   wants it triaged, says "triage this", "investigate and write it up", or wants
   a hands-off bug investigation that produces an actionable record.
 argument-hint: "<bug description or error message>"
@@ -14,7 +14,7 @@ allowed-tools: read, find, search, bash, write, task
 
 Role: worker.
 
-Investigate a bug hands-off, find root cause, and write a TDD fix plan to a
+Investigate a bug hands-off, find root cause, and write a fix plan to a
 portable triage record at `.triage/<slug>.md` — no issue-tracker dependency.
 
 ## Worker constraints
@@ -47,14 +47,18 @@ related source files and dependencies, existing tests (covered vs missing),
 recent changes to affected files (`git log`), error handling in the code path,
 and similar patterns elsewhere that work correctly.
 
-### 3. Design TDD Fix Plan
+### 3. Design the Fix Plan
 
-Create an ordered list of RED-GREEN cycles, each a vertical slice:
+Create an ordered list of fix steps, each a vertical slice:
 
-- **RED**: A specific test capturing broken/missing behavior
-- **GREEN**: The minimal code change to make that test pass
+- **Regression test**: a specific test capturing the broken/missing behavior
+- **Fix**: the minimal code change that makes that test pass
 
-Tests verify behavior at the public interface, not implementation details.
+Tests are required but order is not enforced (test-after) — for a bug, a
+failing-first regression test is encouraged because it proves both the defect
+and the fix, but it isn't mandatory. Tests verify behavior at the public
+interface, not implementation details. Close every plan with a **refactor**
+checkpoint once the tests pass (the test-after refactoring step).
 
 ### 4. Write the Triage Record
 
@@ -106,15 +110,15 @@ status: open
 [What code path is involved, why it fails, contributing factors. Describe
 modules and behaviors, not file paths — the record should survive refactors.]
 
-## TDD Fix Plan
+## Fix Plan
 
-1. **RED**: Write a test that [expected behavior]
-   **GREEN**: [Minimal change to pass]
+1. **Test**: Write a regression test that [expected behavior]
+   **Fix**: [Minimal change to pass]
 
-2. **RED**: Write a test that [next behavior]
-   **GREEN**: [Minimal change to pass]
+2. **Test**: Write a regression test that [next behavior]
+   **Fix**: [Minimal change to pass]
 
-**REFACTOR**: [Any cleanup after all tests pass]
+**Refactor**: [Any cleanup once all tests pass]
 
 ## Acceptance Criteria
 
@@ -124,8 +128,8 @@ modules and behaviors, not file paths — the record should survive refactors.]
 - [ ] No regressions introduced
 ```
 
-At least one RED/GREEN cycle is required. **If no root cause was determined,**
-the entire `## TDD Fix Plan` body is exactly:
+At least one test + fix step is required. **If no root cause was determined,**
+the entire `## Fix Plan` body is exactly:
 
 ```
 Root cause not determined — manual investigation required

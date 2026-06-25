@@ -142,4 +142,4 @@ Write to `reports/cd-test-architecture-<app>.md` (or chat for a single component
 - Pairs with `test-design-advisor` (unit/module design) and the `test-smell-review` / `test-review` agents (per-file findings). This skill sets the application-level target those operate within.
 - For under-tested/legacy components, the characterization-baseline-then-refactor procedure is the **`legacy-code`** skill (Feathers' algorithm: change points → test points/seams → break dependencies → characterization tests → refactor under green). Defer the mechanics to it.
 - Use the **`domain-driven-design`** and **`domain-analysis`** skills to suggest the target structure for the post-baseline refactor — where bounded contexts, ports, and seams should land — so refactoring improves the domain model, not just testability.
-- Hand the migration path to `/plan` or `/build` for TDD implementation. This skill stops at the architecture and plan.
+- Hand the migration path to `/plan` or `/build` for implementation. This skill stops at the architecture and plan.
