@@ -81,7 +81,7 @@ When a signal fires: **Pause** → **Verify** (use tools) → **Correct** → **
 
 | Task Type | Additional Evidence |
 |-----------|-------------------|
-| Bug fix | Red-green cycle: failing test → passing test |
+| Bug fix | Regression test reproduces the bug, then passes after the fix |
 | New feature | Feature working via test output or demo command |
 | Refactor | Same test count, same pass count |
 | Config change | Config loads without error |

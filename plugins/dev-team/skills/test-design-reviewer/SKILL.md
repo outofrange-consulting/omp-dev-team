@@ -26,7 +26,7 @@ Each property is scored 1-10:
 | 5 | **Necessary** | 1.0 | Does it verify behavior that matters? Not testing framework code, not duplicating another test, covers a real scenario or edge case. |
 | 6 | **Granular** | 1.0 | Does it fail with a clear, specific message? Pinpoints the failure location, doesn't require debugging to understand what broke. |
 | 7 | **Fast** | 0.8 | Does it run quickly enough for the feedback loop? Unit tests <100ms, integration tests <5s, E2E tests <30s. |
-| 8 | **First** | 1.0 | Was it written before or alongside the implementation (TDD)? Evidence: test commit predates implementation, test names describe behavior not implementation. |
+| 8 | **Timely** | 1.0 | Does it ship with the implementation in the same change (test-after, not deferred)? Evidence: test and implementation in the same commit/PR, test names describe behavior not implementation. |
 
 ## Scoring
 
@@ -70,7 +70,7 @@ Average the per-test scores. Report the distribution (how many Exemplary, Good, 
 ### Top Issues
 1. **Maintainability** (avg 5.2): 4 tests coupled to implementation details — use behavior-based assertions
 2. **Repeatability** (avg 6.0): 2 tests use `Date.now()` — inject time dependency
-3. **First** (avg 6.5): Test names describe implementation ("calls handleSubmit") not behavior ("submits form data")
+3. **Timely** (avg 6.5): tests deferred or named after implementation ("calls handleSubmit") instead of behavior ("submits form data")
 
 ### Per-Test Scores (lowest first)
 | Test | Score | Weakest Property | Suggestion |

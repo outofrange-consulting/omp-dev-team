@@ -21,7 +21,7 @@ cannot name the friction it removes does not ship.
 ## Where the detail lives (load on demand — do not inline it here)
 
 - **Orchestration pipeline** — Research → Plan → Implement, human gates, the
-  five plan-review personas, the three-stage inline review, ATDD, and the
+  five plan-review personas, the three-stage inline review, acceptance scenarios, and the
   decision log: owned by the **orchestrator** agent prompt (`## Three-Phase
   Workflow` / `## Decision Log`). Don't restate it in always-loaded context.
 - **Model routing** (tier → model) — source of truth is

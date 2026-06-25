@@ -500,7 +500,7 @@ Mutation testing:
   Java   (pitest-maven):     ✓ configured  [or: ✗ skipped | ✗ manual steps needed]
   C#     (Stryker.NET):      ✓ <version>   [or: ✗ skipped | ✗ failed]
 
-The mutation gate will now block zero-kill tests after each RED→GREEN transition.
+The mutation gate will now block zero-kill tests after each failing→passing transition.
 Run a test suite to verify: when tests go from failing to passing, the gate
 should analyze them within 60 seconds.
 ```

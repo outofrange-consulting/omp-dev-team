@@ -64,10 +64,22 @@ Return `{"status": "skip", "issues": [], "summary": "No documentation files foun
 - `docs/agent-architecture.md` references a configuration or governance detail that is no longer current
 - Agent or skill files changed without corresponding update to `CLAUDE.md` registry tables
 
+### Comment hygiene
+
+- **Tracker-ID references in shipped comments** — issue/epic/ticket IDs in code comments (`JIRA-123`, `PROJ-789`, `#456`, `closes GH-12`). The comment should explain *intent*; the tracker ID belongs in the commit message, not the source. Flag with a `suggestedFix` that rewrites the comment as a purpose statement.
+- **Detached / orphaned doc comments** — a JSDoc/docstring/XML-doc block separated from its symbol by blank lines or other statements, or attached to the wrong symbol (so tooling associates it incorrectly).
+- **Do NOT flag durable external standards** — `RFC-2119`, `ISO-4217`, `RFC 5322`, CVE IDs, and similar stable references are legitimate; they are not tracker IDs.
+
+Comment-hygiene and tracker-ID findings are **capped at `suggestion`**: on their own they never raise status above `warn`.
+
 ## Ignore
 
 Code correctness, naming conventions, test quality (handled by other agents)
 Doc style preferences (sentence case vs title case, oxford comma) — flag only when docs are wrong, not when they differ in style
+
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
 
 ## Self-Challenge
 

@@ -1,6 +1,6 @@
 ---
 name: refactor-opportunity-review
-description: Assesses refactoring opportunities after tests pass (TDD REFACTOR phase), distinguishing semantic duplication from structural similarity
+description: Assesses refactoring opportunities after tests pass (the test-after refactoring step), distinguishing semantic duplication from structural similarity
 tools: read, search, find
 model: claude-sonnet-4-6
 thinking-level: medium
@@ -46,6 +46,13 @@ Return `{"status": "skip", "issues": [], "summary": "No refactoring candidates i
 - Primitive obsession: repeated primitive combinations that should be a type
 - Dead code: unreachable branches, unused variables, commented-out code
 
+### Use-the-platform (suggestions)
+
+- **Reinvented built-ins**: hand-rolled `min`/`max`/`sum`/`clamp`/`copy` (and similar) when the language standard library already provides them. Check the language **and version** before flagging (e.g. Go <1.21 has no builtin `min`/`max`; older targets may lack a stdlib helper).
+- **Reinvented helpers**: duplicated inline computation when a named function already exists in scope — point to the existing one.
+- **Open-coded idioms**: the same non-trivial expression repeated 3+ times inline (e.g. a tolerance comparison) that should be a named predicate/helper.
+- Map by *concept*, not syntax — honor language-specific constraints rather than matching tokens.
+
 ### Nice (later)
 
 - Structural similarity that isn't semantic duplication (leave alone)
@@ -64,7 +71,11 @@ Before flagging duplication, ask: "If the business rule changes, would both copi
 
 ## Ignore
 
-Naming (naming-review), test quality (test-review), architecture (arch-review), security (security-review). This agent focuses exclusively on refactoring opportunities within the TDD cycle.
+Naming (naming-review), test quality (test-review), architecture (arch-review), security (security-review). This agent focuses exclusively on refactoring opportunities during the refactoring step, once tests pass.
+
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
 
 ## Self-Challenge
 

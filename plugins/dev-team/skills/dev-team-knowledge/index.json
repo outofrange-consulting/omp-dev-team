@@ -529,6 +529,16 @@
       "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
     }
   },
+  "plugins/dev-team/skills/dev-team-knowledge/review-output-discipline.md": {
+    "Deterministic status": {
+      "summary": "Agent `status` is a pure function of the highest-severity finding (error->fail, warning/suggestion->warn, none->pass), never of volume; capped findings can lower but never raise status.",
+      "anchor": "deterministic-status"
+    },
+    "Finding grouping": {
+      "summary": "Enumerate -> Classify -> Group: consolidate same-kind findings into one concept-level finding (~3-5 per file); keep error-severity findings individual.",
+      "anchor": "finding-grouping"
+    }
+  },
   "plugins/dev-team/skills/dev-team-knowledge/review-rubric.md": {
     "Health Score Calculation": {
       "summary": "Collect the status from each agent: `pass`, `warn`, `fail`, `skip`.",

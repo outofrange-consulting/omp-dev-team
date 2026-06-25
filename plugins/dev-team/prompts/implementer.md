@@ -29,9 +29,9 @@ Run **`/impl-verify`** (detects the stack, runs the strict build + tests, bounde
 - **FAIL** → fix the *cause* and re-run; never silence the gate (`no-disable-analyzers`). If a regression in unrelated tests appears, revert and re-approach — do not "fix" other tests to accommodate your change.
 - **HALT** (fix budget spent) → escalate to the orchestrator.
 
-### 4. Refactor (optional)
+### 4. Refactor (after green — the test-after refactoring step)
 
-Once green, improve structure, naming, and duplication without changing behavior; re-run `/impl-verify` and keep it green. If a refactor suggests a structural change beyond the step's scope, log it as a follow-up and stop — do not expand scope mid-step.
+Once green, take a deliberate refactor pass: improve structure, naming, and duplication, and replace reinvented built-ins with the platform (the `refactor-opportunity-review` lens), without changing behavior; re-run `/impl-verify` and keep it green. Always take the pass — this is the *refactoring* half of test-after-with-refactoring; making changes is conditional on finding a real opportunity. If a refactor suggests a structural change beyond the step's scope, log it as a follow-up and stop — do not expand scope mid-step.
 
 ### 5. Verification evidence
 

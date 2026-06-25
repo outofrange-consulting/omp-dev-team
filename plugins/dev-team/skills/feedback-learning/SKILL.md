@@ -1,6 +1,6 @@
 ---
 name: feedback-learning
-description: Capture amend/learn/remember/forget keywords from the user and update agent or skill configurations. Invoke immediately when the user issues any of these trigger words — parse the change, preview a diff, apply it, and log it to the audit trail.
+description: Capture amend/learn/remember/forget/review keywords from the user and update agent or skill configurations. Invoke immediately when the user issues any of these trigger words — parse the change, preview a diff, apply it, and log it to the audit trail. `review` dispositions the system-proposed pending-review queue (the closed learning loop).
 role: orchestrator
 user-invocable: true
 ---
@@ -17,8 +17,9 @@ Procedure for capturing user feedback, updating configurations dynamically, and 
 | **learn** | Teach something new | `learn: our API uses kebab-case URLs` |
 | **remember** | Persist a preference across sessions | `remember: always run tests before completing tasks` |
 | **forget** | Remove a previous preference | `forget: the kebab-case URL convention` |
+| **review** | Disposition the pending-review queue | `review pending` / `session review` |
 
-All four follow the same processing flow. The distinction is semantic (helping the user express intent), not mechanical.
+`amend`/`learn`/`remember`/`forget` follow the same processing flow — the distinction is semantic (helping the user express intent), not mechanical. `review` is the disposition surface for system-proposed changes (see [Session review](#session-review-disposition)).
 
 ## Where Changes Are Written
 
@@ -116,7 +117,7 @@ amend: rollback all changes from today
 
 ## Learning Loop
 
-After task completion, the orchestrator captures learnings in two ways:
+After task completion, the orchestrator captures learnings in two ways, then **queues every system proposal to an explicit decision** (the closed loop):
 
 ### Post-task reflection
 
@@ -144,6 +145,45 @@ The orchestrator also watches for patterns across tasks:
 | Context summarization triggered frequently | Propose loading profile adjustment |
 
 When a pattern is detected (minimum 3 occurrences), propose the change with rationale. User approves or rejects. If approved, apply and log with `trigger: "system"`.
+
+### Pending-review queue (closing the loop)
+
+A system-initiated proposal is only useful if it reaches a decision. When the user is not present to disposition it immediately, **enqueue** it to `metrics/pending-review.jsonl` (append-only, one JSON object per line) rather than dropping it. This closes the loop: every proposal is tracked from generation to an explicit accept/reject.
+
+```json
+{
+  "id": "2026-06-25T14:30:00Z-software-engineer-fp",
+  "proposed_at": "2026-06-25T14:30:00Z",
+  "trigger": "system",
+  "source": "recurring-correction",
+  "type": "amend",
+  "description": "Software engineer keeps being corrected to prefer functional patterns (3 occurrences)",
+  "target_file": "CLAUDE.md",
+  "target_section": "Agent Overrides > Software Engineer",
+  "proposed_value": "- Prefer functional programming patterns over OOP",
+  "evidence": ["task-12", "task-15", "task-19"],
+  "status": "pending"
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `id` | Stable unique id (timestamp + slug) |
+| `source` | What generated it: `recurring-correction` or `post-task-reflection` |
+| `evidence` | Task/finding ids that motivated it (≥3 for a recurring correction) |
+| `status` | `pending` until dispositioned, then `approved` or `rejected` |
+
+**No duplicates:** before appending, scan the queue for an open `pending` entry with the same `target_file` + `target_section` + intent and skip if one exists.
+
+### Session review (disposition)
+
+This is where the user closes the loop. On request ("review pending", "session review") list every `pending` entry with its evidence, then for each:
+
+1. **Preview** the proposed edit as a diff.
+2. **Approve** → apply via the resolution table, log to `config-changelog.jsonl` with `approved_by: "user"`, then stamp the queue entry `status: "approved"`, `reviewed_at`, `approved_by`.
+3. **Reject** → do not apply; stamp the queue entry `status: "rejected"`, `reviewed_at`, `rejected_by`, and an optional `reason`.
+
+Disposition **updates the entry in place** so the queue stays an accurate ledger of what was proposed and what became of it (distinct from the append-only `config-changelog.jsonl`). Approved structural changes still follow the approval rules above. **Cost note:** batch the queue in one review pass instead of interrupting mid-task — the loop is asynchronous by design, which is what keeps it cheap.
 
 ## Constraints
 

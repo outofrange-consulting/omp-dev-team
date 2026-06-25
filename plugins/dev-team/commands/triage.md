@@ -8,4 +8,4 @@ Arguments: `$ARGUMENTS` (bug description / issue reference).
 
 1. `read skill://triage` and follow it (uses `skill://systematic-debugging`).
 2. Write a triage record to `.triage/<slug>.md` with root-cause analysis and a
-   TDD fix plan. Do not fix yet unless asked — triage produces the plan.
+   fix plan (regression test + fix + refactor). Do not fix yet unless asked — triage produces the plan.

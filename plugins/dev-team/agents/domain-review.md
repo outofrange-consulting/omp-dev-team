@@ -86,6 +86,10 @@ Whole-file load: each linked skill is loaded in full when invoked.
 
 - [Ubiquitous Language](skill://ubiquitous-language) — invoke when the user asks to "build the glossary", "extract domain terms", or "document the ubiquitous language". Also invoke when domain-review findings show pervasive terminology inconsistency (3+ different names for the same concept across the codebase).
 
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+
 ## Self-Challenge
 
 After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#domain-review` (domain-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.

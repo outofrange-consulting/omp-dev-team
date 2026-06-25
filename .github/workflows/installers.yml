@@ -84,6 +84,17 @@ jobs:
           done
           exit $rc
 
+  # 1d) Framework-compliance checks for the dev-team plugin: skill:// anchor
+  #     resolution, index.json file integrity, review-agent output-discipline
+  #     wiring, and the test-after stance (no removed TDD identifiers).
+  compliance:
+    name: dev-team framework compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate framework compliance
+        run: node scripts/ci-framework-compliance.mjs
+
   # 2) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
   #    verifies OMP launches and lists all plugins).
   e2e:

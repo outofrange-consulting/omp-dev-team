@@ -67,6 +67,10 @@ Cognitive load:
 - Too many concepts per function
 - Non-obvious control flow
 
+## Output discipline
+
+Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+
 ## Self-Challenge
 
 After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#structure-review`. Use the structure-review challenge questions (the nearest applicable section — no complexity-specific section exists). Append confidence level (High/Medium/Low) to the `summary` field.

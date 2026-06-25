@@ -36,7 +36,7 @@ Plan adherence:
 - Steps executed out of order without justification
 - Steps skipped entirely
 - Work done that doesn't map to any plan step
-- Tests not written before implementation (RED before GREEN)
+- A behavior-change step marked done without its tests (`tests-required` — order doesn't matter, presence and a green `/impl-verify` do)
 
 Commit discipline:
 

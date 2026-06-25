@@ -59,7 +59,7 @@ For each survivor, classify and act:
 2. **Check for equivalence** — does the mutation actually change observable behavior? Common equivalent patterns: dead code or unreachable branches; commutative-operation reorderings; conditions redundant with other guards; logging/debug-only code.
 3. **Find related tests** — which tests cover this code; what do they assert.
 4. **Classify** — missing assertion, missing test, boundary gap, or equivalent.
-5. **Write the fix test** with RED-GREEN discipline: must fail against the mutant and pass against the original.
+5. **Write the fix test** so it fails against the mutant and passes against the original.
 
 ### Weak vs strong test patterns
 
