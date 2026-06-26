@@ -35,3 +35,15 @@ cannot name the friction it removes does not ship.
 - **Verification / quality gates** — the `no-disable-analyzers` and
   `source-of-truth` rules, plus `/impl-verify` (strict stack build + tests with
   a bounded fix counter).
+
+## Session canary (context-loaded check)
+
+This file is the always-loaded operating manual. The `canary` extension verifies
+at session start that the *installed* copy of this rule is intact — present,
+still `alwaysApply: true`, still carrying the sentinel below. A `CANARY FAIL`
+notice means the dev-team context did not load (botched install, broken
+frontmatter, stale mirror): fix it before working, not twenty minutes in. Run
+`/canary` to re-check on demand. Keep the sentinel byte-identical here, in
+`extensions/canary.ts`, and in `scripts/ci-framework-compliance.mjs` (check E).
+
+<!-- dev-team-canary: DT-CANARY-7Q2F -->
