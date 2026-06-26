@@ -98,6 +98,26 @@ for (const f of walk(ROOT, [".md", ".ts"])) {
   }
 }
 
+// ---- E. Canary sentinel: byte-identical in the alwaysApply rule + extension ----
+// Guards the L4 context-loaded canary against silent rot: the rule must still be
+// alwaysApply and carry the sentinel, and extensions/canary.ts must hold the same
+// token, or the runtime canary checks a string that no longer matches the rule.
+const CANARY_TOKEN = "DT-CANARY-7Q2F";
+const canaryRule = join(ROOT, "rules/dev-team-operating-manual.md");
+const canaryExt = join(ROOT, "extensions/canary.ts");
+if (!exists(canaryRule)) {
+  fail("canary", "rules/dev-team-operating-manual.md missing");
+} else {
+  const rt = readFileSync(canaryRule, "utf8");
+  if (!rt.includes(CANARY_TOKEN)) fail("canary", `operating-manual missing sentinel ${CANARY_TOKEN}`);
+  const fm = /^---\n([\s\S]*?)\n---/.exec(rt);
+  if (!fm || !/^\s*alwaysApply:\s*true\s*$/m.test(fm[1]))
+    fail("canary", "operating-manual is not `alwaysApply: true` (canary rule would not load)");
+}
+if (!exists(canaryExt)) fail("canary", "extensions/canary.ts missing");
+else if (!readFileSync(canaryExt, "utf8").includes(CANARY_TOKEN))
+  fail("canary", `canary.ts sentinel != ${CANARY_TOKEN} (drift between rule and extension)`);
+
 console.log(
   `Framework compliance: ${refs.size} anchor refs, ${Object.keys(index).length} index files checked — ${failures} violation(s).`
 );

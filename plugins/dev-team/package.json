@@ -14,7 +14,9 @@
       "./extensions/plan-gate.ts",
       "./extensions/review-gate.ts",
       "./extensions/impl-verify.ts",
-      "./extensions/telemetry.ts"
+      "./extensions/telemetry.ts",
+      "./extensions/canary.ts",
+      "./extensions/domain-scope.ts"
     ]
   }
 }

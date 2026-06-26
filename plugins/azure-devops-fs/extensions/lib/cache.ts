@@ -4,8 +4,13 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdirSync } from "node:fs";
+import { chmodSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
+
+// Hard ceiling for cached rows. They are TTL-checked per read but were never
+// deleted, so the plaintext DB grew unbounded; purge anything past this on open
+// (independent of, and never looser than, any per-read TTL).
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 type DB = {
 	query: (sql: string) => { get: (...a: unknown[]) => unknown; run: (...a: unknown[]) => unknown };
@@ -19,12 +24,31 @@ function open(): DB | null {
 	try {
 		// bun:sqlite is always available under OMP's Bun runtime.
 		const dir = process.env.OMP_ADO_CACHE_DIR ?? join(homedir(), ".omp", "cache");
-		mkdirSync(dir, { recursive: true });
+		mkdirSync(dir, { recursive: true, mode: 0o700 });
+		try {
+			chmodSync(dir, 0o700);
+		} catch {
+			/* best-effort on a pre-existing dir */
+		}
 		// Dynamic import keeps non-Bun environments (tests) from crashing at load.
 		// eslint-disable-next-line @typescript-eslint/no-var-requires
 		const { Database } = require("bun:sqlite") as { Database: new (p: string) => DB };
-		const d = new Database(join(dir, "ado-cache.db"));
+		const dbPath = join(dir, "ado-cache.db");
+		const d = new Database(dbPath);
+		// Cached bodies (diffs, file contents, logs) are plaintext at rest — keep the
+		// file owner-only so other local users can't read another dev's ADO data.
+		try {
+			chmodSync(dbPath, 0o600);
+		} catch {
+			/* best-effort */
+		}
 		d.run("CREATE TABLE IF NOT EXISTS cache (k TEXT PRIMARY KEY, v TEXT NOT NULL, ts INTEGER NOT NULL, fp TEXT)");
+		// Bound plaintext growth: purge rows past the hard ceiling on open.
+		try {
+			d.query("DELETE FROM cache WHERE ts < ?").run(Date.now() - MAX_AGE_MS);
+		} catch {
+			/* best-effort */
+		}
 		db = d;
 	} catch {
 		db = null;

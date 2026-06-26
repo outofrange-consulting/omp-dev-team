@@ -53,7 +53,22 @@ enable_insecure_tls() {
   printf 'insecure\n' > "$d/.curlrc"; printf 'check_certificate = off\n' > "$d/.wgetrc"
   export CURL_HOME="$d" WGETRC="$d/.wgetrc"
 }
-{ [ "$INSECURE_TLS" = 1 ] || [ -n "${OMP_INSECURE_TLS:-}" ]; } && enable_insecure_tls
+# Enable insecure TLS only on an explicit opt-in. A bare OMP_INSECURE_TLS left in
+# the environment must NOT silently disable certificate verification for the whole
+# install: confirm it interactively, or skip it (verification stays ON) when
+# unattended. The explicit --insecure-tls flag always wins. enable_insecure_tls
+# re-exports OMP_INSECURE_TLS=1 so child installers still inherit the decision.
+if [ "$INSECURE_TLS" = 1 ]; then
+  enable_insecure_tls
+elif [ -n "${OMP_INSECURE_TLS:-}" ]; then
+  if [ "$YES" = 0 ] && [ -r /dev/tty ]; then
+    ask "OMP_INSECURE_TLS is set in your environment — DISABLE TLS certificate verification for this install?" "N" \
+      && enable_insecure_tls \
+      || warn "Keeping TLS verification ON (pass --insecure-tls to disable it explicitly)."
+  else
+    warn "Ignoring stray OMP_INSECURE_TLS in non-interactive mode — pass --insecure-tls to disable TLS verification explicitly. Proceeding with verification ON."
+  fi
+fi
 
 # Corporate root CA (PREFERRED over --insecure-tls): trust a custom CA for
 # everything — node/bun, Go/Ollama, curl, python, git — and persist it.
