@@ -15,6 +15,13 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI comme fournisseur de modèles** — pointez-le vers une passerelle [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (URL + clé API) ; l'installeur liste les modèles et écrit un fournisseur `cliproxy` dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `cliproxy/<id-modèle>`. |
 | **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
 
+> **Vous utilisez le CLI GitHub Copilot plutôt qu'Oh-My-Pi ?** Voir
+> [`copilot-cli/`](copilot-cli/) — la même expérience dev-team / token-diet /
+> Datadog reconstruite autour des idiomes du CLI Copilot (agents custom, hooks
+> `preToolUse`/`postToolUse`, `copilot-instructions.md`, MCP), avec son propre
+> installeur à cocher ([`copilot-cli/install.sh`](copilot-cli/install.sh) /
+> [`install.ps1`](copilot-cli/install.ps1)).
+
 ## Démarrage rapide (recommandé)
 
 L'installeur global installe OMP, enregistre cette marketplace, propose chaque
