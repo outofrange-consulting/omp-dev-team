@@ -181,5 +181,27 @@ export function formatReport(acc: CacheAccum, opts: ReportOpts = {}): Report {
 	return { text, level: risk ? "warn" : "info" };
 }
 
+/**
+ * Compact one-line summary for the footer/status bar (ExtensionUIContext
+ * setStatus). Empty string before any billed turn (so nothing is shown yet).
+ * Mirrors formatReport's warning condition with a trailing ⚠ marker.
+ */
+export function formatStatusLine(
+	acc: CacheAccum,
+	opts: { compressionActive?: boolean; churnWarnAt?: number } = {},
+): string {
+	if (acc.billedTurns === 0) return "";
+	const churn = cacheChurn(acc);
+	const cached = acc.cacheRead + acc.cacheWrite;
+	const risk = !!opts.compressionActive && cached > 0 && churn >= (opts.churnWarnAt ?? 0.5);
+	const bits = [
+		`$${acc.cost.toFixed(2)}`,
+		`cache ${pct(cacheReadRate(acc))}`,
+		`churn ${pct(churn)}`,
+	];
+	if (acc.reasoning > 0) bits.push(`think ${pct(reasoningShare(acc))}`);
+	return `td ${bits.join(" ")}${risk ? " ⚠" : ""}`;
+}
+
 // Harmless default export in case extension discovery scans lib/ as an entry.
 export default function () {}

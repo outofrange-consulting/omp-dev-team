@@ -3,13 +3,15 @@
 // Current OMP reports per-turn billing on every assistant message
 // (`message.usage`: input/output/cacheRead/cacheWrite/cost/reasoningTokens), and
 // surfaces provider rate-limit headers on `after_provider_response`. This
-// extension accumulates that into a session cache-health summary and exposes
-// `/cache-health`, so the central token-diet question — *is our context
-// compression busting the provider prompt-cache prefix?* — is answered with
-// measured numbers instead of assumptions.
+// extension accumulates that into a session cache-health summary, keeps a live
+// footer **statusline** (cost · cache-read · churn) via ctx.ui.setStatus, and
+// exposes `/cache-health` for the full breakdown — so the central token-diet
+// question, *is our context compression busting the provider prompt-cache
+// prefix?*, is answered with measured numbers instead of assumptions.
 //
-// Read-only: it never mutates messages or requests. Disable with
-// TOKEN_DIET_CACHE_METER=off. Off changes nothing else in token-diet.
+// Read-only: it never mutates messages or requests. Disable the whole meter with
+// TOKEN_DIET_CACHE_METER=off, or silence just the footer line with
+// TOKEN_DIET_CACHE_STATUSLINE=off. Off changes nothing else in token-diet.
 
 import { appendFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -24,8 +26,20 @@ import {
 	emptyAccum,
 	extractUsage,
 	formatReport,
+	formatStatusLine,
 	reasoningShare,
 } from "./lib/cache-stats.ts";
+
+const STATUS_KEY = "token-diet-cache";
+
+// The live footer line is the P1 statusline. On by default (it's the point —
+// glanceable cost/cache health); silence just the line with
+// TOKEN_DIET_CACHE_STATUSLINE=off while keeping /cache-health + the JSONL.
+function statusLineOff(): boolean {
+	return ["off", "0", "none", "false"].includes(
+		(process.env.TOKEN_DIET_CACHE_STATUSLINE ?? "").trim().toLowerCase(),
+	);
+}
 
 function logPath(): string {
 	const override = process.env.TOKEN_DIET_CACHE_LOG?.trim();
@@ -75,16 +89,30 @@ export default function cacheMeter(pi: ExtensionAPI) {
 	let acc: CacheAccum = emptyAccum();
 	let quota: string[] = [];
 
-	pi.on("session_start", async () => {
+	const showStatus = !statusLineOff();
+
+	pi.on("session_start", async (_event, ctx) => {
 		acc = emptyAccum();
 		quota = [];
+		try {
+			if (showStatus) ctx.ui.setStatus(STATUS_KEY, undefined); // clear stale line
+		} catch {
+			/* ignore */
+		}
 	});
 
-	// One assistant message per turn carries the billed usage.
-	pi.on("turn_end", async (event) => {
+	// One assistant message per turn carries the billed usage. After folding it
+	// in, refresh the persistent footer line (the P1 statusline).
+	pi.on("turn_end", async (event, ctx) => {
 		try {
 			const u = extractUsage((event as { message?: unknown }).message);
 			if (u) addUsage(acc, u);
+			if (showStatus) {
+				const line = formatStatusLine(acc, {
+					compressionActive: compressionMutatesPrefix(),
+				});
+				if (line) ctx.ui.setStatus(STATUS_KEY, line);
+			}
 		} catch {
 			/* never disturb the turn */
 		}

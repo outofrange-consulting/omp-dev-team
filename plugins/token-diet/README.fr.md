@@ -17,7 +17,7 @@ prompts côté fournisseur), pas à la place.
 | **yagni** | écrire **moins de code** — YAGNI / dev sénior le plus fainéant (à la demande) | ~80–94 % de code en moins ; moins de tokens maintenant **et** à chaque tour futur | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 | **read-dedup** + **context-dedup** | relectures de fichiers inchangés + blocs identiques répétés gonflent l'**entrée** | SANS PERTE, actif : relecture → stub ; blocs byte-identiques fusionnés avant chaque appel | « Read Dedup » de caveman-code, réimplémenté sur les hooks `tool_call`/`context` d'OMP |
 | **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques (`safe` actif par défaut ; `lite`/`full` opt-in) | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
-| **cache-meter** | les économies de prompt-cache que tu *crois* avoir sont non mesurées — et un transform qui modifie le préfixe peut les casser en silence | LECTURE SEULE, actif : `/cache-health` montre le taux de lecture cache + churn + coût + part de thinking + quota provider, et **alerte** quand la compression `lite`/`full` coïncide avec un fort churn de cache | `usage` par-tour d'OMP (`turn_end`) + en-têtes `after_provider_response` |
+| **cache-meter** | les économies de prompt-cache que tu *crois* avoir sont non mesurées — et un transform qui modifie le préfixe peut les casser en silence | LECTURE SEULE, actif : une **statusline** live (`td $coût cache N% churn N%`, ⚠ si risque) + `/cache-health` pour le détail (taux de lecture cache + churn + coût + part de thinking + quota provider) ; **alerte** quand la compression `lite`/`full` coïncide avec un fort churn | `usage` par-tour d'OMP (`turn_end`) + en-têtes `after_provider_response` + `ui.setStatus` |
 | **Isolation providers** | exclut toutes les configs utilisateur d'autres outils du contexte OMP | élimine le bruit des agents Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode | settings OMP natifs |
 | **LSP C#** | `csharp-ls` câblé comme serveur de langage OMP natif — utilisé pour les sémantiques C# précises que le graphe ne peut pas fournir (rename, références exactes, diagnostics en direct, hover) | aller-à-la-définition, références, diagnostics sur `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
@@ -130,17 +130,20 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
 - **cache-meter** → une extension en **lecture seule** (ne modifie jamais une
   requête) qui accumule l'`usage` par-tour d'OMP (`turn_end.message.usage` :
   input/output/**cacheRead/cacheWrite**/coût/thinking) plus les en-têtes de
-  rate-limit du provider (`after_provider_response`). `/cache-health` affiche le
-  **taux de lecture** du prompt-cache et le **churn**, le **coût** cumulé, la part
-  de tokens de thinking, le % de fenêtre, et le quota provider. Son intérêt : la
+  rate-limit du provider (`after_provider_response`). Elle tient une **statusline**
+  live dans le footer via `ctx.ui.setStatus` (`td $<coût> cache <lecture%> churn
+  <%>`, avec ⚠ en cas de risque — le coup d'œil permanent sur coût/santé cache),
+  et `/cache-health` affiche le détail : **taux de lecture** du prompt-cache et
+  **churn**, **coût** cumulé, part de thinking, % de fenêtre, et quota provider. Son intérêt : la
   boucle de contrôle du reste de token-diet — comme `context-compress`/les dedups
   réécrivent les **vieux** messages (exactement le préfixe stable qu'un provider
   met en cache KV), ils peuvent *augmenter* les économies visibles tout en
   *cassant* la lecture cache 10× moins chère. Le meter **alerte** quand une
   compression qui modifie le préfixe (`lite`/`full`) coïncide avec un fort churn,
   pour ne construire le gel-de-préfixe (« CacheAligner ») que si les chiffres le
-  justifient (mesurer d'abord). Couper : `TOKEN_DIET_CACHE_METER=off`. Math pure
-  dans `extensions/lib/cache-stats.ts`, testée. (OMP expose cet usage aux
+  justifient (mesurer d'abord). Couper (tout le meter) : `TOKEN_DIET_CACHE_METER=off`,
+  ou silencier juste la ligne du footer : `TOKEN_DIET_CACHE_STATUSLINE=off`. Math
+  pure dans `extensions/lib/cache-stats.ts`, testée. (OMP expose cet usage aux
   extensions aujourd'hui — l'ancienne hypothèse « pas dispo dans les hooks » ne
   tient plus.)
 

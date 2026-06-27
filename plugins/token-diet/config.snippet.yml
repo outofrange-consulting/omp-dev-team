@@ -57,9 +57,12 @@ disabledProviders:
 #                    TOKEN_DIET_COMPRESS_KEEP_RECENT (6)
 #   cache-meter      READ-ONLY, ON — accumulates OMP's per-turn usage
 #                    (input/output/cacheRead/cacheWrite/cost/thinking) and provider
-#                    rate-limit headers; `/cache-health` prints prompt-cache
-#                    read-rate + churn + cost + thinking-share + quota, and WARNS
-#                    when prefix-mutating compression (lite/full) coincides with high
-#                    cache churn (it may be busting the cached prefix). Never mutates
-#                    requests. Off: TOKEN_DIET_CACHE_METER=off ; log path override:
+#                    rate-limit headers. Keeps a live footer STATUSLINE
+#                    (`td $<cost> cache <read%> churn <%>`, ⚠ on cache-bust risk) via
+#                    setStatus, and `/cache-health` prints the full breakdown +
+#                    quota. WARNS when prefix-mutating compression (lite/full)
+#                    coincides with high cache churn (it may be busting the cached
+#                    prefix). Never mutates requests. Off (whole meter):
+#                    TOKEN_DIET_CACHE_METER=off ; silence just the footer line:
+#                    TOKEN_DIET_CACHE_STATUSLINE=off ; log path override:
 #                    TOKEN_DIET_CACHE_LOG (default ~/.omp/state/token-diet/cache-meter.jsonl)

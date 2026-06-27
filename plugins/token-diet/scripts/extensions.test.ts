@@ -25,6 +25,7 @@ import {
 	emptyAccum,
 	extractUsage,
 	formatReport,
+	formatStatusLine,
 	reasoningShare,
 } from "../extensions/lib/cache-stats.ts";
 
@@ -238,6 +239,14 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	const empty = emptyAccum();
 	check("empty cacheReadRate = 0", cacheReadRate(empty) === 0);
 	check("empty report says no billed turns", formatReport(empty, { compressionActive: true }).level === "info");
+
+	// formatStatusLine: empty before any turn, compact + flags on risk.
+	check("statusline empty before billed turns", formatStatusLine(empty) === "");
+	const okLine = formatStatusLine(healthy, { compressionActive: true });
+	check("statusline shows cost + cache", okLine.includes("$") && okLine.includes("cache"), okLine);
+	check("statusline healthy has no warn marker", !okLine.includes("⚠"), okLine);
+	check("statusline busted+compression has ⚠", formatStatusLine(busted, { compressionActive: true }).includes("⚠"));
+	check("statusline busted+no-compression has no ⚠", !formatStatusLine(busted, { compressionActive: false }).includes("⚠"));
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
