@@ -52,6 +52,21 @@ Write deliverables (plans, designs, code, reports) to **files**, not chat. No
 changed and what's next. Report verification faithfully: if tests fail, say so
 with the output; if a step was skipped, say that.
 
+## Knowledge corpus & agents
+
+The full dev-team reference library is installed at
+`~/.copilot/dev-team/knowledge/` (skills, rules, prompts, and the
+`dev-team-knowledge` corpus: review rubrics, the test-pyramid/quadrants, OWASP
+detection, testing techniques, model-routing, schemas). Consult it when a task
+needs that depth — read the specific file, don't reload the whole tree.
+
+Specialist and critic agents are available via `/agent <name>` — e.g.
+`security-review`, `domain-review`, `arch-review`, `performance-review`,
+`test-review`, `structure-review`, `naming-review`, `qa-engineer`,
+`tech-writer`, plus capability agents (`threat-modeling`, `systematic-debugging`,
+`docker-image-audit`, `mutation-testing`, `domain-driven-design`, …). Route by
+what changed (see the `orchestrator` agent's table).
+
 ## The guards are advisory
 
 The guards are out-of-tree, advisory-grade enforcement — rails, not a sandbox.

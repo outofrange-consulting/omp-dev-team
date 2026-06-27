@@ -38,6 +38,13 @@ cp -f "$HERE"/hooks/scripts/*.mjs "$DEST/hooks/scripts/"
 cp -f "$HERE"/instructions/*.md "$DEST/instructions/"
 ok "dt CLI + preToolUse guard + operating manual installed"
 
+# knowledge corpus (the full dev-team skills/rules/prompts reference library that
+# the agents and copilot-instructions cite).
+if [ -d "$HERE/knowledge" ]; then
+  cp -R "$HERE/knowledge" "$DEST/knowledge"
+  ok "knowledge corpus installed ($(find "$DEST/knowledge" -type f | wc -l | tr -d ' ') files) -> $DEST/knowledge"
+fi
+
 # --- dt shim -> ~/.local/bin/dt --------------------------------------------
 mkdir -p "$HOME/.local/bin"
 cat > "$HOME/.local/bin/dt" <<EOF

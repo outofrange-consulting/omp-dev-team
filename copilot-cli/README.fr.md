@@ -13,7 +13,7 @@ sous-ensemble voulu.
 
 | Composant | Rôle | Surface Copilot CLI |
 |---|---|---|
-| **dev-team** | Orchestrateur + agents de workflow (`specs → plan → build → review → pr`) et agents critics ; un **plan gate forcé** (édition de source bloquée tant que non scopé/planifié) + review gate, et les gardes path/freeze/spec/destructive ; le CLI `dt`. | **agents custom** (`.agent.md`), un **hook `preToolUse`**, **`copilot-instructions.md`** |
+| **dev-team** | Orchestrateur + agents de workflow (`specs → plan → build → review → pr`) ; **tout le roster OMP porté** — les 30 agents specialists/critics + ~50 skills invocables en `.agent.md`, plus le corpus `dev-team-knowledge` complet ; un **plan gate forcé** (édition de source bloquée tant que non scopé/planifié) + review gate, et les gardes path/freeze/spec/destructive ; le CLI `dt`. | **agents custom** (`.agent.md`), un **hook `preToolUse`**, **`copilot-instructions.md`**, un **corpus de connaissances** embarqué |
 | **token-diet** | `ctx-wire` (compression transparente de la sortie shell + scrub des secrets), **codebase-memory-mcp** (requêtes symboles/graphe d'appels au lieu de grep+read), un hook `postToolUse` de compression, et la discipline caveman/yagni. | **shims PATH**, **serveur MCP**, un **hook `postToolUse`**, instructions |
 | **datadog** | Datadog depuis le terminal via le CLI [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces, monitors, incidents, SLOs, CI/observabilité LLM). | un **agent `datadog`** pilotant `pup` |
 
@@ -155,9 +155,10 @@ copilot-cli/
   lib/merge-json.mjs                  # fusion JSON non destructive (mcp-config.json)
   packs/
     dev-team/
-      agents/*.agent.md               # orchestrator, specs, plan, build, review, pr, + critics
+      agents/*.agent.md               # 85 agents : workflow + tous les specialists/critics OMP + skills
       hooks/scripts/                  # common.mjs + pre-tool-use.mjs (la garde bloquante)
       instructions/copilot-instructions.md
+      knowledge/                      # skills/rules/prompts complets + corpus dev-team-knowledge
       dt.mjs                          # le CLI de gate + `dt init`
       install.sh · install.ps1
     token-diet/

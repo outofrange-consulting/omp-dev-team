@@ -38,6 +38,13 @@ Copy-Item -Force (Join-Path $Here 'hooks\scripts\*.mjs') (Join-Path $Dest 'hooks
 Copy-Item -Force (Join-Path $Here 'instructions\*.md') (Join-Path $Dest 'instructions')
 Ok "dt CLI + preToolUse guard + operating manual installed"
 
+# knowledge corpus (full dev-team skills/rules/prompts reference library).
+$kn = Join-Path $Here 'knowledge'
+if (Test-Path $kn) {
+  Copy-Item -Recurse -Force $kn (Join-Path $Dest 'knowledge')
+  Ok "knowledge corpus installed -> $Dest\knowledge"
+}
+
 # --- dt.cmd shim -> ~/.local/bin -------------------------------------------
 $bin = Join-Path $HOME '.local\bin'
 New-Item -ItemType Directory -Force -Path $bin | Out-Null

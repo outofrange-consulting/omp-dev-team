@@ -13,7 +13,7 @@ install any subset.
 
 | Component | What it does | Copilot CLI surface |
 |---|---|---|
-| **dev-team** | Orchestrator + workflow agents (`specs → plan → build → review → pr`) and critic agents; a **forced plan gate** (source edits blocked until scoped/planned) + review gate, path/freeze/spec/destructive guards; the `dt` gate CLI. | **custom agents** (`.agent.md`), a **`preToolUse` hook**, **`copilot-instructions.md`** |
+| **dev-team** | Orchestrator + workflow agents (`specs → plan → build → review → pr`); **the full OMP roster ported** — all 30 specialist/critic agents + ~50 invocable skills as `.agent.md`, plus the complete `dev-team-knowledge` corpus; a **forced plan gate** (source edits blocked until scoped/planned) + review gate, path/freeze/spec/destructive guards; the `dt` gate CLI. | **custom agents** (`.agent.md`), a **`preToolUse` hook**, **`copilot-instructions.md`**, a bundled **knowledge corpus** |
 | **token-diet** | `ctx-wire` (transparent shell-output compression + secret scrub), **codebase-memory-mcp** (symbol/call-graph queries instead of grep+read), a `postToolUse` output-compression hook, and caveman/yagni discipline. | **PATH shims**, **MCP server**, a **`postToolUse` hook**, instructions |
 | **datadog** | Datadog from the terminal via the [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces, monitors, incidents, SLOs, CI/LLM observability). | a **`datadog` agent** driving `pup` |
 
@@ -152,9 +152,10 @@ copilot-cli/
   lib/merge-json.mjs                  # non-clobbering JSON merge (mcp-config.json)
   packs/
     dev-team/
-      agents/*.agent.md               # orchestrator, specs, plan, build, review, pr, + critics
+      agents/*.agent.md               # 85 agents: workflow + all OMP specialists/critics + skills
       hooks/scripts/                  # common.mjs + pre-tool-use.mjs (the blocking guard)
       instructions/copilot-instructions.md
+      knowledge/                      # full skills/rules/prompts + dev-team-knowledge corpus
       dt.mjs                          # the gate CLI + `dt init`
       install.sh · install.ps1
     token-diet/
