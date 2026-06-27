@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
+  "name": "cc-dev-team",
+  "owner": { "name": "outofrange-consulting" },
+  "description": "Claude Code CLI port of the omp-dev-team experience: an agentic dev team, an aggressive token-reduction toolkit (ctx-wire + codebase-memory), and Datadog observability via the pup CLI.",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "dev-team",
+      "source": "./plugins/dev-team",
+      "description": "Agentic dev team (port of bdfinst/agentic-dev-team): orchestrator + 30 specialist/critic subagents, the /specs -> /plan -> /build -> /pr workflow, an advisory plan/review gate (state in plugin data, not the repo), a SessionStart operating manual, and a deterministic /impl-verify build+test gate.",
+      "category": "development",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "token-diet",
+      "source": "./plugins/token-diet",
+      "description": "Aggressive token reduction for Claude Code: ctx-wire (transparent command-output compression + secret scrub via PATH shims), codebase-memory-mcp (symbol/call-graph MCP queries instead of grep+read), a live cache/cost statusline, and caveman/yagni/codebase-memory skills.",
+      "category": "productivity",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "datadog",
+      "source": "./plugins/datadog",
+      "description": "Datadog observability from the terminal via the Datadog 'pup' CLI (logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, RUM, security/audit, CI test visibility, LLM observability). One broad skill drives pup; the installer sets up pup + auth.",
+      "category": "devops",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "token-diet",
+  "displayName": "Token Diet",
+  "version": "1.0.0",
+  "description": "Aggressive token reduction for Claude Code: ctx-wire transparent command-output compression + secret scrub (PATH shims), codebase-memory-mcp symbol/call-graph queries instead of grep+read, a live cache/cost statusline, and caveman/yagni/codebase-memory/mcp-as-cli-skill-creator skills.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+  "keywords": ["tokens", "cost", "ctx-wire", "codebase-memory", "context"],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

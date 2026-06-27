@@ -1,0 +1,1036 @@
+{
+  "plugins/dev-team/skills/dev-team-knowledge/accepted-risks-schema.md": {
+    "Purpose": {
+      "summary": "A project-local `ACCEPTED-RISKS.md` at the repo root declares findings the team has explicitly accepted as known risks.",
+      "anchor": "purpose"
+    },
+    "File location and format": {
+      "summary": "Location: repo root, filename `ACCEPTED-RISKS.md` (exact case, singular)",
+      "anchor": "file-location-and-format"
+    },
+    "Rule schema": {
+      "summary": "**`id`**: kebab-case, unique within the file.",
+      "anchor": "rule-schema"
+    },
+    "Field semantics": {
+      "summary": "**`id`**: kebab-case, unique within the file.",
+      "anchor": "field-semantics"
+    },
+    "Matching algorithm": {
+      "summary": "For each finding F in the unified finding envelope:",
+      "anchor": "matching-algorithm"
+    },
+    "Report output": {
+      "summary": "After a review run:",
+      "anchor": "report-output"
+    },
+    "Authoring policy": {
+      "summary": "Rules are **additive**, never removed silently.",
+      "anchor": "authoring-policy"
+    },
+    "Initialization": {
+      "summary": "When `/code-review` runs in a repo without `ACCEPTED-RISKS.md`, the agent does NOT create one automatically.",
+      "anchor": "initialization"
+    },
+    "Out of scope": {
+      "summary": "**This schema does NOT cover severity-threshold suppression.** Lowering severity is a review-agent configuration concern, not a project policy concern.",
+      "anchor": "out-of-scope"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/adr-decision-criteria.md": {
+    "Core Definition": {
+      "summary": "An ADR documents **a decision on a matter where \"why?\" would not be obvious** — especially for decisions that are **hard to change later**.",
+      "anchor": "core-definition"
+    },
+    "Signals That Warrant an ADR": {
+      "summary": "| Signal | Why it qualifies |",
+      "anchor": "signals-that-warrant-an-adr"
+    },
+    "Signals That Do NOT Warrant an ADR": {
+      "summary": "| Signal | Why it does not qualify |",
+      "anchor": "signals-that-do-not-warrant-an-adr"
+    },
+    "Proactive Suggestion Triggers": {
+      "summary": "Suggest an ADR when you observe any of the following during review or implementation:",
+      "anchor": "proactive-suggestion-triggers"
+    },
+    "Relationship to Other Documents": {
+      "summary": "**Design doc** — explores options before a decision is made.",
+      "anchor": "relationship-to-other-documents"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/adversarial-review-protocol.md": {
+    "The Loop": {
+      "summary": "After the initial review pass, re-examine findings with the following questions.",
+      "anchor": "the-loop"
+    },
+    "Challenge Questions by Agent": {
+      "summary": "Did you check EVERY source file, not just files with suspicious names?",
+      "anchor": "challenge-questions-by-agent"
+    },
+    "security-review": {
+      "summary": "Did you check EVERY source file, not just files with suspicious names?",
+      "anchor": "security-review"
+    },
+    "test-review": {
+      "summary": "For every class below 90% effective coverage, did you identify the SPECIFIC uncovered behavior?",
+      "anchor": "test-review"
+    },
+    "test-smell-review": {
+      "summary": "For every smell flagged, did you name the specific xUnit smell (not just \"this test is bad\")?",
+      "anchor": "test-smell-review"
+    },
+    "structure-review": {
+      "summary": "Did you check every module/class for SRP violations, including small ones?",
+      "anchor": "structure-review"
+    },
+    "complexity-review": {
+      "summary": "Did you check ALL methods and functions, not just the visibly large ones?",
+      "anchor": "complexity-review"
+    },
+    "arch-review": {
+      "summary": "Did you read the ADRs before reviewing?",
+      "anchor": "arch-review"
+    },
+    "domain-review": {
+      "summary": "Did you check every entity/aggregate for anemic domain model patterns (data bags with all behavior in services)?",
+      "anchor": "domain-review"
+    },
+    "Output": {
+      "summary": "After the challenger pass, append to the `summary` field in your JSON output:",
+      "anchor": "output"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/agent-registry.md": {
+    "Team Agents": {
+      "summary": "| Agent | File | ~Tokens | Primary Focus |",
+      "anchor": "team-agents"
+    },
+    "Review Agents": {
+      "summary": "Spawned by the orchestrator during Phase 3 inline checkpoints and full `/code-review` runs.",
+      "anchor": "review-agents"
+    },
+    "Skills Registry": {
+      "summary": "Skills are reusable knowledge modules in `.claude/skills/` that agents reference.",
+      "anchor": "skills-registry"
+    },
+    "Subagent Prompt Templates": {
+      "summary": "Concrete prompt templates in `prompts/` that the orchestrator and `/code-review` use when dispatching subagents, making behavior reproducible.",
+      "anchor": "subagent-prompt-templates"
+    },
+    "Knowledge Files": {
+      "summary": "Knowledge files in `knowledge/` provide progressive disclosure — agents read them on demand during analysis rather than carrying all detection patterns inline.",
+      "anchor": "knowledge-files"
+    },
+    "Agent Templates": {
+      "summary": "Language-specific review agents in `templates/agents/`.",
+      "anchor": "agent-templates"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/architecture-assessment.md": {
+    "Exploration Patterns": {
+      "summary": "Map the architectural landscape before detecting issues.",
+      "anchor": "exploration-patterns"
+    },
+    "Discovery sequence": {
+      "summary": "1.",
+      "anchor": "discovery-sequence"
+    },
+    "ADR Compliance Checks": {
+      "summary": "| Check | How to detect |",
+      "anchor": "adr-compliance-checks"
+    },
+    "Layer Boundary Rules": {
+      "summary": "Standard layered architecture enforces dependency direction:",
+      "anchor": "layer-boundary-rules"
+    },
+    "Dependency Direction Checks": {
+      "summary": "| Check | Signal |",
+      "anchor": "dependency-direction-checks"
+    },
+    "Pattern Consistency Checks": {
+      "summary": "Flag when new code diverges from established patterns for the same concern:",
+      "anchor": "pattern-consistency-checks"
+    },
+    "Prohibited Practice Detection": {
+      "summary": "Grep for patterns that architecture docs explicitly ban:",
+      "anchor": "prohibited-practice-detection"
+    },
+    "MCP-Enhanced Analysis": {
+      "summary": "If a code knowledge graph MCP is available (e.g., GitNexus):",
+      "anchor": "mcp-enhanced-analysis"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/cd-test-architecture.md": {
+    "The Six Test Types": {
+      "summary": "| Type | Verifies | Dependencies | Deterministic?",
+      "anchor": "the-six-test-types"
+    },
+    "The Pre-Merge Gate Rule": {
+      "summary": "Pre-merge (the gate that blocks a merge) contains **only**: static analysis, unit, component, and contract tests.",
+      "anchor": "the-pre-merge-gate-rule"
+    },
+    "Tests Must Live With the Code (out-of-repo testing is an anti-pattern)": {
+      "summary": "A component's tests belong **in the component's repository and pipeline**.",
+      "anchor": "tests-must-live-with-the-code-out-of-repo-testing-is-an-anti-pattern"
+    },
+    "How Component Tests Run Without Configuring Dependencies": {
+      "summary": "The component test is the workhorse of a CD gate.",
+      "anchor": "how-component-tests-run-without-configuring-dependencies"
+    },
+    "The Adapter Rule (own your boundaries)": {
+      "summary": "Wrap every third-party client (SDK, HTTP client, broker client, DB driver) in **a thin adapter the team owns**, then double the *adapter* in component tests — never mock the third-party SDK directly.",
+      "anchor": "the-adapter-rule-own-your-boundaries"
+    },
+    "Outside-In First: Baseline Before Refactor": {
+      "summary": "You rarely start from a clean slate.",
+      "anchor": "outside-in-first-baseline-before-refactor"
+    },
+    "Double Validation (keeping doubles honest)": {
+      "summary": "A double that drifts from reality gives false confidence — the central risk of double-based isolation.",
+      "anchor": "double-validation-keeping-doubles-honest"
+    },
+    "Do not depend on provider cooperation": {
+      "summary": "Consumer-driven contract verification — where the *provider* runs your contract in *their* pipeline and is blocked from deploying a breaking change — only works when teams collaborate closely and use tooling that enforces it.",
+      "anchor": "do-not-depend-on-provider-cooperation"
+    },
+    "The defense you own": {
+      "summary": "1.",
+      "anchor": "the-defense-you-own"
+    },
+    "Determinism Techniques (minimal tooling)": {
+      "summary": "**Inject the clock.** Replace system time with a fixed clock in every time-dependent test (`Clock.fixed(...)`).",
+      "anchor": "determinism-techniques-minimal-tooling"
+    },
+    "Terminology Reconciliation (read this if you also use the Fowler files)": {
+      "summary": "This file uses **MinimumCD vocabulary**, which differs from the Fowler-based `test-pyramid.md` and `microservice-testing.md`:",
+      "anchor": "terminology-reconciliation-read-this-if-you-also-use-the-fowler-files"
+    },
+    "Boundaries": {
+      "summary": "\"Minimal tooling\" means prefer in-memory doubles + a real browser + testcontainers for adapter checks — not a sprawl of test frameworks.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/component-test-patterns.md": {
+    "Identify the Component's Pattern": {
+      "summary": "| If the component… | Pattern | Group |",
+      "anchor": "identify-the-components-pattern"
+    },
+    "UI": {
+      "summary": "Renders data and accepts interaction against backend APIs.",
+      "anchor": "ui"
+    },
+    "User Interface": {
+      "summary": "Renders data and accepts interaction against backend APIs.",
+      "anchor": "user-interface"
+    },
+    "Services": {
+      "summary": "Exposes endpoints, owns its data store, no outbound internal calls.",
+      "anchor": "services"
+    },
+    "API Provider": {
+      "summary": "Exposes endpoints, owns its data store, no outbound internal calls.",
+      "anchor": "api-provider"
+    },
+    "API Consumer": {
+      "summary": "Exposes endpoints **and** calls upstream services.",
+      "anchor": "api-consumer"
+    },
+    "Event Consumer": {
+      "summary": "Consumes messages from a broker (Kafka/SQS/RabbitMQ/PubSub).",
+      "anchor": "event-consumer"
+    },
+    "Event Producer": {
+      "summary": "Publishes messages to a broker (often paired with a consumer in the same service).",
+      "anchor": "event-producer"
+    },
+    "Stateful Service": {
+      "summary": "Long-lived in-memory state: caches, aggregates, coordinators, websocket gateways, real-time engines.",
+      "anchor": "stateful-service"
+    },
+    "CLI / Library": {
+      "summary": "Binary or package consumed via CLI or an exported API.",
+      "anchor": "cli-library"
+    },
+    "Batch": {
+      "summary": "Triggered by cron/queue/scheduler to process data and write output/state.",
+      "anchor": "batch"
+    },
+    "Scheduled Job": {
+      "summary": "Triggered by cron/queue/scheduler to process data and write output/state.",
+      "anchor": "scheduled-job"
+    },
+    "Quick Reference: Isolation Strategy by Pattern": {
+      "summary": "| Pattern | Double to run pre-merge without config | Validated by |",
+      "anchor": "quick-reference-isolation-strategy-by-pattern"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/design-smells.md": {
+    "Design Smells → Pattern Mapping": {
+      "summary": "| Smell | Signature in code | Remediation pattern |",
+      "anchor": "design-smells-pattern-mapping"
+    },
+    "What NOT to Flag": {
+      "summary": "A `switch` over a closed enumeration where adding a case is rare (e.g., `DayOfWeek`, `HttpMethod`) — polymorphism adds ceremony without benefit",
+      "anchor": "what-not-to-flag"
+    },
+    "Finding Format": {
+      "summary": "When surfacing a design smell as a finding:",
+      "anchor": "finding-format"
+    },
+    "Naming Offender Catalog": {
+      "summary": "| Offender | Fix | Notes |",
+      "anchor": "naming-offender-catalog"
+    },
+    "Abbreviations that obscure intent": {
+      "summary": "| Offender | Fix | Notes |",
+      "anchor": "abbreviations-that-obscure-intent"
+    },
+    "Generic verbs that hide intent": {
+      "summary": "| Offender | Fix | Reason |",
+      "anchor": "generic-verbs-that-hide-intent"
+    },
+    "Misleading names": {
+      "summary": "| Offender | Why it misleads | Fix |",
+      "anchor": "misleading-names"
+    },
+    "Type-encoded names": {
+      "summary": "| Offender | Fix |",
+      "anchor": "type-encoded-names"
+    },
+    "What NOT to flag": {
+      "summary": "Loop counters: `i`, `j`, `k` are conventional",
+      "anchor": "what-not-to-flag-1"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/domain-modeling.md": {
+    "Exploration Patterns": {
+      "summary": "Map the project structure before detecting issues.",
+      "anchor": "exploration-patterns"
+    },
+    "Entity / Model discovery": {
+      "summary": "| Glob pattern | What it finds |",
+      "anchor": "entity-model-discovery"
+    },
+    "ORM marker detection": {
+      "summary": "| Language | Grep patterns |",
+      "anchor": "orm-marker-detection"
+    },
+    "Boundary entry point detection": {
+      "summary": "| Language | Grep patterns |",
+      "anchor": "boundary-entry-point-detection"
+    },
+    "Application service detection": {
+      "summary": "| Language | Grep patterns |",
+      "anchor": "application-service-detection"
+    },
+    "Anti-Pattern Recognition": {
+      "summary": "Logic belongs in the domain layer.",
+      "anchor": "anti-pattern-recognition"
+    },
+    "Business Logic Misplacement": {
+      "summary": "Logic belongs in the domain layer.",
+      "anchor": "business-logic-misplacement"
+    },
+    "Anemic Domain Model": {
+      "summary": "Entities that are pure data holders (only getters/setters) while services",
+      "anchor": "anemic-domain-model"
+    },
+    "Abstraction Leaks": {
+      "summary": "| Leak type | Signal |",
+      "anchor": "abstraction-leaks"
+    },
+    "Boundary Violations": {
+      "summary": "| Violation | Signal |",
+      "anchor": "boundary-violations"
+    },
+    "Ubiquitous Language Drift": {
+      "summary": "Flag only internal inconsistency observable in code:",
+      "anchor": "ubiquitous-language-drift"
+    },
+    "Supple Design Smells (Evans)": {
+      "summary": "Method named how-not-what, boolean flag params, mutable value objects.",
+      "anchor": "supple-design-smells-evans"
+    },
+    "Implicit Concepts (missing Specification / Policy)": {
+      "summary": "A named business rule scattered across conditionals -> surface as a Specification/Policy.",
+      "anchor": "implicit-concepts-missing-specification--policy"
+    },
+    "Construction Without Invariants": {
+      "summary": "Objects built into invalid state -> enforce invariants in constructor/Factory.",
+      "anchor": "construction-without-invariants"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/exploratory-testing-field-guide.md": {
+    "1. Charter Quality (§2.3–2.4)": {
+      "summary": "**Format**: `Explore [target] with [approach] to discover [concern]`",
+      "anchor": "1-charter-quality-2324"
+    },
+    "2. Exploration Without a GUI (Ch. 10)": {
+      "summary": "All techniques apply to APIs, CLIs, batch programs, libraries — any interface.",
+      "anchor": "2-exploration-without-a-gui-ch-10"
+    },
+    "3. State Modeling (Ch. 8)": {
+      "summary": "**State detection — Jorgensen's 3 questions** (ask after each probe):",
+      "anchor": "3-state-modeling-ch-8"
+    },
+    "4. Iterative Probe-Learn-Probe": {
+      "summary": "1.",
+      "anchor": "4-iterative-probe-learn-probe"
+    },
+    "5. Implicit Expectations": {
+      "summary": "Stakeholders never state these because they assume they're obvious — highest-value adversarial targets:",
+      "anchor": "5-implicit-expectations"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/fixture-construction.md": {
+    "1. Construction patterns (how the fixture object is built)": {
+      "summary": "| Pattern | What it is | Use when | Cost / risk |",
+      "anchor": "1-construction-patterns-how-the-fixture-object-is-built"
+    },
+    "2. Setup location (where construction runs)": {
+      "summary": "| Location | What it is | Trade-off vs Fresh Fixture isolation |",
+      "anchor": "2-setup-location-where-construction-runs"
+    },
+    "3. Teardown (releasing what the test created)": {
+      "summary": "| Pattern | What it is | Use when |",
+      "anchor": "3-teardown-releasing-what-the-test-created"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-strategy.md`** — *which* fixture (lifecycle/design); this file is *how* it's constructed.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/microservice-testing.md": {
+    "The Layers (per service)": {
+      "summary": "| Layer | Scope | What it verifies | Doubles |",
+      "anchor": "the-layers-per-service"
+    },
+    "Consumer-Driven Contracts (CDC)": {
+      "summary": "The mechanism that lets services deploy independently:",
+      "anchor": "consumer-driven-contracts-cdc"
+    },
+    "What to test where (microservice heuristics)": {
+      "summary": "**Business logic** → unit, in the owning service.",
+      "anchor": "what-to-test-where-microservice-heuristics"
+    },
+    "Smells specific to distributed testing (flag these)": {
+      "summary": "| Smell | Signal | Fix |",
+      "anchor": "smells-specific-to-distributed-testing-flag-these"
+    },
+    "Boundaries": {
+      "summary": "Not every codebase is microservices.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/object-calisthenics.md": {
+    "The Rules": {
+      "summary": "If a method has nested `if`/`for`/`while`, extract the inner block into a named method.",
+      "anchor": "the-rules"
+    },
+    "1. One Level of Indentation Per Method": {
+      "summary": "If a method has nested `if`/`for`/`while`, extract the inner block into a named method.",
+      "anchor": "1-one-level-of-indentation-per-method"
+    },
+    "2. Don't Use the ELSE Keyword": {
+      "summary": "Replace `if/else` with guard clauses (early returns) or polymorphism.",
+      "anchor": "2-dont-use-the-else-keyword"
+    },
+    "3. Wrap All Primitives and Strings": {
+      "summary": "Domain-meaningful primitives become value objects with validation.",
+      "anchor": "3-wrap-all-primitives-and-strings"
+    },
+    "4. First-Class Collections": {
+      "summary": "Any class with a collection field should contain no other fields.",
+      "anchor": "4-first-class-collections"
+    },
+    "5. One Dot Per Line (Law of Demeter)": {
+      "summary": "Don't chain through object graphs.",
+      "anchor": "5-one-dot-per-line-law-of-demeter"
+    },
+    "6. Don't Abbreviate": {
+      "summary": "Names should be intention-revealing.",
+      "anchor": "6-dont-abbreviate"
+    },
+    "7. Keep All Entities Small": {
+      "summary": "Classes: under 200 lines",
+      "anchor": "7-keep-all-entities-small"
+    },
+    "8. No Classes with More Than Two Instance Variables": {
+      "summary": "The spirit: classes should be small and focused.",
+      "anchor": "8-no-classes-with-more-than-two-instance-variables"
+    },
+    "9. No Getters/Setters/Properties (Tell, Don't Ask)": {
+      "summary": "Move behavior into the object that owns the data instead of exposing data for others to operate on.",
+      "anchor": "9-no-getterssettersproperties-tell-dont-ask"
+    },
+    "Applying Pragmatically": {
+      "summary": "These are training exercises, not absolute laws.",
+      "anchor": "applying-pragmatically"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md": {
+    "A01: Broken Access Control": {
+      "summary": "| Pattern | Language | Grep Signal | Category |",
+      "anchor": "a01-broken-access-control"
+    },
+    "A02: Cryptographic Failures": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a02-cryptographic-failures"
+    },
+    "A03: Injection": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a03-injection"
+    },
+    "A04: Insecure Design": {
+      "summary": "| Pattern | Language | Grep Signal | Category |",
+      "anchor": "a04-insecure-design"
+    },
+    "A05: Security Misconfiguration": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a05-security-misconfiguration"
+    },
+    "A06: Vulnerable Components": {
+      "summary": "| Detection method | Language |",
+      "anchor": "a06-vulnerable-components"
+    },
+    "A07: Authentication Failures": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a07-authentication-failures"
+    },
+    "A08: Data Integrity Failures": {
+      "summary": "**Pattern-visible classes detected by semgrep rules (agent assesses exploitability only):**",
+      "anchor": "a08-data-integrity-failures"
+    },
+    "A09: Logging & Monitoring Failures": {
+      "summary": "| Pattern | Language | Grep Signal | Category |",
+      "anchor": "a09-logging-monitoring-failures"
+    },
+    "A10: SSRF": {
+      "summary": "| Pattern | Language | Grep Signal |",
+      "anchor": "a10-ssrf"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/result-verification.md": {
+    "Verification style: state vs behavior": {
+      "summary": "| Style | What it checks | Use when |",
+      "anchor": "verification-style-state-vs-behavior"
+    },
+    "Assertion patterns": {
+      "summary": "| Pattern | What it is | Use when | Fixes |",
+      "anchor": "assertion-patterns"
+    },
+    "Rules": {
+      "summary": "**One logical condition per test.** Several unrelated assertions in one method is an Eager Test — split it (`test-organization.md` / `test-refactoring.md`).",
+      "anchor": "rules"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-smells.md`** — the smells these fix: Assertion Roulette, Obscure Test, Fragile/Overspecified Test, Hard-Coded Values.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/review-output-discipline.md": {
+    "Deterministic status": {
+      "summary": "Agent `status` is a pure function of the highest-severity finding (error->fail, warning/suggestion->warn, none->pass), never of volume; capped findings can lower but never raise status.",
+      "anchor": "deterministic-status"
+    },
+    "Finding grouping": {
+      "summary": "Enumerate -> Classify -> Group: consolidate same-kind findings into one concept-level finding (~3-5 per file); keep error-severity findings individual.",
+      "anchor": "finding-grouping"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/review-rubric.md": {
+    "Health Score Calculation": {
+      "summary": "Collect the status from each agent: `pass`, `warn`, `fail`, `skip`.",
+      "anchor": "health-score-calculation"
+    },
+    "Category Weights": {
+      "summary": "Not all agent failures carry equal weight.",
+      "anchor": "category-weights"
+    },
+    "Issue Severity Mapping": {
+      "summary": "Agent issues map to the report as follows:",
+      "anchor": "issue-severity-mapping"
+    },
+    "Confidence and Actionability": {
+      "summary": "| Confidence | Meaning | Auto-fixable |",
+      "anchor": "confidence-and-actionability"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/review-template.md": {
+    "Report Structure": {
+      "summary": "Use these consistently:",
+      "anchor": "report-structure"
+    },
+    "Severity Icons": {
+      "summary": "Use these consistently:",
+      "anchor": "severity-icons"
+    },
+    "Health Score Icons": {
+      "summary": "| Health | Icon |",
+      "anchor": "health-score-icons"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md": {
+    "Bypass path": {
+      "summary": "Edits to this file are guarded by `hooks/contract-version-guard.sh`.",
+      "anchor": "bypass-path"
+    },
+    "Registries": {
+      "summary": "Agents that produce or consume contract envelopes.",
+      "anchor": "registries"
+    },
+    "Agent IDs": {
+      "summary": "Agents that produce or consume contract envelopes.",
+      "anchor": "agent-ids"
+    },
+    "Skill IDs": {
+      "summary": "Skills that participate in the contract (operate on envelopes or define adapter behavior).",
+      "anchor": "skill-ids"
+    },
+    "Envelope 1 — RECON": {
+      "summary": "Normalized reconnaissance output from `codebase-recon`.",
+      "anchor": "envelope-1-recon"
+    },
+    "`file_inventory` (added in 1.2.0)": {
+      "summary": "An authoritative enumeration of every file the recon considered in-scope at recon time.",
+      "anchor": "fileinventory-added-in-120"
+    },
+    "Consumer error contract": {
+      "summary": "Consumers that depend on `file_inventory` (e.g., Gap 6's PreToolUse hook, or any audit that wants to prove a reviewer didn't silently read outside the recon surface) **must fail-open** when any of the three branches below fires.",
+      "anchor": "consumer-error-contract"
+    },
+    "Envelope 2 — Unified finding": {
+      "summary": "Narrow normalization over SARIF `result` objects.",
+      "anchor": "envelope-2-unified-finding"
+    },
+    "Envelope 3 — Disposition register": {
+      "summary": "Output of `fp-reduction` over unified findings.",
+      "anchor": "envelope-3-disposition-register"
+    },
+    "Envelope 4 — Accepted-risks log (added in v1.3.0)": {
+      "summary": "Per-target suppression log emitted by `scripts/apply-accepted-risks.sh` in the companion plugin.",
+      "anchor": "envelope-4-accepted-risks-log-added-in-v130"
+    },
+    "Envelope 5 — Severity-floors log (added in v1.3.0)": {
+      "summary": "Per-target floor-application log emitted by `scripts/apply-severity-floors.sh` in the companion plugin.",
+      "anchor": "envelope-5-severity-floors-log-added-in-v130"
+    },
+    "Severity mapping (added in v1.1.0)": {
+      "summary": "The unified finding envelope uses a lint-grade severity scale optimized for tool output (`error | warning | suggestion | info`).",
+      "anchor": "severity-mapping-added-in-v110"
+    },
+    "Downstream invariants": {
+      "summary": "The `exec-report-generator` enforces these invariants and rejects (with named errors) any finding that violates them from CRITICAL / HIGH sections.",
+      "anchor": "downstream-invariants"
+    },
+    "Out of contract": {
+      "summary": "Explicitly NOT part of this contract:",
+      "anchor": "out-of-contract"
+    },
+    "Conformance": {
+      "summary": "Schemas live at `plugins/dev-team/knowledge/schemas/{recon-envelope,unified-finding,disposition-register}-v1.json` and must validate using any Draft 2020-12 JSON Schema validator.",
+      "anchor": "conformance"
+    },
+    "Versioning lifecycle": {
+      "summary": "Clarifications and typos → open a PR with `version: 1.0.X` (PATCH).",
+      "anchor": "versioning-lifecycle"
+    },
+    "Changelog": {
+      "summary": "Additive schema release.",
+      "anchor": "changelog"
+    },
+    "1.3.0 (2026-04-24)": {
+      "summary": "Additive schema release.",
+      "anchor": "130-2026-04-24"
+    },
+    "1.2.0 (2026-04-24)": {
+      "summary": "Additive schema release.",
+      "anchor": "120-2026-04-24"
+    },
+    "1.1.0 (2026-04-21)": {
+      "summary": "Additive guidance release.",
+      "anchor": "110-2026-04-21"
+    },
+    "1.0.0 (2026-04-21)": {
+      "summary": "Initial contract.",
+      "anchor": "100-2026-04-21"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-automation-maturity.md": {
+    "Maturity scale (diagnose from evidence, lowest rung first)": {
+      "summary": "| Rung | Signal in the suite | Risk |",
+      "anchor": "maturity-scale-diagnose-from-evidence-lowest-rung-first"
+    },
+    "Single-Point-of-Change test": {
+      "summary": "Pick one volatile detail (a CSS selector, an endpoint path, a field name).",
+      "anchor": "single-point-of-change-test"
+    },
+    "Abstraction patterns": {
+      "summary": "**Page Object / API client / DSL** — a façade exposing domain actions (`loginAs(user)`, `placeOrder(...)`), hiding selectors/HTTP.",
+      "anchor": "abstraction-patterns"
+    },
+    "Smell: UI-based setup": {
+      "summary": "Driving the **UI** to establish preconditions (clicking through signup just to test checkout) is slow and flaky.",
+      "anchor": "smell-ui-based-setup"
+    },
+    "Graduated disclosure (don't over-build)": {
+      "summary": "Scale abstraction to suite size, not aspiration:",
+      "anchor": "graduated-disclosure-dont-over-build"
+    },
+    "Boundaries": {
+      "summary": "Maturity is about **maintainability under change**, not coverage or correctness — those are `test-design-reviewer` and `test-review`.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-doubles.md": {
+    "The Five Doubles": {
+      "summary": "| Double | What it does | Verification style | Use when |",
+      "anchor": "the-five-doubles"
+    },
+    "State Verification vs. Behavior Verification": {
+      "summary": "| | State verification | Behavior verification |",
+      "anchor": "state-verification-vs-behavior-verification"
+    },
+    "Choosing a Double (decision flow)": {
+      "summary": "---",
+      "anchor": "choosing-a-double-decision-flow"
+    },
+    "Common Misuses (flag these)": {
+      "summary": "| Misuse | Why it's wrong | Fix |",
+      "anchor": "common-misuses-flag-these"
+    },
+    "Relationship to testability": {
+      "summary": "If a collaborator can't be substituted at all (new-ed up internally, static singleton, hidden global), that's a **production-code** problem, not a test problem — introduce a seam per `testability-patterns.md` (constructor injection, interface extraction) before choosing a double.",
+      "anchor": "relationship-to-testability"
+    },
+    "Boundaries": {
+      "summary": "Don't flag a Fake (in-memory repo/DB) as \"not testing the real thing\" — at unit/integration level a Fake is a legitimate, often *better*, choice than a heavily-stubbed real dependency.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-layer-gates.md": {
+    "The gates (before pyramid placement)": {
+      "summary": "**Gate A — user-facing dynamic.** The user acts and must *see* a rendered result.",
+      "anchor": "the-gates-before-pyramid-placement"
+    },
+    "Redundancy check (business-critical only, after placement)": {
+      "summary": "A business-critical behavior at only one layer → flag it, name a second layer with a **different failure mode**, and give a concrete recommendation.",
+      "anchor": "redundancy-check-business-critical-only-after-placement"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-organization.md": {
+    "The Four-Phase Test (the anchor)": {
+      "summary": "Every test follows four phases, visibly separated:",
+      "anchor": "the-four-phase-test-the-anchor"
+    },
+    "Testcase Class grouping": {
+      "summary": "| Grouping | One class per… | Use when | Trade-off |",
+      "anchor": "testcase-class-grouping"
+    },
+    "Sharing logic: composition over inheritance": {
+      "summary": "| Mechanism | What it is | Use when |",
+      "anchor": "sharing-logic-composition-over-inheritance"
+    },
+    "Parameterized Test": {
+      "summary": "When several test methods differ only by input/expected **data**, collapse them into a **Parameterized Test** — one test logic over many data rows.",
+      "anchor": "parameterized-test"
+    },
+    "Test Discovery / Enumeration / Selection + naming": {
+      "summary": "The runner finds tests by **Test Discovery** (convention/annotation), builds a **Test Enumeration**, and runs a selected subset.",
+      "anchor": "test-discovery-enumeration-selection-naming"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`fixture-construction.md`** — the Setup/Teardown phases.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-pyramid.md": {
+    "The Layers": {
+      "summary": "| Layer | Scope | Speed | Doubles | What it proves |",
+      "anchor": "the-layers"
+    },
+    "Layer-Selection Heuristics": {
+      "summary": "Ask, for each thing you want to verify:",
+      "anchor": "layer-selection-heuristics"
+    },
+    "Anti-Patterns": {
+      "summary": "| Anti-pattern | Shape | Symptom | Fix |",
+      "anchor": "anti-patterns"
+    },
+    "Other shapes (a strategy lens)": {
+      "summary": "The pyramid is the default, but the *right silhouette follows the architecture*.",
+      "anchor": "other-shapes-a-strategy-lens"
+    },
+    "Shape ↔ architecture fit": {
+      "summary": "| If the codebase is… | Expected shape | A different shape signals |",
+      "anchor": "shape-architecture-fit"
+    },
+    "How to use this during review": {
+      "summary": "A unit-level test doing **real I/O** (DB, network, disk, sleep) is mis-layered → flag as **Slow Tests** smell; move the I/O to an integration test and double the boundary at unit level.",
+      "anchor": "how-to-use-this-during-review"
+    },
+    "Boundaries": {
+      "summary": "The pyramid is a heuristic, not a quota.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-refactoring.md": {
+    "1. Goals & Principles (the criteria a refactoring moves toward)": {
+      "summary": "**Goals — a good automated test is:**",
+      "anchor": "1-goals-principles-the-criteria-a-refactoring-moves-toward"
+    },
+    "2. Test Refactoring catalog (the behavior-preserving moves)": {
+      "summary": "Each move removes a named smell (`test-smells.md`) and targets a pattern in a sibling file:",
+      "anchor": "2-test-refactoring-catalog-the-behavior-preserving-moves"
+    },
+    "Decision flow": {
+      "summary": "1.",
+      "anchor": "decision-flow"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-smells.md`** — the smells each refactoring removes.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-smells.md": {
+    "Smell Categories": {
+      "summary": "xUnit Test Patterns groups smells into three levels.",
+      "anchor": "smell-categories"
+    },
+    "Code Smells (single test, readable now)": {
+      "summary": "| Smell | Detection signal | Why it hurts | Fix |",
+      "anchor": "code-smells-single-test-readable-now"
+    },
+    "Behavior Smells (only visible when tests run)": {
+      "summary": "| Smell | Detection signal | Why it hurts | Fix |",
+      "anchor": "behavior-smells-only-visible-when-tests-run"
+    },
+    "Project Smells (visible across the suite over time)": {
+      "summary": "| Smell | Detection signal | Why it hurts | Fix |",
+      "anchor": "project-smells-visible-across-the-suite-over-time"
+    },
+    "Detection Workflow": {
+      "summary": "1.",
+      "anchor": "detection-workflow"
+    },
+    "Boundaries": {
+      "summary": "A single behavior asserted with several related assertions on one object is **not** Eager Test or Assertion Roulette — that's normal.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-strategy.md": {
+    "1. Test Fixture Strategy": {
+      "summary": "The fixture is everything the test needs in place before it acts.",
+      "anchor": "1-test-fixture-strategy"
+    },
+    "2. Test Automation Strategy": {
+      "summary": "How the test is written and driven.",
+      "anchor": "2-test-automation-strategy"
+    },
+    "3. SUT Interaction Strategy": {
+      "summary": "How the test reaches the system under test.",
+      "anchor": "3-sut-interaction-strategy"
+    },
+    "How this connects to the rest of the toolkit": {
+      "summary": "**`test-doubles.md`** — once Layer Test or Back Door Manipulation needs a collaborator stand-in, choose the double there.",
+      "anchor": "how-this-connects-to-the-rest-of-the-toolkit"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/testability-patterns.md": {
+    "\"I Can't Test This Class\" Decision Flow": {
+      "summary": "---",
+      "anchor": "i-cant-test-this-class-decision-flow"
+    },
+    "Pattern 1: Constructor Injection (Replace Static Factories / Singletons)": {
+      "summary": "**Problem**: A class creates its own dependencies internally — `new ConcreteService()`, `ServiceLocator.get(T)`, static calls.",
+      "anchor": "pattern-1-constructor-injection-replace-static-factories-singletons"
+    },
+    "Pattern 2: Test Data Builder": {
+      "summary": "**Problem**: Domain objects with many properties are painful to construct in every test.",
+      "anchor": "pattern-2-test-data-builder"
+    },
+    "Pattern 3: Interface Extraction for Large Contexts": {
+      "summary": "**Problem**: Classes depend on a large context object with many properties.",
+      "anchor": "pattern-3-interface-extraction-for-large-contexts"
+    },
+    "Pattern 4: Fake Data Generators (Test Data with Variation)": {
+      "summary": "**Problem**: Tests need realistic but controlled test data across many scenarios.",
+      "anchor": "pattern-4-fake-data-generators-test-data-with-variation"
+    },
+    "Anti-Patterns Table": {
+      "summary": "| Anti-Pattern | Why It's Wrong | Correct Alternative |",
+      "anchor": "anti-patterns-table"
+    },
+    "References": {
+      "summary": "Michael Feathers, *Working Effectively with Legacy Code* — seam insertion, Parameterize Constructor, Extract Interface",
+      "anchor": "references"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/testing-quadrants.md": {
+    "The Four Quadrants": {
+      "summary": "| Q | Facing × Stance | Tests | Mode |",
+      "anchor": "the-four-quadrants"
+    },
+    "Reading coverage against the quadrants": {
+      "summary": "For each quadrant, classify the suite as **strong / thin / empty**, then name the business impact of a gap:",
+      "anchor": "reading-coverage-against-the-quadrants"
+    },
+    "Anti-pattern: \"Q3 as the gate\"": {
+      "summary": "Leaning on manual exploratory/UAT (Q3) as the *primary* safety net — instead of Q1/Q2 automation — is the quadrant form of the ice-cream cone (`test-pyramid.md`).",
+      "anchor": "anti-pattern-q3-as-the-gate"
+    },
+    "Boundaries": {
+      "summary": "A suite need not fill every quadrant equally — weight by risk.",
+      "anchor": "boundaries"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/task-size-classifier.md": {
+    "Signals": {
+      "summary": "Objective signals: files_changed, loc_delta, slice_count, wave_count, has_complex_step, decision_axis_triggered.",
+      "anchor": "signals-estimate-before-implementation-measure-after"
+    },
+    "Tiers": {
+      "summary": "trivial (all small thresholds) / complex (any large threshold or decision axis) / standard (between); bias up when ambiguous.",
+      "anchor": "tiers"
+    },
+    "What each tier triggers (mapped to the plan gate)": {
+      "summary": "trivial -> /scope --trivial fast path (gates kept); standard/complex -> /scope needs-plan; complex escalates opus-tier review.",
+      "anchor": "what-each-tier-triggers-mapped-to-the-plan-gate"
+    },
+    "Decision logging": {
+      "summary": "Record signals, tier, and rationale in memory/decisions.md.",
+      "anchor": "decision-logging"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/deployment-pipeline.md": {
+    "Principles (non-negotiable)": {
+      "summary": "Build once, deploy the same way everywhere, prod-like envs, instant propagation, prod locked down, stop the line.",
+      "anchor": "principles-non-negotiable"
+    },
+    "The stages (ordered)": {
+      "summary": "Commit (fast) -> Acceptance -> Capacity/nonfunctional -> Manual/UAT -> Release; same artifact promoted.",
+      "anchor": "the-stages-ordered"
+    },
+    "Review checks (flag in a pipeline review)": {
+      "summary": "Rebuilt-per-env, non-prod-like stage, slow commit stage, manual prod steps, no rollback.",
+      "anchor": "review-checks-flag-in-a-pipeline-review"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/cd-maturity-model.md": {
+    "Six practice areas": {
+      "summary": "Build/CI, environments/deploy, release/compliance, testing, data, configuration.",
+      "anchor": "six-practice-areas"
+    },
+    "Five levels (per area)": {
+      "summary": "-1 Regressive, 0 Repeatable, 1 Consistent, 2 Quantitatively managed, 3 Optimizing; score each area.",
+      "anchor": "five-levels-per-area"
+    },
+    "How to improve (Deming / PDCA)": {
+      "summary": "Map value stream, find constraint, smallest change up one level, measure, repeat.",
+      "anchor": "how-to-improve-deming-pdca"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/release-strategies.md": {
+    "Decouple deployment from release": {
+      "summary": "Feature toggles, branch by abstraction, dark launching, keep mainline releasable.",
+      "anchor": "decouple-deployment-from-release"
+    },
+    "Deployment patterns": {
+      "summary": "Blue-green / canary / rolling / recreate, each with rollback and trade-off.",
+      "anchor": "deployment-patterns"
+    },
+    "Rollback is a practiced capability, not a hope": {
+      "summary": "Rehearse rollback; redeploy last known-good; pair with expand/contract.",
+      "anchor": "rollback-is-a-practiced-capability-not-a-hope"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/database-change-management.md": {
+    "Everything is a versioned migration": {
+      "summary": "Scripted, version-controlled, tool-owned migrations with tested rollbacks; no manual SQL.",
+      "anchor": "everything-is-a-versioned-migration"
+    },
+    "Expand / contract (parallel-change)": {
+      "summary": "Expand -> migrate (write both, read new) -> contract in a later release.",
+      "anchor": "expand--contract-parallel-change"
+    },
+    "Review checks (flag these)": {
+      "summary": "Same-release drop/rename, missing rollback, NOT NULL without backfill, atomic app+schema assumption.",
+      "anchor": "review-checks-flag-these"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/dependency-breaking-techniques.md": {
+    "How to choose (by what blocks you)": {
+      "summary": "Decision table mapping the blocker to the lowest-risk seam technique.",
+      "anchor": "how-to-choose-by-what-blocks-you"
+    },
+    "The catalog (grouped)": {
+      "summary": "Sprout/Wrap, parameterize, extract & override, extract interface, tame globals, method object, language seams.",
+      "anchor": "the-catalog-grouped"
+    },
+    "Most common in practice": {
+      "summary": "Extract Interface, Parameterize Constructor, Subclass & Override, Extract & Override Call/Factory, Sprout/Wrap.",
+      "anchor": "most-common-in-practice"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/value-patterns.md": {
+    "The four value sources": {
+      "summary": "Literal, Derived, Generated, Dummy — each with use-case and risk.",
+      "anchor": "the-four-value-sources"
+    },
+    "Choosing a source": {
+      "summary": "Behavior-dependent -> literal; derived rule -> derived; unique/irrelevant -> generated (distinct, not random); unused -> dummy.",
+      "anchor": "choosing-a-source"
+    },
+    "Notes that matter": {
+      "summary": "Distinct over random; generate only for uniqueness; significant loud / anonymous quiet; dummy != stub.",
+      "anchor": "notes-that-matter"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/legacy-test-strategy.md": {
+    "1. Reason about effects": {
+      "summary": "List what changes a method's observable result to decide what's worth testing.",
+      "anchor": "1-reason-about-effects"
+    },
+    "3. Find interception & pinch points": {
+      "summary": "Pinch point = narrow spot where 1-2 methods detect many changes; ideal characterization-test anchor.",
+      "anchor": "3-find-interception--pinch-points"
+    },
+    "5. Edit safely while getting there": {
+      "summary": "Lean on the compiler, preserve signatures, single-goal + hyperaware editing in untested code.",
+      "anchor": "5-edit-safely-while-getting-there"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/database-test-patterns.md": {
+    "Does this test need a real DB at all?": {
+      "summary": "Business logic -> Fake; mapping/schema/ORM -> real DB is the SUT; stored procs -> real engine.",
+      "anchor": "does-this-test-need-a-real-db-at-all"
+    },
+    "Isolation (no Test Run Wars)": {
+      "summary": "Sandbox per run (dedicated or schema-per-runner); within-run independence still needs fresh fixture + teardown.",
+      "anchor": "isolation-no-test-run-wars"
+    },
+    "Teardown (leave no trace)": {
+      "summary": "Prefer transaction rollback; truncate (FK-safe) when the SUT commits.",
+      "anchor": "teardown-leave-no-trace"
+    },
+    "CD pipeline placement": {
+      "summary": "Real DB ~50x slower -> Fakes pre-merge, narrow real-DB band later; no manual seeding.",
+      "anchor": "cd-pipeline-placement"
+    }
+  },
+  "plugins/dev-team/skills/dev-team-knowledge/test-automation-principles.md": {
+    "Goals (what the suite buys you)": {
+      "summary": "Spec/docs/defect-localization/bug-repellent/automated/self-checking/repeatable/robust/simple.",
+      "anchor": "goals-what-the-suite-buys-you"
+    },
+    "Principles (rule → remedy)": {
+      "summary": "Design for testability, front door, communicate intent, independent, isolate, one condition, commensurate effort.",
+      "anchor": "principles-rule--remedy"
+    },
+    "Using this as a rubric": {
+      "summary": "Name at-risk goals -> trace to violated principle -> locate remedy; severity buggy/erratic > obscure/fragile.",
+      "anchor": "using-this-as-a-rubric"
+    }
+  }
+}

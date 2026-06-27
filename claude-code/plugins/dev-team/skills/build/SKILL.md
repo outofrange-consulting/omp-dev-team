@@ -1,0 +1,125 @@
+---
+name: build
+description: >-
+  Execute an approved implementation plan. Reads the plan, implements each step (tests required for behavior changes; test-first ordering is not), gates each step on /impl-verify, runs inline review checkpoints, and produces verification evidence. Use when the user says "build this", "implement the plan", "start building", or after /plan has been approved.
+argument-hint: "[--plan <path>]"
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - Task
+---
+
+# Build
+
+Role: orchestrator. This command implements an approved plan — it does not create plans or specs.
+
+You have been invoked with the `/build` command.
+
+## Orchestrator constraints
+
+1. **Follow the plan exactly.** If the plan is wrong, stop and ask the user — do not deviate silently.
+2. **Every step ships tests.** Tests are required for behavior changes; test-first ordering is **not** (write code and tests in any order). A step is done only when `/impl-verify` reports its strict build + tests green (`tests-required` rule).
+3. **Incremental.** Each step must leave the codebase in a working, committable state.
+4. **Verification evidence required.** Paste the fresh `/impl-verify` verdict before claiming a step is done.
+5. **Review checkpoints.** After each unit of work, run inline review (spec-compliance first, then quality agents). Max 2 correction iterations before escalating.
+6. **Be concise.** Report step status and verification evidence, no narration.
+
+## Parse Arguments
+
+Arguments: $ARGUMENTS
+
+- `--plan <path>`: Path to the plan file. If omitted, search `plans/` for the most recently modified plan with status `approved`.
+
+## Steps
+
+### 1. Find the plan
+
+If `--plan` was provided, read that file. Otherwise, search `plans/` for `.md` files and find the most recently modified one with `**Status**: approved`. If no approved plan is found, tell the user: "No approved plan found. Run `/plan` first, then approve it."
+
+### 2. Verify plan status
+
+Read the plan file. If the status is not `approved`, ask the user: "This plan has status '<status>'. Approve it before building, or continue anyway?"
+
+### 3. Verify acceptance criteria (gate)
+
+Before implementation begins, dispatch a spec-compliance-review subagent in **criteria verification mode** (see `${CLAUDE_PLUGIN_ROOT}/prompts/spec-reviewer.md` § Pre-build criteria verification mode). Pass the plan's acceptance criteria and per-step test expectations.
+
+The reviewer evaluates each criterion for:
+
+- **Specificity**: Could two developers independently verify this criterion and agree on pass/fail?
+- **Testability**: Can this criterion be validated with a test or observable output?
+- **Completeness**: Are edge cases and error conditions addressed?
+
+If any criteria are flagged:
+
+1. Present the findings to the user with the reviewer's suggested improvements
+2. Ask: "Revise these criteria before building, or proceed anyway?"
+3. If the user overrides, log the override in the build output and continue
+4. If the user revises, update the plan file and re-verify
+
+### 4. Implement each step
+
+Work the plan **wave by wave** using the `## Parallelization` section (the waves derived from each slice's `Depends-on`). Within a wave, independent slices may build concurrently; a barrier holds the next wave until the current one is reconciled green.
+
+**Resolve effective concurrency first.** The effective number of slices to build at once is `min(slices in the wave, DEV_TEAM_MAX_PARALLEL_BUILDS)` — default max **2**; a non-positive or non-integer value clamps to **1**.
+
+- **Sequential fallback (effective concurrency = 1):** a fully-dependent plan (every wave has one slice), `DEV_TEAM_MAX_PARALLEL_BUILDS=1`, or a harness without parallel `task` fan-out → build slices one at a time in dependency order in a single worktree. No worktree fan-out, no reconcile step.
+- **Concurrent dispatch (effective concurrency > 1):**
+  1. Dispatch each independent slice in the wave to its **own** git worktree via the `task` tool (`isolation: "worktree"`), up to the effective concurrency. Each slice's changes stay isolated until reconcile, and each slice still runs its tests via `/impl-verify` and inline review gates.
+  2. **Report the concrete level and cost**, e.g. *"building wave 2 — 2 slices concurrently; faster wall-clock but burns token budget faster."*
+  3. **Barrier + reconcile** once the wave's slices finish: merge the slice worktrees into the integration branch order-independently and run the full test suite before any next-wave slice starts.
+  4. **Loud halt, never silent:**
+     - A **failing slice** → stop the wave, name the failing slice, list which same-wave slices succeeded and where their (preserved) worktrees are, and start no next-wave slice. Resume rebuilds only the incomplete slice.
+     - A **reconcile conflict** (two same-wave diffs touch one file — the Parallelization Critic should have caught this at plan time) → stop, name the file, pick no side, and start no next-wave slice.
+
+For each step within a slice, dispatch implementation following the implementer template (`${CLAUDE_PLUGIN_ROOT}/prompts/implementer.md`). Pass the implementer its step **and the slice's Gherkin scenario(s)** — the scenarios are the behavioral contract the step's test must satisfy.
+
+1. **Implement** — Write the step's code **and its tests** (in whichever order fits — test-first is not required), covering the slice scenario it traces to. Don't add behavior beyond what the step and its tests require.
+2. **Verify (hard gate)** — Run **`/impl-verify`** (strict stack build + tests, bounded fix counter). **PASS** → proceed. **FAIL** → fix the *cause* and re-run; never silence the gate (`no-disable-analyzers`). **HALT** (fix budget spent) → escalate to the human. Paste the verdict as evidence.
+3. **Refactor (after green — the test-after refactoring step)** — Take a deliberate refactor pass on **every** step once tests are green: scan for structure, naming, duplication, and reinvented built-ins (the `refactor-opportunity-review` lens), apply behavior-preserving cleanups, then re-run `/impl-verify` and keep it green. The pass is always taken; making changes is conditional on finding a real opportunity. This is the *refactoring* half of omp's test-after-with-refactoring — don't skip it. Refactors beyond the step's scope are logged as follow-ups, not done inline.
+4. **Inline review checkpoint** — Route review depth based on the step's **Complexity** classification:
+   - **trivial**: Skip inline review. The final `/code-review` (step 6) covers all modified files.
+   - **standard**: Run `/review-agent spec-compliance-review` against changed files. If it passes, run quality review agents relevant to what changed. If review finds actionable issues (error/warning with high/medium confidence), auto-fix and re-run failed agents (up to 5 iterations per the review-fix loop in `agents/orchestrator.md`). Escalate to user if the loop doesn't converge.
+   - **complex**: Run `/review-agent spec-compliance-review`, then the full quality agent suite including opus-tier agents (security-review, domain-review, arch-review). Same review-fix loop applies.
+   - If no complexity is specified, default to **standard**.
+   - **UI changes (any complexity)**: After quality review passes, run browser verification via `/browse` in automated smoke test mode. Skip with warning if the dev server is not running. See `agents/orchestrator.md` Stage 3.
+5. **Mark step done** — Use the Edit tool to update the plan file's `## Build Progress` section on disk:
+   - Change `- [ ] Step N.M: <title>` to `- [x] Step N.M: <title>` for the completed step.
+   - When every step under a slice is `[x]`, check off the parent `- [ ] Slice N: <title>`.
+   - For each acceptance criterion verified by this step, change `- [ ]` to `- [x]` in the Build Progress `### Acceptance Criteria` subsection.
+   - After all slices are `[x]`, change `**Status**: approved` to `**Status**: in-progress`.
+   - This disk write is the durable commit. If a `/clear` occurs, `/continue` reads `## Build Progress` to determine the resume point without needing conversation history.
+
+### 5. Run full test suite
+
+After all steps are complete, run the full test suite. Paste the output as final verification evidence.
+
+### 6. Run code review
+
+Run `/code-review` against all files modified during the build.
+
+### 7. Update plan status
+
+Use the Edit tool to change `**Status**: in-progress` to `**Status**: implemented` in the plan file. Briefly confirm completion and direct the user to `/pr`.
+
+## Escalation
+
+Stop and ask the user when:
+
+- A test fails for an unexpected reason after 3 attempts
+- The plan requires architectural decisions not covered by the plan
+- A review checkpoint fails after 2 correction iterations
+- You discover the plan is incomplete or contradictory
+
+## Integration
+
+- `/specs` produces the intent, architecture, and acceptance-criteria artifacts that inform the plan
+- `/plan` decomposes the feature into slices, authors each slice's Gherkin, and produces the plan this command executes
+- `/code-review` runs the full review suite after implementation
+- `/pr` creates the pull request after a successful build
+- `/continue` can resume a partially completed build across sessions
+- The progress-guardian agent tracks step completion against the plan

@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+// devteam-impl-verify — stable PATH entrypoint for the deterministic build+test
+// gate. CommonJS launcher that execs the ESM logic in ../hooks/impl-verify.mjs.
+"use strict";
+const { spawnSync } = require("child_process");
+const { join } = require("path");
+const r = spawnSync(process.execPath, [join(__dirname, "..", "hooks", "impl-verify.mjs"), ...process.argv.slice(2)], { stdio: "inherit" });
+process.exit(r.status === null ? 1 : r.status);
