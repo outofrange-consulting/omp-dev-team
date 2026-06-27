@@ -48,6 +48,9 @@ Three external layers on top of what OMP already does natively. Run
 - Don't re-read an unchanged file to "refresh" — it's **deduped** (a stub is
   returned; the earlier read is still in context). Same for re-pasting/echoing
   the same large output: byte-identical repeated blocks are collapsed each call.
+- Want to *see* live cost / prompt-cache health (read-rate, churn, $, thinking
+  share, provider quota) — or check whether `lite`/`full` compression is busting
+  the cached prefix → run **`/cache-health`** (the read-only `cache-meter`).
 - Verbose **old prose** context is already squeezed at `safe` by default
   (near-lossless; code/paths/numbers byte-identical, recency window untouched).
   For more, set `TOKEN_DIET_CONTEXT_COMPRESS=lite|full` (lossy — drops

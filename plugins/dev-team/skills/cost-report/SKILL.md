@@ -21,6 +21,17 @@ Token usage is not available to hooks, so the `Stop`/`SubagentStop` hook
 tokens to dollars via `skill://dev-team-knowledge/model-pricing.json`. This skill reports that
 data.
 
+> **Note (current OMP).** The "token usage is not available to hooks" line above
+> reflects the Claude-Code-era port. Current OMP **does** surface per-turn billing
+> to extensions: every assistant message carries `usage`
+> (input/output/**cacheRead/cacheWrite**/`cost`/`reasoningTokens`) on the
+> `turn_end`/`message_end` events, and provider rate-limit headers arrive on
+> `after_provider_response`. token-diet's read-only **`cache-meter`** extension
+> (`/cache-health`) already consumes this live for prompt-cache read-rate, churn,
+> cost, thinking-share and quota. The transcript-parsing `cost_meter.py` this
+> skill documents is **not present in this repo**; until it (or a live port over
+> `turn_end.usage`) is implemented, prefer `/cache-health` for live numbers.
+
 ## Steps
 
 1. **Per-session breakdown.** If the user passes `--transcript <path>` (or you
