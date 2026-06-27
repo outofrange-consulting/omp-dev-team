@@ -15,22 +15,24 @@ allowed-tools: >-
 
 Role: worker. Reports runtime cost/token spend captured by the cost meter.
 
-Token usage is not available to hooks, so the `Stop`/`SubagentStop` hook
-(`hooks/cost-meter.sh`) records a per-session summary to
-`metrics/cost-metering.jsonl` by parsing the session transcript, converting
-tokens to dollars via `skill://dev-team-knowledge/model-pricing.json`. This skill reports that
-data.
+Token cost is recoverable two ways, both converting tokens→dollars via
+`skill://dev-team-knowledge/model-pricing.json`:
 
-> **Note (current OMP).** The "token usage is not available to hooks" line above
-> reflects the Claude-Code-era port. Current OMP **does** surface per-turn billing
-> to extensions: every assistant message carries `usage`
-> (input/output/**cacheRead/cacheWrite**/`cost`/`reasoningTokens`) on the
-> `turn_end`/`message_end` events, and provider rate-limit headers arrive on
-> `after_provider_response`. token-diet's read-only **`cache-meter`** extension
-> (`/cache-health`) already consumes this live for prompt-cache read-rate, churn,
-> cost, thinking-share and quota. The transcript-parsing `cost_meter.py` this
-> skill documents is **not present in this repo**; until it (or a live port over
-> `turn_end.usage`) is implemented, prefer `/cache-health` for live numbers.
+- **Live (current OMP).** Every assistant message carries per-turn `usage`
+  (input/output/**cacheRead/cacheWrite**/`cost`/`reasoningTokens`) on the
+  `turn_end`/`message_end` events, and provider rate-limit headers arrive on
+  `after_provider_response`. token-diet's read-only **`cache-meter`** extension
+  consumes this for **`/cache-health`** (prompt-cache read-rate, churn, cost,
+  thinking-share, quota). Prefer it for live numbers.
+- **Post-hoc (transcript).** A `Stop`/`SubagentStop` meter parses the session
+  transcript into `metrics/cost-metering.jsonl` for the per-agent/total report
+  below. **Caveat:** the `hooks/lib/cost_meter.py` this skill documents is **not
+  present in this repo**, so this path is aspirational until it (or a live port
+  over `turn_end.usage`) is implemented — use `/cache-health` meanwhile.
+
+> Historical note: this skill is a Claude-Code-era port that assumed "token usage
+> is not available to hooks." That is no longer true on current OMP (see the Live
+> path above and `docs/upstream-omp-runtime.md`).
 
 ## Steps
 

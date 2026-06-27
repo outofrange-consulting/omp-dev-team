@@ -1,36 +1,31 @@
 ---
 name: unfreeze
 description: >-
-  Lift the scope lock set by /freeze. All files become editable again.
+  Lift a scope lock set by /freeze. Implemented by the freeze-guard extension.
+argument-hint: "<glob> | all"
 user-invocable: true
-allowed-tools: bash(rm *)
+allowed-tools: read
 ---
 
 # Unfreeze
 
-Role: worker. This command removes the file editing scope lock.
+`/unfreeze <glob>` removes specific glob(s) from the freeze set; `/unfreeze all`
+(or no arguments) clears every lock. The **`freeze-guard` extension** owns this —
+there is no state file to delete by hand.
 
-You have been invoked with the `/unfreeze` command.
+## Usage
 
-Arguments: none — operates on the current freeze state.
+- `/unfreeze all` — clear all locks.
+- `/unfreeze src/auth/**` — unlock just that glob (space-separated for several).
 
-## Worker constraints
+## How it works (reference)
 
-1. Clear only the freeze-state file.
-2. Do not edit source.
-3. **Be concise.** Confirm the lock is lifted in one line.
+The command updates the same out-of-tree state `/freeze` writes —
+`~/.omp/state/dev-team/<repoId>/freeze.json` (`{ "globs": [...] }`,
+`OMP_DEVTEAM_STATE_DIR` to relocate). Removing a glob (or `all`) lets the
+extension's `tool_call` guard stop blocking edits to those paths.
 
-## Steps
+## Notes
 
-### 1. Remove freeze state
-
-Delete `hooks/freeze-state.json` if it exists:
-
-```bash
-rm -f hooks/freeze-state.json
-```
-
-### 2. Confirm
-
-Display:
-> Scope lock lifted. All files are editable.
+- Supersedes the earlier Claude-Code-era flow that did `rm hooks/freeze-state.json`
+  — that path is not how freeze state is stored in this repo.

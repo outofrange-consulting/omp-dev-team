@@ -20,27 +20,26 @@ repo wasn't using. This doc tracks the runtime axis.
 | **Native cross-session memory (Mnemopi)** — SQLite + embeddings, tools `recall`/`retain`/`reflect`/`memory_edit`, auto-recall/retain | `mnemopi/*`, `memory-backend/*`, `tools/memory-*.ts` | **OFF by default** (`memory.backend: "off"`). Documented in `docs/mnemopi-coexistence.md`. |
 | Rich event surface — `turn_start/end`, `message_start/update/end`, `before/after_provider_response`, `goal_updated`, `auto_compaction_*`, `tool_*`, `context` | `ExtensionAPI.on(...)` in `types.ts` | Partially used (guards/dedup/compress/meter). Room to grow. |
 
-## Stale assumptions to fix (carried from old OMP / Claude Code)
+## Stale assumptions (carried from old OMP / Claude Code) — RESOLVED
 
-These are accuracy fixes, listed as follow-ups (each is a behavioral-doc change
-that deserves its own small review, so they are **not** bundled here):
+The three skills below were reconciled with current OMP (the fixes are
+documentation/prose only — no extension behavior changed):
 
-1. **`plugins/dev-team/skills/cost-report/SKILL.md:18`** — leads with "Token
-   usage is not available to hooks." It is, now (`turn_end.message.usage`). A
-   "Note (current OMP)" block was already appended (PR #20) and points to
-   `/cache-health`, but the stale lead line and the never-present `cost_meter.py`
-   it documents should be reconciled (either implement a live meter over
-   `turn_end.usage` or rewrite the skill around `cache-meter`).
-2. **`plugins/dev-team/skills/freeze/SKILL.md:37`** (and `unfreeze/SKILL.md`) —
-   instructs writing/deleting `hooks/freeze-state.json`. The live `freeze-guard.ts`
-   extension actually keys state out-of-tree at
-   `~/.omp/state/dev-team/<repoId>/freeze.json` (`extensions/lib/shared.ts`). The
-   skill prose lags the extension; align them so the documented path matches.
-3. **`plugins/dev-team/skills/context-summarization/SKILL.md:28`** — computes
-   context utilization by hand (`(input+output)/window`, with a "turn count > 40"
-   fallback). OMP now exposes live `ctx.getContextUsage()` (already used by
-   dev-team `telemetry.ts:42`); the summarization gate could read it directly
-   instead of estimating.
+1. **`plugins/dev-team/skills/cost-report/SKILL.md`** — ✅ fixed. The stale "Token
+   usage is not available to hooks" lead was replaced with a two-source
+   description (Live: `turn_end.message.usage` via token-diet `cache-meter` /
+   `/cache-health`; Post-hoc: the transcript meter, flagged as aspirational since
+   its `cost_meter.py` is absent).
+2. **`plugins/dev-team/skills/freeze/SKILL.md` + `unfreeze/SKILL.md`** — ✅ fixed.
+   Both rewritten to document the real `freeze-guard` extension: it owns
+   `/freeze`/`/unfreeze`, stores `{ "globs": [...] }` out-of-tree at
+   `~/.omp/state/dev-team/<repoId>/freeze.json` (`OMP_DEVTEAM_STATE_DIR` to
+   relocate), and enforces via the `tool_call` hook. The obsolete
+   `hooks/freeze-state.json` + `pre-tool-guard.sh` flow was removed.
+3. **`plugins/dev-team/skills/context-summarization/SKILL.md`** — ✅ fixed. The
+   utilization measurement now prefers OMP's live `getContextUsage()` `percent`
+   (already surfaced by `telemetry.ts` via `/cost-report`), with the manual
+   `(input+output)/window` estimate kept as a fallback.
 
 ## How to refresh this doc
 

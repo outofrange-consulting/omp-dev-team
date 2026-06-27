@@ -30,7 +30,7 @@ Compress conversation history to keep context utilization below 40%. Uses forget
 | 50-65% | Summarize everything except current task |
 | 65%+ | Full summary to `memory/`, start new conversation |
 
-**Measuring utilization**: `utilization = (input_tokens + output_tokens) / model_context_window`. For Claude 200K: `total_tokens / 200000`. Fallback signals: turn count > 40, many file reads accumulated, degraded output quality.
+**Measuring utilization**: prefer OMP's **live** context usage — `getContextUsage()` returns `{ tokens, contextWindow, percent }`, exposed to extensions/commands and already surfaced by the dev-team `telemetry.ts` extension via `/cost-report` (the `ctx=NN%` field). Use that `percent` directly. When it's unavailable, fall back to the manual estimate `(input_tokens + output_tokens) / model_context_window` (e.g. `total_tokens / 200000` for a 200K window), or the coarse signals: turn count > 40, many accumulated file reads, degraded output quality.
 
 ## The Three Gates
 
