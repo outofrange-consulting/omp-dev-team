@@ -15,6 +15,7 @@ in place of it.
 | **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
+| **mcp-as-cli-skill-creator** (skill) | a schema-heavy MCP server inlines its whole tool schema into the system prompt every request | turns an MCP / OpenAPI / GraphQL into a thin runtime CLI + on-demand skill, keeping its schema **out of the context window** (the ctx7/acli pattern, generalized) | native OMP skill |
 | **read-dedup** + **context-dedup** | re-reads of unchanged files + byte-identical repeated blocks inflate **input** | LOSSLESS, on: re-read → stub; identical blocks collapsed before each call | caveman-code's "Read Dedup", reimplemented on OMP's `tool_call`/`context` hooks |
 | **context-compress** | old **prose** context stays verbose every turn | protect-masked prose shrink of old messages — code/paths/numbers byte-identical (`safe` on by default; `lite`/`full` opt-in) | quality-preserving take on [caveman-code](https://github.com/JuliusBrussee/caveman-code)'s LLMLingua/Provence |
 | **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: a live **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) + `/cache-health` for the full read-rate / churn / cost / thinking-share / provider-quota breakdown; **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers + `ui.setStatus` |
@@ -86,6 +87,15 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   `install.sh` installs the `ctx7` CLI globally. The bundled `context7` skill
   (`skill://context7`) instructs the agent to fetch current docs automatically
   whenever a library, framework, or API is involved.
+- **mcp-as-cli-skill-creator** → a native skill (`skill://mcp-as-cli-skill-creator`)
+  that **generalizes the `ctx7`/`acli` move**: given an MCP server (or OpenAPI /
+  GraphQL endpoint), it generates a thin runtime **CLI** (`~/.local/bin/<tool>`,
+  one subcommand per operation) plus a companion **skill doc**, and keeps the
+  server **out of `.mcp.json`**. The capability stays a bash call away while its
+  JSON schema leaves the system prompt — directly serving the lean tool surface
+  (`discoveryMode: all`). Ships a `references/cli-template.ts` skeleton (MCP-stdio
+  JSON-RPC handshake + arg parsing + compact JSON out). Best for schema-heavy,
+  call-light servers; not for hot-path or streaming/stateful tools.
 - **Lean tool surface** → `config.snippet.yml` sets `tools.discoveryMode: all` with
   an `essentialOverride` hot path (`read, bash, edit, write, find, search, task,
   todo`). OMP otherwise inlines every tool's JSON schema into the system prompt on
