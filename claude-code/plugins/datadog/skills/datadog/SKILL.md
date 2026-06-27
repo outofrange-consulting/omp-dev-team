@@ -49,14 +49,22 @@ pup skills list            # the embedded domain skills/workflows pup ships
   session classification.
 - **docs** — search Datadog documentation.
 
-For guided, multi-step investigations, prefer pup's embedded workflows
-(`pup skills list` shows them, e.g. an SRE-style cross-signal investigation)
-over hand-assembling many low-level calls.
+For guided, multi-step investigations, prefer pup's embedded workflows. Reach them
+**on demand through pup itself** — `pup skills list` enumerates them and
+`pup skills show <name>` / `pup skills run <name>` (see `pup skills --help`) executes
+one — instead of installing them as Claude Code skills. The capability lives in the
+`pup` CLI; you don't need it mirrored into your context to use it.
 
-## Deeper integration (optional)
+## Why this is one umbrella skill (don't bulk-install pup's skills)
 
-Power users can install pup's per-domain skills as first-class Claude Code
-skills by re-running the installer with `--with-skills` (which runs
-`pup skills install claude`, falling back to `pup skills install` if the target
-isn't recognized). It's off by default to keep the skill surface small — this
-umbrella skill plus the `pup` CLI already covers the full product.
+`pup skills install claude` would copy pup's ~30 per-domain skills **and** native
+subagents into `~/.claude/`. Claude Code loads every skill's frontmatter
+`description` into context on every request, so that bulk install is a large,
+permanent context tax for capability you can already reach by calling `pup` here.
+
+This plugin therefore ships **one** umbrella skill that drives `pup` via bash, and
+the installer does **not** run `pup skills install` by default. If you genuinely want
+the per-domain skills/subagents as first-class Claude Code skills (and accept the
+frontmatter cost), opt in explicitly: `install.sh --with-datadog-skills` (or
+`install.ps1 -WithDatadogSkills`). Likewise, avoid `/plugin marketplace add DataDog/pup`
+unless you want that full skill set installed — this umbrella already covers the product.

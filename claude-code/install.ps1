@@ -9,9 +9,13 @@
     -Yes        non-interactive: install all plugins + their default deps
     -NoUpdate   keep tools already installed (don't refresh them)
     -NoNode     skip installing Node.js (required by the plugin hooks/statusline)
+    -WithDatadogSkills  (power users) also run `pup skills install claude`, adding
+                ~30 Datadog domain skills/subagents to ~/.claude — each costs
+                always-on frontmatter context. OFF by default: the single `datadog`
+                umbrella skill drives pup via bash instead.
 #>
 [CmdletBinding()]
-param([switch]$Yes, [switch]$NoUpdate, [switch]$NoNode)
+param([switch]$Yes, [switch]$NoUpdate, [switch]$NoNode, [switch]$WithDatadogSkills)
 $ErrorActionPreference = 'Stop'
 
 $Root     = Split-Path -Parent $MyInvocation.MyCommand.Path   # the claude-code\ dir
@@ -149,7 +153,14 @@ if (Ask "[token-diet] Token-reduction toolkit (statusline + skills)?") {
 if (Ask "[datadog]   Datadog observability via the pup CLI?") {
   $SEL_DD = $true; Plugin-Install 'datadog'
   if (Ask "    +- [pup] install the Datadog pup CLI now?" 'Y') { Install-Pup; Datadog-Auth }
-  if (Ask "    +- also install pup's per-domain skills for Claude Code (pup skills install claude)?" 'N') { if (Have pup) { try { & pup skills install claude } catch { try { & pup skills install } catch {} } } }
+  # Umbrella skill drives pup via bash — do NOT bulk-install pup's ~30 domain skills
+  # (each is a permanent frontmatter cost). Opt in with -WithDatadogSkills.
+  if ($WithDatadogSkills -and (Have pup)) {
+    Say "Installing pup's per-domain skills (-WithDatadogSkills) — adds frontmatter context"
+    try { & pup skills install claude } catch { try { & pup skills install } catch {} }
+  } else {
+    Ok "datadog: using the single umbrella skill (pup drives its domain skills on demand — no frontmatter bloat)"
+  }
 }
 if (Ask "[azure-devops] Official Azure DevOps MCP (@azure-devops/mcp)?" 'N') {
   $SEL_ADO = $true; Ensure-Az; Plugin-Install 'azure-devops'

@@ -14,7 +14,7 @@ ADO MCP, …) one at a time.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | **Agentic dev team** — orchestrator + 30 specialist/critic **subagents**, the `/specs → /plan → /build → /pr` workflow, a **blocking review gate** + advisory plan gate, a **SessionStart operating manual**, and a deterministic `/impl-verify` build+test gate. |
 | **[`token-diet`](plugins/token-diet/)** | **Token reduction** — **ctx-wire** (`ctx-wire init claude` installs its hook), **codebase-memory** MCP (installed via its own Claude-Code-aware installer), a live **cache/cost statusline**, and the **caveman**/**yagni**/**codebase-memory**/**mcp-as-cli-skill-creator** skills. |
-| **[`datadog`](plugins/datadog/)** | **Datadog observability** via the [`pup`](https://github.com/DataDog/pup) CLI. One broad skill drives pup; the installer sets up pup + auth and can run `pup skills install claude`. |
+| **[`datadog`](plugins/datadog/)** | **Datadog observability** via the [`pup`](https://github.com/DataDog/pup) CLI. **One umbrella skill** drives pup on demand; the installer sets up pup + auth and **deliberately skips** `pup skills install claude` (it would add ~30 domain skills/subagents = always-on frontmatter cost). Opt in with `--with-datadog-skills`. |
 | **[`azure-devops`](plugins/azure-devops/)** | **Azure DevOps** via Microsoft's **official [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp)** server — repos, PRs, pipelines, work items, wiki, test plans. Azure-CLI auth (`az login`); org set via plugin `userConfig`. |
 | **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI provider** — route Claude Code through a [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) gateway (Anthropic-compatible OOB) via `ANTHROPIC_BASE_URL`. Config-only. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **GitHub Copilot preset** — run on a Copilot license via the [`copilot-api`](https://github.com/ericc-ch/copilot-api) bridge + `ANTHROPIC_BASE_URL` (Claude Code can't use Copilot models natively). Config-only. |
@@ -71,7 +71,7 @@ have no Claude Code equivalent, so each was re-expressed in a native idiom:
 | `read-dedup`/`context-dedup`/`context-compress` | Dropped (no message-rewrite hook); Claude Code's native compaction + ctx-wire cover it |
 | ctx-wire | `ctx-wire init claude` (installs its Claude Code hook), not bare PATH shims |
 | codebase-memory-mcp | Its own installer auto-detects Claude Code (writes `.mcp.json` + 4 skills + a discovery hook) — so token-diet does **not** bundle a duplicate MCP |
-| pup | `pup skills install claude` + the `datadog` umbrella skill |
+| pup | the `datadog` **umbrella skill** drives pup via bash; `pup skills install claude` is **not** run by default (frontmatter bloat) — opt in via `--with-datadog-skills` |
 | OMP `ado` tool (registerTool) | The **official `@azure-devops/mcp`** server via the plugin's `.mcp.json` (org from `userConfig`) |
 | OMP `cliproxy`/`copilot-preset` (models.yml provider) | Native `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` redirection — wired by the installer into `settings.json` `env` |
 | `~/.omp/agent/config.yml` (YAML append-merge) | `~/.claude/settings.json` (**structural JSON merge** — fixes the OMP YAML-corruption flaw) |

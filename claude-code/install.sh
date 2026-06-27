@@ -13,16 +13,21 @@
 #   --insecure-tls   disable TLS cert verification for this run (corporate MITM);
 #                    also via CC_INSECURE_TLS=1. Prefer --ca-file.
 #   --ca-file=PATH   trust a corporate root CA for node/curl/git (keeps verify ON)
+#   --with-datadog-skills  (power users) also run `pup skills install claude`, which
+#                    adds ~30 Datadog domain skills/subagents to ~/.claude — every
+#                    one costs always-on frontmatter context. OFF by default: the
+#                    single `datadog` umbrella skill drives pup via bash instead.
 #   -h, --help       this help
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # the claude-code/ dir
 MARKET="cc-dev-team"
-YES=0; NO_UPDATE=0; NODE=1; INSECURE_TLS=0; CA_FILE="${CC_CA_FILE:-}"
+YES=0; NO_UPDATE=0; NODE=1; INSECURE_TLS=0; CA_FILE="${CC_CA_FILE:-}"; WITH_DD_SKILLS=0
 for a in "$@"; do case "$a" in
   -y|--yes) YES=1 ;; --no-update) NO_UPDATE=1 ;; --no-node) NODE=0 ;;
   --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
-  -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+  --with-datadog-skills) WITH_DD_SKILLS=1 ;;
+  -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -232,7 +237,15 @@ fi
 if ask "[datadog]   Datadog observability via the pup CLI?"; then
   SEL_DD=1; plugin_install datadog
   ask "    └─ [pup] install the Datadog pup CLI now?" "Y" && { install_pup; datadog_auth; }
-  ask "    └─ also install pup's per-domain skills for Claude Code (pup skills install claude)?" "N" && { have pup && { pup skills install claude || pup skills install || true; }; }
+  # The umbrella `datadog` skill drives pup via bash — we deliberately do NOT run
+  # `pup skills install claude` (it would add ~30 domain skills/subagents, each a
+  # permanent frontmatter cost). Power users can opt in with --with-datadog-skills.
+  if [ "$WITH_DD_SKILLS" = 1 ] && have pup; then
+    say "Installing pup's per-domain skills (--with-datadog-skills) — adds frontmatter context"
+    pup skills install claude || pup skills install || true
+  else
+    ok "datadog: using the single umbrella skill (pup drives its domain skills on demand — no frontmatter bloat)"
+  fi
 fi
 
 if ask "[azure-devops] Official Azure DevOps MCP (@azure-devops/mcp)?" "N"; then
