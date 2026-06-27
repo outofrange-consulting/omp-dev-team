@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
   "mcpServers": {
-    "codegraph": {
-      "command": "codegraph",
-      "args": ["serve", "--mcp"],
+    "codebase-memory-mcp": {
+      "command": "codebase-memory-mcp",
+      "args": [],
       "enabled": true
     }
   }

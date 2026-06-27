@@ -131,7 +131,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:Path = "$env:LOCALAPPDATA\omp;$env:LOCALAPPDATA\codegraph\current\bin;$HOME\.local\bin;$HOME\.bun\bin;$HOME\.cargo\bin;$env:Path"
+          $env:Path = "$env:LOCALAPPDATA\omp;$env:LOCALAPPDATA\Programs\codebase-memory-mcp;$HOME\.local\bin;$HOME\.bun\bin;$HOME\.cargo\bin;$env:Path"
           omp --version
           $list = omp plugin list 2>$null
           $list

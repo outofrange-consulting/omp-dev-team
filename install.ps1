@@ -112,7 +112,7 @@ else { Say "Installing OMP (latest)"; Run "irm https://omp.sh/install.ps1 | iex"
 Ensure-Path (Join-Path $HOME ".local\bin")
 if ($OnWindows) {
   Ensure-Path (Join-Path $env:LOCALAPPDATA 'omp')
-  Ensure-Path (Join-Path $env:LOCALAPPDATA 'codegraph\current\bin')
+  Ensure-Path (Join-Path $env:LOCALAPPDATA 'Programs\codebase-memory-mcp')
 } else { Ensure-Path (Join-Path $HOME '.bun\bin') }
 if (-not (Have omp)) { Warn "omp not on PATH yet — open a new shell after this" }
 
@@ -261,7 +261,7 @@ if (Ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?"
 if (Ask "Install copilot-preset (route models through GitHub Copilot)?") {
   Plug 'copilot-preset' (Join-Path $Root 'plugins\copilot-preset'); $SEL_COPILOT = $true
 }
-if (Ask "Install token-diet (ctx-wire + CodeGraph + caveman + yagni + acli + LSP)?") {
+if (Ask "Install token-diet (ctx-wire + codebase-memory-mcp + caveman + yagni + acli + LSP)?") {
   Plug 'token-diet' (Join-Path $Root 'plugins\token-diet'); $SEL_TOKENDIET = $true
   Ensure-Path (Join-Path $HOME ".local\bin")
 }
@@ -281,7 +281,7 @@ Write-Mcp
 # --- 4) Doctor -------------------------------------------------------------
 Bold "Doctor"
 foreach ($d in @((Join-Path $HOME '.local\bin'), (Join-Path $HOME '.bun\bin'))) { Ensure-Path $d }
-if ($OnWindows) { foreach ($d in @((Join-Path $env:LOCALAPPDATA 'omp'), (Join-Path $env:LOCALAPPDATA 'codegraph\current\bin'))) { Ensure-Path $d } }
+if ($OnWindows) { foreach ($d in @((Join-Path $env:LOCALAPPDATA 'omp'), (Join-Path $env:LOCALAPPDATA 'Programs\codebase-memory-mcp'))) { Ensure-Path $d } }
 $fail = $false
 function Check ($t, $req, $vc) {
   if (Have $t) {
@@ -294,7 +294,7 @@ Check git  'required'    'git --version'
 Check bun  $(if ($OnWindows) { 'optional' } else { 'required' }) 'bun --version'
 Check node 'recommended' 'node --version'
 Check omp  'required'    'omp --version'
-Check codegraph 'optional' 'codegraph --version'
+Check codebase-memory-mcp 'optional' 'codebase-memory-mcp --version'
 
 Bold "OMP launch check"
 if ((Have omp) -and (omp --version 2>$null)) {

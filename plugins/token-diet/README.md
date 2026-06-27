@@ -11,7 +11,7 @@ in place of it.
 |---|---|---|---|
 | **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk); **EN+FR** filter overrides for `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **context-mode** | native OMP plugin that **sandboxes tool output** and indexes it (FTS5/BM25, language-agnostic) — keeps raw payloads out of context + survives compaction | ~98% on giant/unstructured output; any locale (incl. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
-| **CodeGraph** | MCP symbol/call graph — query instead of grep+read | ~96% on "who calls X / impact / architecture" | [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) |
+| **codebase-memory-mcp** | MCP symbol/call knowledge graph (158 langs, embedded Hybrid LSP) — query instead of grep+read | ~99% on "who calls X / impact / architecture" | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) |
 | **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
@@ -19,18 +19,18 @@ in place of it.
 | **context-compress** | old **prose** context stays verbose every turn | protect-masked prose shrink of old messages — code/paths/numbers byte-identical (`safe` on by default; `lite`/`full` opt-in) | quality-preserving take on [caveman-code](https://github.com/JuliusBrussee/caveman-code)'s LLMLingua/Provence |
 | **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
 | **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
-| **C# LSP** | `csharp-ls` wired as OMP-native language server | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
+| **C# LSP** | `csharp-ls` wired as OMP-native language server — used for precise C# semantics that the knowledge graph can't give (rename, exact references, live diagnostics, hover) | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Install
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installs ctx-wire + codegraph, indexes your repos,
-                                     # and turns everything on. Restart omp afterwards.
+bash plugins/token-diet/install.sh   # installs ctx-wire + codebase-memory-mcp, indexes
+                                     # your repos, and turns everything on. Restart omp.
 ```
 
 **Active by default after `install.sh`** — no manual flags: ctx-wire shims compress
-command output, the CodeGraph MCP server is enabled, and the skills are turned on.
+command output, the codebase-memory-mcp MCP server is enabled, and the skills are turned on.
 `install.sh` prompts for the **root of your sources** (a directory of many repos)
 and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
 
@@ -71,9 +71,14 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   `acli jira auth login` when interactive. Its output is English/structural — the
   bundled `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…` API
   tokens (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/`key=value` form).
-- **CodeGraph** → an MCP server (`.mcp.json`, `codegraph serve --mcp`, **enabled by
-  default**) exposing `codegraph_search/node/callers/callees/explore/impact/files/status`.
-  See `skill://codegraph`. Auto-syncs on file changes.
+- **codebase-memory-mcp** → an MCP server (`.mcp.json`, binary launched in MCP mode,
+  **enabled by default**) exposing `search_graph`/`search_code`/`get_code_snippet`/
+  `trace_path`/`get_architecture`/`query_graph`/`detect_changes`/`get_graph_schema`/
+  `index_repository`/`index_status`/`list_projects`/`delete_project`/`manage_adr`/
+  `ingest_traces` (158 languages, embedded Hybrid LSP). See `skill://codebase-memory`.
+  Auto-syncs on file changes after the first index. For precise C# semantics the graph
+  can't answer (rename, exact references, live diagnostics, hover) it defers to the
+  `csharp-ls` LSP — see the **C# LSP** row.
 - **skills** → `install.sh` appends `config.snippet.yml` to `~/.omp/agent/config.yml`
   enabling skill commands and applying provider isolation. `--no-config` to skip.
 - **context7** → CLI mode (`ctx7 library` / `ctx7 docs` via bash — no MCP process).
@@ -96,7 +101,12 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   block appended without touching other settings.
 - **C# LSP** → `install.sh` installs `csharp-ls` via `dotnet tool install -g csharp-ls`
   (if .NET SDK present) and writes `~/.omp/agent/lsp.json` to register it for `.cs`/
-  `.csx` files. OMP auto-activates it when a `.sln`/`.slnx`/`.csproj` is detected.
+  `.csx` files. OMP auto-activates it when a `.sln`/`.slnx`/`.csproj` is detected. It
+  stays alongside codebase-memory-mcp on purpose: the knowledge graph answers
+  structural/whole-repo questions (incl. C#, via the embedded Hybrid LSP), while
+  `csharp-ls` is a full language server reserved for the C#-only needs the graph can't
+  cover — exact find-all-references, rename, live diagnostics/type errors,
+  hover/signature help, completion.
 - **caveman** → a native OMP skill (`/caveman`, levels lite/full/ultra) rather
   than the upstream installer, so it's first-class in OMP. See `skill://caveman`.
 - **yagni** → a native OMP skill (`/yagni`, levels lite/full/ultra/off) porting
@@ -135,6 +145,6 @@ decision guide.
 
 - Pairs naturally with **copilot-preset** (cheap per-token models) — fewer tokens
   × cheaper tokens.
-- The CodeGraph entry previously sitting (disabled) in `dev-team/.mcp.json` is
-  now centralized here with the correct `serve --mcp` invocation.
+- The code-graph MCP server (formerly CodeGraph) is centralized here as
+  codebase-memory-mcp; `dev-team/.mcp.json` carries no code-graph entry.
 - Independent of the other plugins; install only what you want.
