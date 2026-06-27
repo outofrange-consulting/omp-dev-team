@@ -15,6 +15,11 @@ Compress conversation history to keep context utilization below 40%. Uses forget
 - Never include credentials, PII, or sensitive data in `memory/`
 - Summaries must be sufficient for the next phase to start without replaying history
 
+> If you enable OMP's native memory (`memory.backend: "mnemopi"`), its auto-recall
+> re-injects memory into the context this gate just deflated. See
+> `docs/mnemopi-coexistence.md` — by default Mnemopi is off and these files are
+> authoritative.
+
 ## When to Summarize
 
 | Utilization | Action |
