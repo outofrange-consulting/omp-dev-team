@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "cliproxy",
+  "displayName": "CLIProxyAPI provider",
+  "version": "1.0.0",
+  "description": "Route Claude Code through a CLIProxyAPI gateway (router-for-me/CLIProxyAPI), which exposes an Anthropic-compatible endpoint OOB. Config-only: the installer points Claude Code at the gateway via ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN and maps the opus/sonnet/haiku tiers to gateway models.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+  "keywords": ["provider", "gateway", "cliproxy", "anthropic-base-url"]
+}

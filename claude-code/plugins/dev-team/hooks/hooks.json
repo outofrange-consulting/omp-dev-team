@@ -15,6 +15,14 @@
           { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.mjs\" precheck", "timeout": 15 }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.mjs\" postcommit", "timeout": 15 }
+        ]
+      }
     ]
   }
 }

@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
   "name": "cc-dev-team",
   "owner": { "name": "outofrange-consulting" },
-  "description": "Claude Code CLI port of the omp-dev-team experience: an agentic dev team, an aggressive token-reduction toolkit (ctx-wire + codebase-memory), and Datadog observability via the pup CLI.",
+  "description": "Claude Code CLI port of the omp-dev-team experience: an agentic dev team, a token-reduction toolkit (ctx-wire + codebase-memory), Datadog observability (pup), the official Azure DevOps MCP, and CLIProxyAPI / GitHub-Copilot model presets.",
   "metadata": {
     "pluginRoot": "./plugins"
   },
@@ -28,6 +28,30 @@
       "source": "./plugins/datadog",
       "description": "Datadog observability from the terminal via the Datadog 'pup' CLI (logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, RUM, security/audit, CI test visibility, LLM observability). One broad skill drives pup; the installer sets up pup + auth.",
       "category": "devops",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "azure-devops",
+      "source": "./plugins/azure-devops",
+      "description": "Azure DevOps via Microsoft's official @azure-devops/mcp server: repos, pull requests, pipelines/builds, work items, wiki, test plans. Azure-CLI auth (az login) — no PAT in config. Set your org on enable (userConfig).",
+      "category": "devops",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "cliproxy",
+      "source": "./plugins/cliproxy",
+      "description": "Route Claude Code through a CLIProxyAPI gateway (Anthropic-compatible endpoint OOB) via ANTHROPIC_BASE_URL. Config-only; the installer wires the gateway URL/key and tier→model mappings.",
+      "category": "configuration",
+      "license": "MIT",
+      "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+    },
+    {
+      "name": "copilot-preset",
+      "source": "./plugins/copilot-preset",
+      "description": "Run Claude Code on a GitHub Copilot license via the copilot-api bridge + ANTHROPIC_BASE_URL (Claude Code can't use Copilot models natively). Config-only; the installer starts the bridge and maps the tiers.",
+      "category": "configuration",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     }

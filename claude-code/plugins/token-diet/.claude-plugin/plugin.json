@@ -8,6 +8,5 @@
   "license": "MIT",
   "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
   "keywords": ["tokens", "cost", "ctx-wire", "codebase-memory", "context"],
-  "hooks": "./hooks/hooks.json",
-  "mcpServers": "./.mcp.json"
+  "hooks": "./hooks/hooks.json"
 }

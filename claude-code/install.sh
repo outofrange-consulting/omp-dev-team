@@ -131,7 +131,9 @@ install_ctxwire() {
     fetch https://ctx-wire.dev/install.sh | sh || warn "ctx-wire install failed — see https://ctx-wire.dev"
   fi
   ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
-  have ctx-wire && { ctx-wire shims install >/dev/null 2>&1 || true; ok "ctx-wire shims installed"; }
+  # ctx-wire has first-class Claude Code support: `init claude` installs its hook
+  # (falls back to PATH shims for steering-only agents).
+  have ctx-wire && { ctx-wire init claude >/dev/null 2>&1 || ctx-wire shims install >/dev/null 2>&1 || true; ok "ctx-wire wired to Claude Code (ctx-wire init claude)"; }
 }
 install_codebase_memory() {
   if have codebase-memory-mcp && [ "$NO_UPDATE" = 1 ]; then ok "codebase-memory-mcp present"; else
@@ -176,6 +178,29 @@ datadog_auth() {
   fi
 }
 
+ensure_az() {
+  if have az; then ok "azure-cli present"; else
+    say "Installing the Azure CLI (per-user, no sudo)"
+    if have brew; then brew install azure-cli || true
+    elif have pipx; then pipx install azure-cli || true
+    elif have pip3; then pip3 install --user azure-cli || true
+    else warn "could not install Azure CLI without sudo — see https://aka.ms/azcli"; fi
+  fi
+  have az && { az extension show --name azure-devops >/dev/null 2>&1 || az extension add --name azure-devops --only-show-errors >/dev/null 2>&1 || true; }
+}
+# write an ANTHROPIC_* env block into settings.json (cliproxy / copilot bridge)
+wire_anthropic_env() {  # wire_anthropic_env <base_url> <token> <sonnet> <opus> <haiku>
+  merge_settings <<JSON
+{ "env": {
+  "ANTHROPIC_BASE_URL": "$1",
+  "ANTHROPIC_AUTH_TOKEN": "$2",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL": "$3",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL": "$4",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL": "$5"
+} }
+JSON
+}
+
 bold "cc-dev-team installer"
 echo "Marketplace: $ROOT"
 
@@ -191,7 +216,7 @@ fi
 
 # --- 2) per-plugin / per-dependency prompts --------------------------------
 bold "Plugins & dependencies — check each one"
-SEL_DEV=0; SEL_TD=0; SEL_DD=0; WIRE_STATUSLINE=0
+SEL_DEV=0; SEL_TD=0; SEL_DD=0; SEL_ADO=0; SEL_CLIPROXY=0; SEL_COPILOT=0; WIRE_STATUSLINE=0
 
 if ask "[dev-team]  Agentic dev team (/specs → /plan → /build → /pr, 30 agents, gates)?"; then
   SEL_DEV=1; plugin_install dev-team
@@ -207,6 +232,35 @@ fi
 if ask "[datadog]   Datadog observability via the pup CLI?"; then
   SEL_DD=1; plugin_install datadog
   ask "    └─ [pup] install the Datadog pup CLI now?" "Y" && { install_pup; datadog_auth; }
+  ask "    └─ also install pup's per-domain skills for Claude Code (pup skills install claude)?" "N" && { have pup && { pup skills install claude || pup skills install || true; }; }
+fi
+
+if ask "[azure-devops] Official Azure DevOps MCP (@azure-devops/mcp)?" "N"; then
+  SEL_ADO=1; ensure_az; plugin_install azure-devops
+  org="$(prompt 'Azure DevOps org NAME (e.g. contoso — not the URL)')"
+  if [ -n "$org" ] && have az; then
+    az devops configure --defaults "organization=https://dev.azure.com/$org" --only-show-errors >/dev/null 2>&1 || true
+    ask "    └─ run 'az login' now (browser)?" "Y" && { az login --only-show-errors >/dev/null 2>&1 || warn "az login failed — run it manually before using ADO"; }
+  fi
+  warn "Set the org on the plugin when Claude Code prompts (userConfig.org), or it's '${org:-<your-org>}'. Auth is your az session."
+fi
+
+if ask "[cliproxy]  Route Claude Code through a CLIProxyAPI gateway?" "N"; then
+  SEL_CLIPROXY=1; plugin_install cliproxy
+  url="$(prompt 'CLIProxyAPI base URL [http://127.0.0.1:8317]')"; url="${url:-http://127.0.0.1:8317}"
+  key="$(prompt 'Gateway API key (Bearer; blank if none)' hidden)"; key="${key:-cliproxy}"
+  son="$(prompt 'model id for the SONNET tier (gateway model)')"
+  wire_anthropic_env "$url" "$key" "${son}" "${son}" "${son}"
+  ok "cliproxy: ANTHROPIC_BASE_URL -> $url (edit per-tier models in ~/.claude/settings.json)"
+fi
+
+if ask "[copilot-preset] Run Claude Code on a GitHub Copilot license (copilot-api bridge)?" "N"; then
+  SEL_COPILOT=1; plugin_install copilot-preset
+  [ "$SEL_CLIPROXY" = 1 ] && warn "copilot-preset and cliproxy both set ANTHROPIC_BASE_URL — mutually exclusive. The merge keeps the FIRST value set; edit ~/.claude/settings.json env to choose."
+  say "The bridge runs as: npx copilot-api@latest start --claude-code  (port 4141; must stay running)"
+  son="$(prompt 'Copilot model id for SONNET tier [claude-sonnet-4.5]')"; son="${son:-claude-sonnet-4.5}"
+  wire_anthropic_env "http://localhost:4141" "dummy" "$son" "$son" "$son"
+  ok "copilot-preset: ANTHROPIC_BASE_URL -> http://localhost:4141 — start the bridge before running claude"
 fi
 
 # --- 3) settings.json (merge, never clobber) -------------------------------

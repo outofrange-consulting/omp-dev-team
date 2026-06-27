@@ -114,6 +114,15 @@ function Datadog-Auth {
   }
 }
 
+function Ensure-Az {
+  if (Have az) { Ok "azure-cli present" }
+  else { Say "Installing the Azure CLI"; if (Have winget) { Run "winget install --id Microsoft.AzureCLI -e --accept-source-agreements --accept-package-agreements" } else { Warn "install from https://aka.ms/installazurecliwindows" } }
+  if (Have az) { try { az extension show --name azure-devops *> $null; if ($LASTEXITCODE -ne 0) { az extension add --name azure-devops --only-show-errors *> $null } } catch {} }
+}
+function Wire-AnthropicEnv ($base, $token, $sonnet, $opus, $haiku) {
+  Merge-Settings ('{ "env": { "ANTHROPIC_BASE_URL": "' + $base + '", "ANTHROPIC_AUTH_TOKEN": "' + $token + '", "ANTHROPIC_DEFAULT_SONNET_MODEL": "' + $sonnet + '", "ANTHROPIC_DEFAULT_OPUS_MODEL": "' + $opus + '", "ANTHROPIC_DEFAULT_HAIKU_MODEL": "' + $haiku + '" } }')
+}
+
 Bold "cc-dev-team installer"
 Write-Host "Marketplace: $Root"
 
@@ -126,7 +135,7 @@ if (Have claude) {
 }
 
 Bold "Plugins & dependencies — check each one"
-$SEL_DEV = $false; $SEL_TD = $false; $SEL_DD = $false; $WIRE_STATUSLINE = $false
+$SEL_DEV = $false; $SEL_TD = $false; $SEL_DD = $false; $SEL_ADO = $false; $SEL_CLIPROXY = $false; $SEL_COPILOT = $false; $WIRE_STATUSLINE = $false
 
 if (Ask "[dev-team]  Agentic dev team (/specs -> /plan -> /build -> /pr, 30 agents, gates)?") {
   $SEL_DEV = $true; Plugin-Install 'dev-team'
@@ -140,6 +149,33 @@ if (Ask "[token-diet] Token-reduction toolkit (statusline + skills)?") {
 if (Ask "[datadog]   Datadog observability via the pup CLI?") {
   $SEL_DD = $true; Plugin-Install 'datadog'
   if (Ask "    +- [pup] install the Datadog pup CLI now?" 'Y') { Install-Pup; Datadog-Auth }
+  if (Ask "    +- also install pup's per-domain skills for Claude Code (pup skills install claude)?" 'N') { if (Have pup) { try { & pup skills install claude } catch { try { & pup skills install } catch {} } } }
+}
+if (Ask "[azure-devops] Official Azure DevOps MCP (@azure-devops/mcp)?" 'N') {
+  $SEL_ADO = $true; Ensure-Az; Plugin-Install 'azure-devops'
+  $org = PromptValue 'Azure DevOps org NAME (e.g. contoso — not the URL)'
+  if ($org -and (Have az)) {
+    try { az devops configure --defaults "organization=https://dev.azure.com/$org" --only-show-errors *> $null } catch {}
+    if (Ask "    +- run 'az login' now (browser)?" 'Y') { try { az login --only-show-errors *> $null } catch { Warn "az login failed — run it manually before using ADO" } }
+  }
+  $orgNote = if ($org) { " — it's '$org'" } else { '' }
+  Warn "Set the org on the plugin when Claude Code prompts (userConfig.org)$orgNote. Auth is your az session."
+}
+if (Ask "[cliproxy]  Route Claude Code through a CLIProxyAPI gateway?" 'N') {
+  $SEL_CLIPROXY = $true; Plugin-Install 'cliproxy'
+  $url = PromptValue 'CLIProxyAPI base URL [http://127.0.0.1:8317]'; if (-not $url) { $url = 'http://127.0.0.1:8317' }
+  $key = PromptValue 'Gateway API key (Bearer; blank if none)' -Secret; if (-not $key) { $key = 'cliproxy' }
+  $son = PromptValue 'model id for the SONNET tier (gateway model)'
+  Wire-AnthropicEnv $url $key $son $son $son
+  Ok "cliproxy: ANTHROPIC_BASE_URL -> $url (edit per-tier models in ~/.claude/settings.json)"
+}
+if (Ask "[copilot-preset] Run Claude Code on a GitHub Copilot license (copilot-api bridge)?" 'N') {
+  $SEL_COPILOT = $true; Plugin-Install 'copilot-preset'
+  if ($SEL_CLIPROXY) { Warn "copilot-preset and cliproxy both set ANTHROPIC_BASE_URL — mutually exclusive; the merge keeps the FIRST value. Edit settings.json env to choose." }
+  Say "The bridge runs as: npx copilot-api@latest start --claude-code  (port 4141; must stay running)"
+  $son = PromptValue 'Copilot model id for SONNET tier [claude-sonnet-4.5]'; if (-not $son) { $son = 'claude-sonnet-4.5' }
+  Wire-AnthropicEnv 'http://localhost:4141' 'dummy' $son $son $son
+  Ok "copilot-preset: ANTHROPIC_BASE_URL -> http://localhost:4141 — start the bridge before running claude"
 }
 
 Bold "Settings"
