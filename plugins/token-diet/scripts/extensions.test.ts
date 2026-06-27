@@ -18,6 +18,15 @@ import {
 	textBlobs,
 } from "../extensions/lib/messages.ts";
 import { parseLevel } from "../extensions/context-compress.ts";
+import {
+	addUsage,
+	cacheChurn,
+	cacheReadRate,
+	emptyAccum,
+	extractUsage,
+	formatReport,
+	reasoningShare,
+} from "../extensions/lib/cache-stats.ts";
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -178,6 +187,57 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("parseLevel('off') => null", parseLevel("off") === null);
 	check("parseLevel('0') => null", parseLevel("0") === null);
 	check("parseLevel('garbage') => safe", parseLevel("garbage") === "safe");
+}
+
+// 10) cache-stats: defensive usage extraction + cache-health math + warning.
+{
+	// extractUsage tolerates junk and non-usage messages.
+	check("extractUsage(null) => null", extractUsage(null) === null);
+	check("extractUsage(no usage) => null", extractUsage({ role: "assistant" }) === null);
+	check(
+		"extractUsage(empty usage) => null",
+		extractUsage({ usage: { cost: {} } }) === null,
+	);
+	const u = extractUsage({
+		role: "assistant",
+		usage: {
+			input: 100,
+			output: 40,
+			cacheRead: 900,
+			cacheWrite: 0,
+			reasoningTokens: 10,
+			cost: { total: 0.0123 },
+		},
+	});
+	check("extractUsage reads token buckets", !!u && u.cacheRead === 900 && u.input === 100, u);
+	check("extractUsage reads cost.total", !!u && u.costTotal === 0.0123, u?.costTotal);
+	check("extractUsage tolerates string junk fields", extractUsage({ usage: { input: "x" } }) === null);
+
+	// Healthy cache: high read, low churn -> no warning even with compression on.
+	const healthy = emptyAccum();
+	addUsage(healthy, { input: 100, output: 40, cacheRead: 900, cacheWrite: 0, reasoningTokens: 10, costTotal: 0.01 });
+	check("cacheReadRate healthy ~0.9", Math.abs(cacheReadRate(healthy) - 0.9) < 0.001, cacheReadRate(healthy));
+	check("cacheChurn healthy = 0", cacheChurn(healthy) === 0, cacheChurn(healthy));
+	check("reasoningShare healthy = 0.25", Math.abs(reasoningShare(healthy) - 0.25) < 0.001, reasoningShare(healthy));
+	const okReport = formatReport(healthy, { compressionActive: true });
+	check("healthy report is info (no false alarm)", okReport.level === "info", okReport.level);
+	check("report includes cost", okReport.text.includes("$="), okReport.text);
+
+	// Prefix-busting pattern: cache constantly rewritten, never read back.
+	const busted = emptyAccum();
+	addUsage(busted, { input: 100, output: 20, cacheRead: 50, cacheWrite: 950, reasoningTokens: 0, costTotal: 0.2 });
+	check("cacheChurn busted high (>0.9)", cacheChurn(busted) > 0.9, cacheChurn(busted));
+	const warn = formatReport(busted, { compressionActive: true });
+	check("busted + compression => warn", warn.level === "warn", warn.level);
+	check("warn explains prefix risk", warn.text.includes("prompt-cache prefix"), warn.text);
+	// Same churn but compression OFF must NOT warn (no actor to blame).
+	const noBlame = formatReport(busted, { compressionActive: false });
+	check("busted + no compression => info", noBlame.level === "info", noBlame.level);
+
+	// Empty accumulator is safe (no div-by-zero, no false warning).
+	const empty = emptyAccum();
+	check("empty cacheReadRate = 0", cacheReadRate(empty) === 0);
+	check("empty report says no billed turns", formatReport(empty, { compressionActive: true }).level === "info");
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
