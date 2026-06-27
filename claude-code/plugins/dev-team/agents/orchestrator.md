@@ -62,7 +62,7 @@ All review commands are executed under orchestrator direction. When a user trigg
 | `/add-agent` | Scaffold new review agent | When a new review capability is needed |
 | `/apply-fixes` | Apply correction prompts | After `/code-review` generates corrections |
 | `/review-summary` | Persist session summary | At phase transitions |
-| `/semgrep-analyze` | Static analysis | As pre-flight context for security-review |
+| `/dev-team:static-analysis-integration` | Static analysis | As pre-flight context for security-review |
 
 ## Knowledge index — consumer usage pattern
 
@@ -72,18 +72,18 @@ Knowledge references in this file and any agent that consumes them cite a sectio
 
 Whole-file load: each linked skill is loaded in full when invoked; per-section anchors don't apply to skill bodies because the skill machinery consumes the whole file.
 
-- [Context Loading Protocol](the /context-loading-protocol skill) - invoke at the start of every task to decide which agents and skills to load, and at phase transitions to unload/swap
-- [Context Summarization](the /context-summarization skill) - invoke when context utilization signals are present (high turn count, degraded output quality) or at phase transitions
+- [Context Loading Protocol](the /dev-team:context-management skill) - invoke at the start of every task to decide which agents and skills to load, and at phase transitions to unload/swap
+- [Context Summarization](the /dev-team:context-management skill) - invoke when context utilization signals are present (high turn count, degraded output quality) or at phase transitions
 - [Feedback & Learning](the /feedback-learning skill) - invoke when user uses amend/learn/remember/forget keywords, or during learning loop at task completion
 - [Human Oversight Protocol](the /human-oversight-protocol skill) - invoke when approval gates fire, when user issues override/pause/stop, or when escalating decisions
-- [Performance Metrics](the /performance-metrics skill) - invoke at task completion to log metrics, and during learning loop to review trends
+- [Performance Metrics](the /dev-team:task-metrics skill) - invoke at task completion to log metrics, and during learning loop to review trends
 - [Quality Gate Pipeline](the /quality-gate-pipeline skill) - invoke to enforce the three-phase quality gate: self-validation (Phase 1), verification evidence (Phase 2), and review-correction loops (Phase 3)
 - [Specs](the /specs skill) - invoke when routing a new feature request; verify the consistency gate passed before loading implementing agents
 - [Code Review](the /code-review skill) - invoke after each Phase 3 checkpoint and before committing; runs all relevant review agents with orchestrator-assigned models
 - [Review Agent](the /review-agent skill) - invoke for targeted single-agent inline review during Phase 3 checkpoints
 - [Apply Fixes](the /apply-fixes skill) - invoke after `/code-review` generates correction prompts; passes corrections to coding agent
 - [Review Summary](the /review-summary skill) - invoke at phase transitions to persist review state before context compaction
-- [Semgrep Analyze](the /semgrep-analyze skill) - invoke as pre-flight context for security-review when SAST findings are needed
+- [Semgrep Analyze](the /dev-team:static-analysis-integration skill) - invoke as pre-flight context for security-review when SAST findings are needed
 - [Design Doc](the /design-doc skill) - invoke during Research phase for non-trivial features; produces a written design document with user approval before planning
 - [Branch Workflow](the /branch-workflow skill) - invoke after Phase 3 human gate approval to formalize PR creation, merge strategy, and branch cleanup
 
@@ -199,7 +199,7 @@ After each discrete unit of work classified as **standard** or **complex** (a fu
 | Domain/business logic | domain-review |
 | UI components | a11y-review, structure-review |
 | Agent or command files | eval-compliance-check hook runs automatically |
-| Dockerfile or .dockerignore | docker-image-audit skill |
+| Dockerfile or .dockerignore | docker skill |
 | Documentation files (.md) | doc-review |
 | Architecture/dependency changes | arch-review |
 | All changes | structure-review as a baseline |

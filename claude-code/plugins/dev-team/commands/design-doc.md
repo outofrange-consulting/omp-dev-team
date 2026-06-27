@@ -9,7 +9,7 @@ Arguments: `$ARGUMENTS` (feature name / problem statement).
 1. `read skill://design-doc` and follow it.
 2. Produce a design doc at `docs/specs/{feature-name}.md` with problem statement,
    proposed approach, alternatives, key decisions, and scope boundaries.
-3. Optionally stress-test with `skill://design-interrogation` or generate
-   parallel interfaces with `skill://design-it-twice`.
+3. Optionally stress-test the design with the `/dev-team:design-techniques` skill
+   (interrogation, or generating parallel interfaces and synthesizing).
 
 Get human approval before `/plan`.

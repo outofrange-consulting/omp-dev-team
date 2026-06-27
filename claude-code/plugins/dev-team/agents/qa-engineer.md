@@ -39,7 +39,7 @@ effort: medium
 - [Code Review](the /code-review skill) - invoked by orchestrator for peer validation; QA runs `/code-review` when independently validating completed work
 - [Browser Testing](the /browser-testing skill) - invoke when e2e visual verification is needed; uses Playwright for navigation, form interaction, and screenshot capture via `/browse`
 - [Test Health](the /test-health skill) - invoke via `/test-health` for a periodic project-wide test-strategy audit (shape vs. architecture, quadrant coverage, coverage/mutation ROI, automation maturity); delegates pipeline assessment to cd-test-architecture
-- [Exploratory Testing](the /exploratory-testing skill) - invoke via `/explore` for charter-driven Chaos Specialist probing of a running feature/endpoint; structured heuristics + adversarial expansion, auto-triages critical defects to `/triage`
+- [Exploratory Testing](the /exploratory-testing skill) - invoke via `/dev-team:exploratory-testing` for charter-driven Chaos Specialist probing of a running feature/endpoint; structured heuristics + adversarial expansion, auto-triages critical defects to `/triage`
 
 ## Behavioral Guidelines
 

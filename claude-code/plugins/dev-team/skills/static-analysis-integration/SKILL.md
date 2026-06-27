@@ -1,7 +1,7 @@
 ---
 name: static-analysis-integration
 description: >-
-  SARIF-first pre-pass stage for /code-review that runs available static analysis tools and normalizes their output to the unified finding envelope defined in security-primitives-contract v1.0.0. Deduplicates findings across tools and passes confirmed issues to AI agents so they can focus on semantic concerns.
+  SARIF-first pre-pass stage for /code-review that runs available static analysis tools (including Semgrep / SAST) and normalizes their output to the unified finding envelope defined in security-primitives-contract v1.0.0. Use for static analysis, SAST scanning, security pattern matching, or running Semgrep on target files. Deduplicates findings across tools and passes confirmed issues to AI agents so they can focus on semantic concerns.
 role: worker
 version: 2.0.0
 maintainers: 
@@ -171,3 +171,11 @@ This context goes to **all** review agents, not just security-review.
 - `dev-team-knowledge/security-primitives-contract.md` — unified finding envelope v1.0
 - `dev-team-knowledge/accepted-risks-schema.md` — per-project suppression policy
 - `maintenance.md` — adapter and ruleset lifecycle policies
+
+## Merged sub-skills
+
+Related capabilities folded into this skill (full detail on demand):
+- `references/sarif-parser.md`
+- `references/security-review-adapter.md`
+- `references/semgrep-analyze.md`
+- `references/tool-configs.md`

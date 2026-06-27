@@ -105,6 +105,20 @@ permission engine; the **review gate is genuinely blocking and content-bound**
 (an agent rewriting `.review-passed` still can't approve a *different* diff); the
 plan gate is honestly labelled advisory.
 
+## Lean skill surface
+
+Claude Code loads every skill's frontmatter `description` into context on **every**
+request, so a large flat skill list is a permanent context tax. Beyond the `datadog`
+umbrella, the dev-team skills are consolidated from **64 → 50**: tightly-related
+skills are folded into umbrella skills (`scope-control`, `task-metrics`, `docker`,
+`context-management`, `design-techniques`, plus absorbs like `explore` →
+`exploratory-testing`, `semgrep-analyze` → `static-analysis-integration`,
+`ubiquitous-language` → `domain-driven-design`). **No capability is lost** — each
+member's full procedure is preserved under the umbrella's `references/` (progressive
+disclosure: loaded only when the skill fires). The grouping is done by
+[`scripts/merge-skills.mjs`](scripts/merge-skills.mjs). Deep, distinct capabilities
+(e.g. the `test-design*` family) are kept separate to preserve discoverability.
+
 ## Regenerating the ported content
 
 The bulk agents/commands/skills are mechanically ported from `../plugins` by

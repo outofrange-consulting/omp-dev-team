@@ -1,6 +1,6 @@
 ---
 name: domain-driven-design
-description: Model software around the business domain. Use when designing bounded contexts, defining aggregates and value objects, mapping context relationships, or working with complex business logic. Apply before implementation to prevent model drift.
+description: Model software around the business domain. Use when designing bounded contexts, defining aggregates and value objects, mapping context relationships, building or refreshing the project's ubiquitous-language glossary, or working with complex business logic. Apply before implementation to prevent model drift.
 role: worker
 ---
 
@@ -111,3 +111,8 @@ Report modeling decisions: bounded contexts identified, aggregate boundaries, co
 - Domain events are the primary mechanism for cross-context communication
 - Aggregates define transaction boundaries, not query boundaries (use read models for queries)
 - Validate ubiquitous language continuously; stale language leads to model drift
+
+## Merged sub-skills
+
+Related capabilities folded into this skill (full detail on demand):
+- `references/ubiquitous-language.md`

@@ -166,3 +166,9 @@ benchmarks/
 ```
 
 Page slug derived from the URL path: `/dashboard` → `dashboard`, `/` → `index`.
+
+## Merged sub-skills
+
+Related capabilities folded into this skill (full detail on demand):
+- `references/benchmark-script.md`
+- `references/benchmark.md`

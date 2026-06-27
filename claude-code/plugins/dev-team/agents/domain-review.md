@@ -86,7 +86,7 @@ Anemic domain model:
 
 Whole-file load: each linked skill is loaded in full when invoked.
 
-- [Ubiquitous Language](the /ubiquitous-language skill) — invoke when the user asks to "build the glossary", "extract domain terms", or "document the ubiquitous language". Also invoke when domain-review findings show pervasive terminology inconsistency (3+ different names for the same concept across the codebase).
+- [Ubiquitous Language](the /dev-team:domain-driven-design skill) — invoke when the user asks to "build the glossary", "extract domain terms", or "document the ubiquitous language". Also invoke when domain-review findings show pervasive terminology inconsistency (3+ different names for the same concept across the codebase).
 
 ## Output discipline
 

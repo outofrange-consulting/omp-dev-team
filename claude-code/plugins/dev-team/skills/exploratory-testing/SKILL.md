@@ -105,3 +105,8 @@ The report must contain **≥1 Goldilocks and ≥1 Happy-Path Divergence** entry
 - Invoked by the `/explore` command; runs as the QA Engineer's Chaos Specialist mode.
 - Hands critical defects to `/triage` (which writes `.triage/<slug>.md`).
 - Frameworks: `dev-team-knowledge/exploratory-testing-field-guide.md`. For *test design* (which layer, which double) use `test-design-advisor`; this skill probes running behavior, it does not design a suite.
+
+## Merged sub-skills
+
+Related capabilities folded into this skill (full detail on demand):
+- `references/explore.md`

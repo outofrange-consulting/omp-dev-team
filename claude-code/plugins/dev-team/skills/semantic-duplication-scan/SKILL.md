@@ -320,3 +320,8 @@ No semantic duplication detected
 
 **`file:line` accuracy:** Line numbers point to the first line of the function definition. If the file has been modified since annotation, append: `(line may have shifted — re-run scan to refresh)`
 
+
+## Merged sub-skills
+
+Related capabilities folded into this skill (full detail on demand):
+- `references/semantic-scan.md`
