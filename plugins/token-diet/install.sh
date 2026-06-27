@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# token-diet installer (Linux/macOS) — installs the LATEST ctx-wire + CodeGraph and
-# indexes every git repo under a sources root. caveman/yagni ship as OMP skills.
-# Also sets up the acli (Atlassian CLI), ast-grep, the .NET SDK + csharp-ls LSP,
-# and the ctx7 docs CLI. Everything is refreshed to latest by default.
+# token-diet installer (Linux/macOS) — installs the LATEST ctx-wire +
+# codebase-memory-mcp and indexes every git repo under a sources root. caveman/yagni
+# ship as OMP skills. Also sets up the acli (Atlassian CLI), ast-grep, the .NET SDK +
+# csharp-ls LSP, and the ctx7 docs CLI. Everything is refreshed to latest by default.
 # Flags:
 #   --sources-root=PATH  parent dir of your repos; every git repo under it is
 #                        indexed (default: cwd; asked if interactive). --project= is an alias.
@@ -146,33 +146,33 @@ if [ "$NO_ACLI" = 0 ]; then
   fi
 fi
 
-# --- CodeGraph (MCP) ---------------------------------------------------------
-if have codegraph && [ "$NO_UPDATE" = 1 ]; then
-  say "CodeGraph present"
+# --- codebase-memory-mcp (MCP) ----------------------------------------------
+CBM_BIN="codebase-memory-mcp"
+if have "$CBM_BIN" && [ "$NO_UPDATE" = 1 ]; then
+  say "codebase-memory-mcp present"
 else
-  say "Installing latest CodeGraph"
-  if have curl;  then run "curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh || true"
-  elif have npm; then run "npm i -g @colbymchenry/codegraph@latest || true"
-  else warn "need curl or npm to install codegraph — skipping"; fi
+  say "Installing latest codebase-memory-mcp"
+  if have curl; then run "curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash || true"
+  else warn "need curl to install codebase-memory-mcp — see https://github.com/DeusData/codebase-memory-mcp"; fi
 fi
 ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
 
-# --- Register CodeGraph MCP server in OMP (absolute path avoids PATH dependency) ---
+# --- Register codebase-memory-mcp MCP server in OMP (absolute path avoids PATH dependency) ---
 # OMP spawns Claude without sourcing shell profiles, so the binary must be resolved
 # to its absolute path now and written into mcp.json — never rely on PATH at runtime.
-if have codegraph || [ -x "$HOME/.local/bin/codegraph" ]; then
-  CGGRAPH="$(command -v codegraph 2>/dev/null || echo "$HOME/.local/bin/codegraph")"
+if have "$CBM_BIN" || [ -x "$HOME/.local/bin/$CBM_BIN" ]; then
+  CBMBIN="$(command -v "$CBM_BIN" 2>/dev/null || echo "$HOME/.local/bin/$CBM_BIN")"
   OMP_MCP="$HOME/.omp/agent/mcp.json"
   mkdir -p "$(dirname "$OMP_MCP")"
   [ -f "$OMP_MCP" ] || printf '{"mcpServers":{}}\n' > "$OMP_MCP"
-  say "Registering CodeGraph MCP server in OMP: $CGGRAPH"
+  say "Registering codebase-memory-mcp MCP server in OMP: $CBMBIN"
   if have python3; then
-    python3 - "$OMP_MCP" "$CGGRAPH" <<'PYEOF'
+    python3 - "$OMP_MCP" "$CBMBIN" <<'PYEOF'
 import json, sys
-mcp_path, cg_bin = sys.argv[1], sys.argv[2]
+mcp_path, cbm_bin = sys.argv[1], sys.argv[2]
 with open(mcp_path) as f: cfg = json.load(f)
-cfg.setdefault("mcpServers", {})["codegraph"] = {
-    "type": "stdio", "command": cg_bin, "args": ["serve", "--mcp"]
+cfg.setdefault("mcpServers", {})["codebase-memory-mcp"] = {
+    "type": "stdio", "command": cbm_bin, "args": []
 }
 with open(mcp_path, "w") as f: json.dump(cfg, f, indent=2); f.write("\n")
 PYEOF
@@ -180,22 +180,22 @@ PYEOF
     node -e "
 const fs=require('fs'),p=process.argv[1],b=process.argv[2];
 const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
-(cfg.mcpServers||(cfg.mcpServers={}))[\"codegraph\"]={type:\"stdio\",command:b,args:[\"serve\",\"--mcp\"]};
+(cfg.mcpServers||(cfg.mcpServers={}))[\"codebase-memory-mcp\"]={type:\"stdio\",command:b,args:[]};
 fs.writeFileSync(p,JSON.stringify(cfg,null,2)+'\n');
-" "$OMP_MCP" "$CGGRAPH" || true
+" "$OMP_MCP" "$CBMBIN" || true
   elif have bun; then
     bun -e "
 const fs=require('fs'),p=process.argv[1],b=process.argv[2];
 const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
-(cfg.mcpServers||(cfg.mcpServers={}))[\"codegraph\"]={type:\"stdio\",command:b,args:[\"serve\",\"--mcp\"]};
+(cfg.mcpServers||(cfg.mcpServers={}))[\"codebase-memory-mcp\"]={type:\"stdio\",command:b,args:[]};
 fs.writeFileSync(p,JSON.stringify(cfg,null,2)+'\n');
-" "$OMP_MCP" "$CGGRAPH" || true
+" "$OMP_MCP" "$CBMBIN" || true
   else
-    warn "python3/node/bun not available — add codegraph to OMP mcp.json manually"
+    warn "python3/node/bun not available — add codebase-memory-mcp to OMP mcp.json manually"
   fi
 fi
 
-# --- Scan/index source repos with CodeGraph ---------------------------------
+# --- Scan/index source repos with codebase-memory-mcp -----------------------
 if [ -z "$SROOT" ]; then
   if [ "$YES" = 0 ] && [ -r /dev/tty ]; then
     printf 'Sources ROOT to scan (every git repo under it is indexed)? [default: %s] ' "$PWD"
@@ -203,8 +203,13 @@ if [ -z "$SROOT" ]; then
   fi
   SROOT="${SROOT:-$PWD}"
 fi
-index_one() { say "  CodeGraph: $1"; run "codegraph init \"$1\""  || true; run "codegraph index \"$1\"" || true; }
-if have codegraph; then
+# codebase-memory-mcp indexes a repo by absolute path; auto-sync keeps it fresh after.
+index_one() {
+  say "  codebase-memory-mcp: $1"
+  run "$CBM_BIN cli index_repository '{\"repo_path\": \"$1\"}'" || true
+}
+if have "$CBM_BIN"; then
+  run "$CBM_BIN config set auto_index true" || true
   if [ -d "$SROOT/.git" ]; then say "Scanning single repo: $SROOT"; index_one "$SROOT"
   else
     say "Scanning every git repo under: $SROOT (depth $DEPTH)"
@@ -291,4 +296,4 @@ if [ -d "$HERE/extensions" ]; then
   say "read-dedup + context-dedup + context-compress (safe) loaded"
 fi
 
-say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, CodeGraph (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."
+say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."

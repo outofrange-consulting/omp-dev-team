@@ -136,71 +136,82 @@ If missing, install:
 If either installation fails, stop and tell the user: "Could not install
 `<tool>`. Please install it manually and re-run `/init-dev-team`."
 
-## Step 2.5 — Offer CodeGraph
+## Step 2.5 — Offer codebase-memory-mcp
 
-CodeGraph (<https://github.com/colbymchenry/codegraph>) is a third-party SQLite
-knowledge graph of every symbol, edge, and file in the workspace. When present,
-the plugin's `codegraph-nudge` hook recommends `codegraph_context` /
-`codegraph_explore` over multi-file Read/Grep/Glob exploration. This step
-detects current state and offers the right next action.
+codebase-memory-mcp (<https://github.com/DeusData/codebase-memory-mcp>) is a
+third-party, single-binary code intelligence MCP server: a persistent knowledge
+graph of every symbol, edge, route, and file in the workspace (158 languages,
+embedded Hybrid LSP). When present, prefer its tools (`get_architecture` /
+`trace_path` / `search_graph` / `detect_changes`) over multi-file
+Read/Grep/Glob exploration. This step detects current state and offers the right
+next action.
+
+> **C# note:** keep `csharp-ls` (the C# LSP, installed by token-diet) for the
+> precise C#-only operations the knowledge graph can't answer — exact
+> find-all-references, rename, live diagnostics, hover. The graph handles
+> structural/whole-repo questions; the LSP handles point-precise C# semantics.
+> The two are complementary, not a replacement.
 
 **Classify state** (run both, record results as `installed` and `initialized`):
 
 ```bash
-command -v codegraph > /dev/null 2>&1 && echo "installed" || echo "not-installed"
-[ -d "${PWD}/.codegraph" ] && echo "initialized" || echo "not-initialized"
+command -v codebase-memory-mcp > /dev/null 2>&1 && echo "installed" || echo "not-installed"
+codebase-memory-mcp cli list_projects 2>/dev/null | grep -qF "$PWD" && echo "initialized" || echo "not-initialized"
 ```
 
-Read `.claude/init-state.json` if it exists (top-level `codegraph` key holds
-the four state booleans: `install_accepted`, `install_declined`,
+(codebase-memory-mcp indexes into a global cache, not a project-local dir — a
+project is "initialized" once it has been indexed and shows in `list_projects`.)
+
+Read `.claude/init-state.json` if it exists (top-level `codebase-memory` key
+holds the four state booleans: `install_accepted`, `install_declined`,
 `init_accepted`, `init_declined`).
 
 **Branch on (installed, initialized):**
 
 | installed | initialized | Action |
 |-----------|-------------|--------|
-| any       | true        | Print "CodeGraph: initialized ✓" and continue to Step 3. State file untouched. |
-| true      | false       | **Init prompt branch** (below). |
+| any       | true        | Print "codebase-memory-mcp: indexed ✓" and continue to Step 3. State file untouched. |
+| true      | false       | **Index prompt branch** (below). |
 | false     | false       | **Install prompt branch** (below). |
 
 **Stale-state override.** Before consulting the recorded state, apply these
 rules: `install_declined` is ignored when `installed=true` (the user has since
-installed CodeGraph); `init_declined` is ignored when `initialized=true` (the
-project got initialized by other means). The live filesystem/PATH check
-supersedes the recorded preference.
+installed codebase-memory-mcp); `init_declined` is ignored when
+`initialized=true` (the project got indexed by other means). The live
+filesystem/PATH check supersedes the recorded preference.
 
 ### Install prompt branch (installed=false, initialized=false)
 
-- If `.codegraph.install_declined == true`: print
-  `CodeGraph: previously declined install (remove the codegraph key from .claude/init-state.json to re-prompt)`
+- If `.codebase-memory.install_declined == true`: print
+  `codebase-memory-mcp: previously declined install (remove the codebase-memory key from .claude/init-state.json to re-prompt)`
   and continue to Step 3.
-- Otherwise prompt: `Install CodeGraph for code intelligence? (y/N)`
-  - On `y` or `Y`: print `CodeGraph install instructions: https://github.com/colbymchenry/codegraph#installation`.
-    Merge `{"codegraph": {"install_accepted": true}}` into `.claude/init-state.json`.
+- Otherwise prompt: `Install codebase-memory-mcp for code intelligence? (y/N)`
+  - On `y` or `Y`: print `codebase-memory-mcp install: curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash  (or: bash plugins/token-diet/install.sh)`.
+    Merge `{"codebase-memory": {"install_accepted": true}}` into `.claude/init-state.json`.
   - On any other response (including empty): merge
-    `{"codegraph": {"install_declined": true}}` and continue silently.
+    `{"codebase-memory": {"install_declined": true}}` and continue silently.
 
-### Init prompt branch (installed=true, initialized=false)
+### Index prompt branch (installed=true, initialized=false)
 
-- If `.codegraph.init_declined == true`: print
-  `CodeGraph: previously declined init (remove the codegraph key from .claude/init-state.json to re-prompt)`
+- If `.codebase-memory.init_declined == true`: print
+  `codebase-memory-mcp: previously declined index (remove the codebase-memory key from .claude/init-state.json to re-prompt)`
   and continue.
-- Otherwise prompt: `CodeGraph is installed but not initialized in this project. Initialize now? (y/N)`
+- Otherwise prompt: `codebase-memory-mcp is installed but this project isn't indexed. Index now? (y/N)`
   - On `y` or `Y`:
-    1. Print: `Running 'codegraph init -i' in this project...`
-    2. Execute `codegraph init -i` with the current working directory as cwd.
-       Surface its stdout/stderr to the user.
-    3. On exit 0: print `CodeGraph: initialized ✓` and merge
-       `{"codegraph": {"init_accepted": true}}` into `.claude/init-state.json`.
+    1. Print: `Indexing this project with codebase-memory-mcp...`
+    2. Execute `codebase-memory-mcp cli index_repository "{\"repo_path\": \"$PWD\"}"`
+       with the current working directory as cwd. Surface its stdout/stderr to the user.
+    3. On exit 0: print `codebase-memory-mcp: indexed ✓` and merge
+       `{"codebase-memory": {"init_accepted": true}}` into `.claude/init-state.json`.
     4. On non-zero exit N: print
-       `CodeGraph init failed (exit code N). See output above. Continuing without CodeGraph.`
+       `codebase-memory-mcp index failed (exit code N). See output above. Continuing without it.`
        Do NOT modify `.claude/init-state.json`.
-  - On any other response: merge `{"codegraph": {"init_declined": true}}`
+  - On any other response: merge `{"codebase-memory": {"init_declined": true}}`
     and continue silently.
 
-`.claude/init-state.json` uses a top-level `codegraph` key so future plugins
-can claim sibling keys without collision. Always merge into existing JSON
-rather than overwriting it.
+`.claude/init-state.json` uses a top-level `codebase-memory` key so future
+plugins can claim sibling keys without collision. Always merge into existing
+JSON rather than overwriting it.
 
 ## Step 3 — Select languages
 

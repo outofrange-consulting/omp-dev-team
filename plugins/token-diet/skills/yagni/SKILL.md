@@ -13,7 +13,7 @@ description: >-
 
 Ported from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail).
 This is the **write-less-code** layer of token-diet (caveman trims prose,
-ctx-wire trims command output, CodeGraph reads less, **yagni writes less**).
+ctx-wire trims command output, codebase-memory-mcp reads less, **yagni writes less**).
 
 ## The ladder — climb it BEFORE writing code
 

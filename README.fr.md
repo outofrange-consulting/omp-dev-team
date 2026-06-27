@@ -10,7 +10,7 @@ met en place OMP et vous guide à travers chacun d'eux.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | **Équipe de dev agentique** — un orchestrateur + 32 agents spécialistes/critiques, le workflow `/specs` → `/plan` → `/build` → `/pr`, un **plan gate strict** (test-after, tests requis) et points de contrôle humains, ~78 skills, et des extensions « garde-fou » bloquantes. Portage de [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). Tiers 100 % cloud ; gardez le tier « small » à haut volume bon marché. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
-| **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), CodeGraph (requêtes de graphe de symboles via MCP au lieu de grep+read), un skill « caveman » de sortie laconique, et un skill « yagni » de code minimal — par-dessus la compaction/`astGrep` natives d'OMP. |
+| **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), codebase-memory-mcp (requêtes de graphe de symboles via MCP au lieu de grep+read ; le LSP csharp-ls est conservé pour les sémantiques C# précises), un skill « caveman » de sortie laconique, et un skill « yagni » de code minimal — par-dessus la compaction/`astGrep` natives d'OMP. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Propulsé par l'**Azure CLI** (`az` + extension azure-devops), auth PAT, cache SQLite ; fonctionne derrière les proxys TLS d'entreprise. |
 | **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI comme fournisseur de modèles** — pointez-le vers une passerelle [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (URL + clé API) ; l'installeur liste les modèles et écrit un fournisseur `cliproxy` dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `cliproxy/<id-modèle>`. |
 | **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
@@ -36,7 +36,7 @@ réglé est préservé** (aucun écrasement). Avec **copilot-preset**, ça câbl
 Copilot : `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 4.6** (qui pilote
 l'orchestrateur dev-team — une tâche non triviale passe par research → plan →
 implement → review), `slow` → **Opus** ; sans lui, les mêmes tiers en ids Anthropic.
-ctx-wire + CodeGraph de token-diet et les skills sont aussi activés. `--no-config`
+ctx-wire + codebase-memory-mcp de token-diet et les skills sont aussi activés. `--no-config`
 laisse votre config + mcp.json intacts.
 
 Le seul serveur MCP configuré dans `~/.omp/agent/mcp.json` est **`github`** (activé si
@@ -113,7 +113,7 @@ du plugin dans leur dernière version) — voir son README :
 
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (vérif prérequis + config). 100 % cloud ; pas de backend local.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
-- **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + CodeGraph, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codegraph`.
+- **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + codebase-memory-mcp, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codebase-memory-mcp`.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installe l'Azure CLI + l'extension azure-devops, demande org/projet/**PAT**, lance `az devops login`), puis redémarrez `omp` pour charger l'outil `ado`.
 - **cliproxy** → `bash plugins/cliproxy/install.sh --url=http://localhost:8317 --api-key=…` (liste les modèles de la passerelle, écrit le fournisseur `cliproxy` dans `~/.omp/agent/models.yml`), puis redémarrez `omp`.
 - **datadog** → `bash plugins/datadog/install.sh` (installe la CLI Datadog `pup` + configure l'auth ; `--with-skills` pour aussi ajouter les skills par domaine de pup).
@@ -167,11 +167,11 @@ voir [`.github/workflows/installers.yml`](.github/workflows/installers.yml)) : t
 les `install.sh` passent `bash -n` ; tous les `install.ps1` se parsent sous
 PowerShell 7 ; tous les manifestes sont du JSON valide ; les 8 extensions de
 dev-team (plus les modules d'extension de token-diet, azure-devops-fs et cliproxy)
-compilent sous `bun` ; ctx-wire, CodeGraph et OMP s'installent via les commandes
+compilent sous `bun` ; ctx-wire, codebase-memory-mcp et OMP s'installent via les commandes
 exactes des scripts ; et les six plugins s'installent via le vrai OMP sur chaque OS.
 
 ## Crédits
 
 - `dev-team` porte [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (MIT, Bryan Finster).
-- `token-diet` regroupe [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire), [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph), [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) et [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (yagni).
+- `token-diet` regroupe [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire), [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp), [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) et [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (yagni).
 - `azure-devops-fs` reprend l'idée « GitHub comme système de fichiers » de [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

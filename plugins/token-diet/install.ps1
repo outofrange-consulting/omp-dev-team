@@ -1,7 +1,7 @@
 #requires -Version 5.1
 <#
-  token-diet installer (Windows) — installs the LATEST ctx-wire + CodeGraph and
-  indexes every git repo under a sources root. caveman/yagni ship as OMP skills.
+  token-diet installer (Windows) — installs the LATEST ctx-wire + codebase-memory-mcp
+  and indexes every git repo under a sources root. caveman/yagni ship as OMP skills.
   Also sets up acli (Atlassian CLI), ast-grep, the .NET SDK + csharp-ls LSP, and
   the ctx7 docs CLI. Everything is refreshed to latest by default.
   Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive),
@@ -31,9 +31,16 @@ if ((Have ctx-wire) -and $NoUpdate) {
 }
 if (Have ctx-wire) { Say "Installing ctx-wire PATH shims"; Run "ctx-wire shims install" }
 
-# --- CodeGraph (MCP) --------------------------------------------------------
-if ((Have codegraph) -and $NoUpdate) { Say "CodeGraph present" }
-else { Say "Installing latest CodeGraph"; Run "irm https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.ps1 | iex" }
+# --- codebase-memory-mcp (MCP) ----------------------------------------------
+if ((Have codebase-memory-mcp) -and $NoUpdate) { Say "codebase-memory-mcp present" }
+else {
+  Say "Installing latest codebase-memory-mcp"
+  try {
+    $cbmInstaller = Join-Path $env:TEMP 'codebase-memory-mcp-install.ps1'
+    Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.ps1' -OutFile $cbmInstaller
+    & $cbmInstaller
+  } catch { Warn "codebase-memory-mcp install failed: $_ — see https://github.com/DeusData/codebase-memory-mcp" }
+}
 
 # Ensure ~/.local/bin is on PATH (user scope)
 if (";$env:Path;" -notlike "*;$BinDir;*") {
@@ -42,14 +49,14 @@ if (";$env:Path;" -notlike "*;$BinDir;*") {
   [Environment]::SetEnvironmentVariable('Path', "$userPath;$BinDir", 'User')
   $env:Path = "$env:Path;$BinDir"
 }
-# Ensure CodeGraph bin is on PATH (Windows: %LOCALAPPDATA%\codegraph\current\bin)
+# Ensure codebase-memory-mcp bin is on PATH (Windows: %LOCALAPPDATA%\Programs\codebase-memory-mcp)
 if ($env:OS -eq 'Windows_NT' -or $IsWindows) {
-  $cgBin = Join-Path $env:LOCALAPPDATA 'codegraph\current\bin'
-  if ((Test-Path $cgBin) -and (";$env:Path;" -notlike "*;$cgBin;*")) {
-    Say "Adding CodeGraph bin to user PATH"
+  $cbmBin = Join-Path $env:LOCALAPPDATA 'Programs\codebase-memory-mcp'
+  if ((Test-Path $cbmBin) -and (";$env:Path;" -notlike "*;$cbmBin;*")) {
+    Say "Adding codebase-memory-mcp bin to user PATH"
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    [Environment]::SetEnvironmentVariable('Path', "$userPath;$cgBin", 'User')
-    $env:Path = "$env:Path;$cgBin"
+    [Environment]::SetEnvironmentVariable('Path', "$userPath;$cbmBin", 'User')
+    $env:Path = "$env:Path;$cbmBin"
   }
 }
 
@@ -91,7 +98,7 @@ if (Have npm) {
   else { Say "Installing ctx7 CLI"; Run "npm install -g ctx7" }
 } else { Warn "npm not found — ctx7 unavailable (install Node.js)" }
 
-# --- Scan/index source repos with CodeGraph ---------------------------------
+# --- Scan/index source repos with codebase-memory-mcp -----------------------
 if (-not $SourcesRoot) {
   if (-not $Yes -and -not [Console]::IsInputRedirected) {
     $ans = Read-Host "Sources ROOT to scan (every git repo under it is indexed)? [default: $(Get-Location)]"
@@ -99,8 +106,16 @@ if (-not $SourcesRoot) {
   }
   if (-not $SourcesRoot) { $SourcesRoot = (Get-Location).Path }
 }
-function Index-One ($repo) { Say "  CodeGraph: $repo"; Run "codegraph init `"$repo`""; Run "codegraph index `"$repo`"" }
-if (Have codegraph) {
+function Index-One ($repo) {
+  Say "  codebase-memory-mcp: $repo"
+  # Build the JSON with ConvertTo-Json so Windows backslash paths are escaped
+  # correctly, and pass it as a single argument via the call operator (avoids
+  # Invoke-Expression quoting pitfalls).
+  $payload = @{ repo_path = $repo } | ConvertTo-Json -Compress
+  & codebase-memory-mcp cli index_repository $payload
+}
+if (Have codebase-memory-mcp) {
+  & codebase-memory-mcp config set auto_index true
   if (Test-Path (Join-Path $SourcesRoot '.git')) {
     Say "Scanning single repo: $SourcesRoot"; Index-One $SourcesRoot
   } else {
@@ -111,7 +126,7 @@ if (Have codegraph) {
   }
 }
 
-# --- Enable the bundled skills (caveman, yagni, codegraph, token-diet) -------
+# --- Enable the bundled skills (caveman, yagni, codebase-memory, token-diet) -
 if (-not $NoConfig) {
   $cfg = Join-Path $HOME ".omp\agent\config.yml"
   New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
@@ -130,4 +145,4 @@ if (Test-Path $src) {
   Say "read-dedup + context-dedup + context-compress (safe) loaded into $dest"
 }
 
-Say "token-diet active: ctx-wire shims, CodeGraph (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."
+Say "token-diet active: ctx-wire shims, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."

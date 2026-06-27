@@ -65,8 +65,8 @@ Le README promet une fusion « sans clobber » de `~/.omp/agent/config.yml` et
 
 ### 3. Chaîne d'appro : `curl|bash` non épinglé, sans checksum
 
-~12 points de fetch-and-execute (bun, OMP, Node, ctx-wire, **codegraph — repo
-tiers perso à `main` non épinglé**, acli, .NET, npm `@latest`, pup, az) tous en
+~12 points de fetch-and-execute (bun, OMP, Node, ctx-wire, **codebase-memory-mcp —
+repo tiers à `main` non épinglé**, acli, .NET, npm `@latest`, pup, az) tous en
 `curl|bash`/`irm|iex` **sans aucune vérification d'intégrité** (aucun sha256
 dans le repo). Couplé au switch `--insecure-tls` (qui désactive la vérif TLS
 pour tout le run et se propage à chaque sous-installateur), un MITM — le

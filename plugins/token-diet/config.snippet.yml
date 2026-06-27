@@ -6,7 +6,7 @@
 # here, to stay consistent with the global installer and keep copilot-preset's
 # `.github`/Copilot integration intact. Keep this list identical to install.sh's
 # write_config so the two install paths never write conflicting blocks.
-# (ctx-wire: PATH shims; CodeGraph MCP: plugin's .mcp.json)
+# (ctx-wire: PATH shims; codebase-memory-mcp MCP: plugin's .mcp.json)
 
 # Lean tool surface — token-diet's biggest startup-context win. OMP loads every
 # tool's JSON schema into the system prompt on every request; with dev-team that

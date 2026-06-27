@@ -1,6 +1,6 @@
 ---
 alwaysApply: true
-description: Token-saving tool routing (ctx-wire + CodeGraph)
+description: Token-saving tool routing (ctx-wire + codebase-memory-mcp)
 ---
 
 # Token discipline
@@ -13,11 +13,20 @@ description: Token-saving tool routing (ctx-wire + CodeGraph)
   Compaction is **locale-aware** for git/dotnet (EN+FR filters), and the
   **context-mode** plugin sandboxes any-language output (incl. Romanian) — so
   non-English command output is compacted too; never switch locale to "help" it.
-- **Code structure via CodeGraph.** When the `codegraph_*` MCP tools are
-  available, prefer them over `grep`/`glob`/`Read` for "who calls X", "what does
-  X call", "where is symbol Y", "what's the impact of changing Z", and
-  architecture questions. A `codegraph_explore`/`codegraph_callers` call usually
-  replaces dozens of grep+read round-trips.
+- **Code structure via codebase-memory-mcp.** When the codebase-memory-mcp tools
+  are available, prefer them over `grep`/`glob`/`Read` for "who calls X", "what
+  does X call", "where is symbol Y", "what's the impact of changing Z", and
+  architecture questions. A `get_architecture`/`trace_path` call usually replaces
+  dozens of grep+read round-trips; `detect_changes` gives the blast radius of a
+  diff; `search_graph`/`get_code_snippet` locate and fetch a symbol.
+- **Precise C# semantics → csharp-ls LSP, not the graph.** For editor-grade C#
+  operations the knowledge graph can't answer — exact find-all-references,
+  rename, live diagnostics/type errors, hover/signature help, completion — use
+  the `csharp-ls` LSP (wired via OMP's native LSP integration, auto-activated on
+  `.sln`/`.slnx`/`.csproj`). codebase-memory-mcp's embedded Hybrid LSP only
+  resolves types well enough to build the graph; it is not a full language
+  server. Structural/whole-repo questions → codebase-memory-mcp; point-precise C#
+  semantics → csharp-ls.
 - Reserve full-file `Read` for when you actually need to edit or read prose; for
   structure, query the graph first.
 - **Edit symbols structurally, not whole files.** To change a known function /
@@ -28,8 +37,8 @@ description: Token-saving tool routing (ctx-wire + CodeGraph)
   less merge-error-prone. Full-file `write` is for new files or genuine
   whole-file rewrites; `edit` (anchored) for small textual changes; `astEdit`
   for structural changes to existing code. (We do **not** route edits through a
-  symbol-server MCP — CodeGraph is read-only and OMP's native AST tools cover the
-  edit side.)
+  symbol-server MCP — codebase-memory-mcp is read-only and OMP's native AST tools
+  cover the edit side.)
 - **Re-reads are deduped.** Reading the same unchanged file again returns a short
   stub, not the bytes — the earlier read is still in context, so reuse it instead
   of re-reading to "refresh". (Editing the file, or compaction, lets a real
