@@ -15,6 +15,7 @@ prompts côté fournisseur), pas à la place.
 | **context7** | docs de librairies via MCP — docs API à jour à la demande | élimine les hallucinations sur les APIs de librairies | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | **sortie** laconique en fragments (à la demande) | ~65 % de tokens de sortie | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | écrire **moins de code** — YAGNI / dev sénior le plus fainéant (à la demande) | ~80–94 % de code en moins ; moins de tokens maintenant **et** à chaque tour futur | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
+| **mcp-as-cli-skill-creator** (skill) | un serveur MCP au schéma chargé injecte tout son schéma d'outils dans le prompt système à chaque requête | transforme un MCP / OpenAPI / GraphQL en CLI mince à l'exécution + skill à la demande, gardant son schéma **hors de la fenêtre de contexte** (le pattern ctx7/acli, généralisé) | skill OMP natif |
 | **read-dedup** + **context-dedup** | relectures de fichiers inchangés + blocs identiques répétés gonflent l'**entrée** | SANS PERTE, actif : relecture → stub ; blocs byte-identiques fusionnés avant chaque appel | « Read Dedup » de caveman-code, réimplémenté sur les hooks `tool_call`/`context` d'OMP |
 | **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques (`safe` actif par défaut ; `lite`/`full` opt-in) | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
 | **cache-meter** | les économies de prompt-cache que tu *crois* avoir sont non mesurées — et un transform qui modifie le préfixe peut les casser en silence | LECTURE SEULE, actif : une **statusline** live (`td $coût cache N% churn N%`, ⚠ si risque) + `/cache-health` pour le détail (taux de lecture cache + churn + coût + part de thinking + quota provider) ; **alerte** quand la compression `lite`/`full` coïncide avec un fort churn | `usage` par-tour d'OMP (`turn_end`) + en-têtes `after_provider_response` + `ui.setStatus` |
@@ -87,6 +88,16 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   `install.sh` installe le CLI `ctx7` globalement. Le skill bundlé `context7`
   (`skill://context7`) instrut l'agent à récupérer les docs actuelles automatiquement
   dès qu'une librairie, un framework ou une API est impliqué.
+- **mcp-as-cli-skill-creator** → un skill natif (`skill://mcp-as-cli-skill-creator`)
+  qui **généralise le geste `ctx7`/`acli`** : à partir d'un serveur MCP (ou d'un
+  endpoint OpenAPI / GraphQL), il génère un **CLI** mince à l'exécution
+  (`~/.local/bin/<outil>`, une sous-commande par opération) plus un **skill doc**
+  compagnon, et garde le serveur **hors de `.mcp.json`**. La capacité reste à un
+  appel bash, tandis que son schéma JSON quitte le prompt système — au service
+  direct de la surface d'outils maigre (`discoveryMode: all`). Fournit un squelette
+  `references/cli-template.ts` (handshake JSON-RPC MCP-stdio + parsing d'args +
+  sortie JSON compacte). Idéal pour les serveurs au schéma lourd peu appelés ; pas
+  pour les outils du hot-path ou streaming/stateful.
 - **Isolation providers** → `config.snippet.yml` positionne `disabledProviders` +
   `enableClaudeUser/Project/CodexUser: false` pour qu'OMP ne charge que ses propres
   plugins et les fichiers `AGENTS.md`/`CLAUDE.md` au niveau projet. Exclus : `~/.claude/plugins`,
