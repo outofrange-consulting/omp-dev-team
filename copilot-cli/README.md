@@ -13,9 +13,9 @@ install any subset.
 
 | Component | What it does | Copilot CLI surface |
 |---|---|---|
-| **dev-team** | Orchestrator + workflow agents (`specs → plan → build → review → pr`); **the full OMP roster ported** — all 30 specialist/critic agents + ~50 invocable skills as `.agent.md`, plus the complete `dev-team-knowledge` corpus; a **forced plan gate** (source edits blocked until scoped/planned) + review gate, path/freeze/spec/destructive guards; the `dt` gate CLI. | **custom agents** (`.agent.md`), a **`preToolUse` hook**, **`copilot-instructions.md`**, a bundled **knowledge corpus** |
+| **dev-team** | Orchestrator + workflow agents (`specs → plan → build → review → pr`) and a lean set of **umbrella critics/personas** (~22 agents). The full OMP depth — every specialist lens and skill — is bundled as a **knowledge corpus** the umbrellas read on demand (not loaded as agents). A **forced plan gate** (source edits blocked until scoped/planned) + review gate, path/freeze/spec/destructive guards; the `dt` gate CLI. | **custom agents** (`.agent.md`), a **`preToolUse` hook**, **`copilot-instructions.md`**, a bundled **knowledge corpus** (lenses + skills) |
 | **token-diet** | `ctx-wire` (transparent shell-output compression + secret scrub), **codebase-memory-mcp** (symbol/call-graph queries instead of grep+read), a `postToolUse` output-compression hook, and caveman/yagni discipline. | **PATH shims**, **MCP server**, a **`postToolUse` hook**, instructions |
-| **datadog** | Datadog from the terminal via the [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces, monitors, incidents, SLOs, CI/LLM observability). | a **`datadog` agent** driving `pup` |
+| **datadog** | Datadog from the terminal via the [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces, monitors, incidents, SLOs, CI/LLM observability). **One umbrella agent** drives `pup` — pup's 30+ embedded skills are **not** installed as separate Copilot agents. | a single **`datadog` agent** driving `pup` |
 
 ## Why a port (the mapping)
 
@@ -34,6 +34,18 @@ maps onto exactly those:
 | Rules / operating manual | **`.github/copilot-instructions.md`** |
 | codebase-memory-mcp / GitHub MCP | **MCP servers** in `~/.copilot/mcp-config.json` |
 | Model tiers (copilot-preset) | `/model` + each agent's `model:` frontmatter |
+
+## Context-lean by design (umbrella agents)
+
+Copilot CLI loads every custom agent's description for routing, so a 1:1 port of
+OMP's 30 agents + ~50 skills would bloat context. Instead the port follows the
+**umbrella pattern** (the same one the `datadog` agent uses over `pup`): a small
+roster of umbrella agents, each of which reads the **fine-grained playbook** for
+the lens it needs from the bundled knowledge corpus on demand. So
+`code-review` consults `knowledge/lenses/complexity-review.md` only when
+complexity is in the diff; `architect` consults `knowledge/skills/hexagonal-architecture/SKILL.md`
+only when boundaries change. Nothing is lost — every OMP lens/skill is one `read`
+away — but the always-loaded agent set stays small.
 
 ## Quick start
 
@@ -152,10 +164,12 @@ copilot-cli/
   lib/merge-json.mjs                  # non-clobbering JSON merge (mcp-config.json)
   packs/
     dev-team/
-      agents/*.agent.md               # 85 agents: workflow + all OMP specialists/critics + skills
+      agents/*.agent.md               # ~22 umbrella agents (workflow + critics + personas)
       hooks/scripts/                  # common.mjs + pre-tool-use.mjs (the blocking guard)
       instructions/copilot-instructions.md
-      knowledge/                      # full skills/rules/prompts + dev-team-knowledge corpus
+      knowledge/
+        lenses/                       # fine-grained critic playbooks (read on demand)
+        skills/ rules/ prompts/       # full skills + dev-team-knowledge corpus
       dt.mjs                          # the gate CLI + `dt init`
       install.sh · install.ps1
     token-diet/

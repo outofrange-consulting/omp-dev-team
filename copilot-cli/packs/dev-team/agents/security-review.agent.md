@@ -32,3 +32,12 @@ For each finding: **severity** (critical/high/medium/low), `file:line`, the
 vulnerability, a concrete exploit scenario, and the fix. Distinguish confirmed
 issues from suspicions. End with a verdict. If the diff is security-neutral, say
 so plainly rather than manufacturing findings.
+
+## Sub-lenses & playbooks
+
+Read on demand under `~/.copilot/dev-team/knowledge/skills/`:
+- `threat-modeling/SKILL.md` — STRIDE analysis at design time
+- `semgrep-analyze/SKILL.md` — SAST with semgrep
+- `static-analysis-integration/SKILL.md` — wire SAST/SARIF into the review
+
+For design-time secure-design guidance, hand off to `/agent security-engineer`.

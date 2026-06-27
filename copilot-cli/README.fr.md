@@ -13,9 +13,9 @@ sous-ensemble voulu.
 
 | Composant | Rôle | Surface Copilot CLI |
 |---|---|---|
-| **dev-team** | Orchestrateur + agents de workflow (`specs → plan → build → review → pr`) ; **tout le roster OMP porté** — les 30 agents specialists/critics + ~50 skills invocables en `.agent.md`, plus le corpus `dev-team-knowledge` complet ; un **plan gate forcé** (édition de source bloquée tant que non scopé/planifié) + review gate, et les gardes path/freeze/spec/destructive ; le CLI `dt`. | **agents custom** (`.agent.md`), un **hook `preToolUse`**, **`copilot-instructions.md`**, un **corpus de connaissances** embarqué |
+| **dev-team** | Orchestrateur + agents de workflow (`specs → plan → build → review → pr`) et un ensemble réduit de **critics/personas chapeaux** (~22 agents). Toute la profondeur OMP — chaque lens specialist et skill — est embarquée comme **corpus de connaissances** lu à la demande par les chapeaux (pas chargé comme agents). Un **plan gate forcé** + review gate, et les gardes path/freeze/spec/destructive ; le CLI `dt`. | **agents custom** (`.agent.md`), un **hook `preToolUse`**, **`copilot-instructions.md`**, un **corpus** embarqué (lenses + skills) |
 | **token-diet** | `ctx-wire` (compression transparente de la sortie shell + scrub des secrets), **codebase-memory-mcp** (requêtes symboles/graphe d'appels au lieu de grep+read), un hook `postToolUse` de compression, et la discipline caveman/yagni. | **shims PATH**, **serveur MCP**, un **hook `postToolUse`**, instructions |
-| **datadog** | Datadog depuis le terminal via le CLI [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces, monitors, incidents, SLOs, CI/observabilité LLM). | un **agent `datadog`** pilotant `pup` |
+| **datadog** | Datadog depuis le terminal via le CLI [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces, monitors, incidents, SLOs, CI/observabilité LLM). **Un seul agent chapeau** pilote `pup` — les 30+ skills embarquées de pup ne sont **pas** installées comme agents Copilot séparés. | un seul **agent `datadog`** pilotant `pup` |
 
 ## Pourquoi un portage (le mapping)
 
@@ -34,6 +34,19 @@ personnalisation, et le portage s'appuie exactement dessus :
 | Rules / manuel opératoire | **`.github/copilot-instructions.md`** |
 | codebase-memory-mcp / MCP GitHub | **Serveurs MCP** dans `~/.copilot/mcp-config.json` |
 | Tiers de modèles (copilot-preset) | `/model` + le `model:` en frontmatter de chaque agent |
+
+## Sobre en contexte (agents chapeaux)
+
+Le CLI Copilot charge la description de chaque agent custom pour le routage : un
+portage 1:1 des 30 agents + ~50 skills d'OMP gonflerait le contexte. Le portage
+suit donc le **pattern chapeau** (le même que l'agent `datadog` au-dessus de
+`pup`) : un petit ensemble d'agents chapeaux, chacun lisant à la demande le
+**playbook fin** dont il a besoin depuis le corpus de connaissances embarqué.
+Ainsi `code-review` ne consulte `knowledge/lenses/complexity-review.md` que si la
+complexité est dans le diff ; `architect` ne lit
+`knowledge/skills/hexagonal-architecture/SKILL.md` que si les frontières
+changent. Rien n'est perdu — chaque lens/skill OMP est à un `read` — mais
+l'ensemble d'agents toujours chargé reste petit.
 
 ## Démarrage rapide
 
@@ -155,10 +168,12 @@ copilot-cli/
   lib/merge-json.mjs                  # fusion JSON non destructive (mcp-config.json)
   packs/
     dev-team/
-      agents/*.agent.md               # 85 agents : workflow + tous les specialists/critics OMP + skills
+      agents/*.agent.md               # ~22 agents chapeaux (workflow + critics + personas)
       hooks/scripts/                  # common.mjs + pre-tool-use.mjs (la garde bloquante)
       instructions/copilot-instructions.md
-      knowledge/                      # skills/rules/prompts complets + corpus dev-team-knowledge
+      knowledge/
+        lenses/                       # playbooks des critics fins (lus à la demande)
+        skills/ rules/ prompts/       # skills complets + corpus dev-team-knowledge
       dt.mjs                          # le CLI de gate + `dt init`
       install.sh · install.ps1
     token-diet/

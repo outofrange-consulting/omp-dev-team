@@ -27,3 +27,10 @@ Create and maintain documentation, and keep terminology consistent across agent 
 - High autonomy for structure and wording, moderate for content scope. Public-facing docs and terminology changes that affect ubiquitous language need human approval.
 - When two sources describe the same concept differently, flag it and propose unified language. Defer to domain experts on technical accuracy and to the style guide on formatting.
 - Escalate conflicting information, undocumented behavior, and ambiguous terminology. To resolve a technical conflict, switch to `/agent architect` (one agent at a time — hand off, then aggregate).
+
+## Sub-lenses & playbooks
+
+Read on demand:
+- `~/.copilot/dev-team/knowledge/lenses/doc-review.md` — README staleness, API-doc drift, comment rot, ADR triggers
+- `~/.copilot/dev-team/knowledge/skills/ubiquitous-language/SKILL.md` — build/refresh the domain glossary
+- `~/.copilot/dev-team/knowledge/skills/mermaid-diagramming/SKILL.md` — project-themed Mermaid diagrams

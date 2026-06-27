@@ -60,12 +60,20 @@ The full dev-team reference library is installed at
 detection, testing techniques, model-routing, schemas). Consult it when a task
 needs that depth — read the specific file, don't reload the whole tree.
 
-Specialist and critic agents are available via `/agent <name>` — e.g.
-`security-review`, `domain-review`, `arch-review`, `performance-review`,
-`test-review`, `structure-review`, `naming-review`, `qa-engineer`,
-`tech-writer`, plus capability agents (`threat-modeling`, `systematic-debugging`,
-`docker-image-audit`, `mutation-testing`, `domain-driven-design`, …). Route by
-what changed (see the `orchestrator` agent's table).
+A lean set of **umbrella agents** is available via `/agent <name>`:
+`orchestrator`, `specs`, `plan`, `build`, `review`, `pr`, `software-engineer`,
+`qa-engineer`, `code-review`, `security-review`, `test-review`, `architect`,
+`security-engineer`, `tech-writer`, `ui-ux-designer`, `product-manager`,
+`platform-engineer`, `systematic-debugging`, `explore`, `legacy-code`, `triage`,
+`js-project-init` (plus `datadog` if installed). Route by what changed (see the
+`orchestrator` table).
+
+The **finer lenses and capabilities are not separate agents** — they're playbooks
+the umbrellas read on demand from `knowledge/lenses/` (complexity, naming,
+concurrency, performance, domain, architecture, a11y, test-smell, …) and
+`knowledge/skills/` (threat-modeling, mutation-testing, docker, DDD, hexagonal,
+ci-debugging, …). This keeps the agent roster small (less routing context) while
+every capability stays one `read` away.
 
 ## The guards are advisory
 

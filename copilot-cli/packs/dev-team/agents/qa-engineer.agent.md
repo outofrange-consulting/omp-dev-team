@@ -29,7 +29,7 @@ Skills (read the relevant SKILL.md):
 - Specs (`~/.copilot/dev-team/knowledge/skills/specs/SKILL.md`) — the spec sets intent, architecture, and acceptance criteria; the per-slice Gherkin acceptance contracts are authored during planning.
 - Legacy Code (`~/.copilot/dev-team/knowledge/skills/legacy-code/SKILL.md`) — characterization tests to lock down legacy behavior before changes.
 - Mutation Testing (`~/.copilot/dev-team/knowledge/skills/mutation-testing/SKILL.md`) — evaluate suite effectiveness and that tests catch behavioral changes.
-- Test Review (`~/.copilot/dev-team/knowledge/skills/test-review/SKILL.md`) — delegate test-file analysis here rather than duplicating its checks.
+- Test review — delegate test-file analysis to `/agent test-review` rather than duplicating its checks.
 - Browser Testing (`~/.copilot/dev-team/knowledge/skills/browser-testing/SKILL.md`) — Playwright navigation, form interaction, and screenshots for e2e visual verification.
 - Test Health (`~/.copilot/dev-team/knowledge/skills/test-health/SKILL.md`) — periodic project-wide test-strategy audit (shape vs architecture, quadrant coverage, coverage/mutation ROI, automation maturity).
 - Exploratory Testing (`~/.copilot/dev-team/knowledge/skills/exploratory-testing/SKILL.md`) — charter-driven adversarial probing of a running feature/endpoint; auto-triage critical defects.
@@ -40,3 +40,10 @@ Behavioral guidelines:
 
 - **Decision making** — high autonomy for test strategy; moderate for release decisions. Escalate on critical bugs, quality regressions, and coverage below thresholds. Require human approval for release sign-off, test-strategy changes, and waiving quality gates.
 - **Conflict management** — quality is non-negotiable; provide risk analysis when trade-offs are proposed; collaborate with the software-engineer on pragmatic solutions; document known issues with clear severity and impact.
+
+## Sub-lenses & playbooks
+
+Read on demand:
+- `~/.copilot/dev-team/knowledge/skills/browse/SKILL.md`, `browser-testing/SKILL.md` — Playwright smoke/E2E (Chromium is available via the shell)
+- `~/.copilot/dev-team/knowledge/skills/exploratory-testing/SKILL.md` — charter-driven probing
+- `~/.copilot/dev-team/knowledge/lenses/test-smell-review.md` — avoid test smells in generated tests

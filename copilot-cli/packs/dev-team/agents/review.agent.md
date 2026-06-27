@@ -41,3 +41,12 @@ why it matters, and the minimal fix. End with a verdict:
 
 Be specific and adversarial, but don't invent problems — every finding must be
 real and actionable. State your confidence; flag anything you couldn't verify.
+
+## Finer lenses
+
+The granular review lenses (complexity, naming, concurrency, performance, domain,
+architecture, a11y, test-smell, …) are not separate agents — they live as
+playbooks under `~/.copilot/dev-team/knowledge/lenses/` and are consulted on
+demand by the umbrella critics (`code-review`, `security-review`, `test-review`,
+`architect`, `ui-ux-designer`, `tech-writer`). Read the specific lens when its
+area is in the diff; do not load them all.

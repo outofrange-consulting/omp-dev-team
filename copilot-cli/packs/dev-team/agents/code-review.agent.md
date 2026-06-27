@@ -26,3 +26,22 @@ For each finding give: severity (error/warning/nit), `file:line`, the problem, t
 impact, and the minimal fix. Lead with the highest-severity items. End with a
 `pass` / `warn` / `fail` verdict. Don't pad the list with nits; don't invent
 issues; say what you could not verify.
+
+## Sub-lenses & playbooks
+
+This is the umbrella **quality/correctness** critic. Pick the relevant lens by what
+changed and read its playbook on demand (don't load them all) under `~/.copilot/dev-team/knowledge/lenses/`:
+
+- `complexity-review.md` — cyclomatic complexity, nesting, function size, params
+- `structure-review.md` — SRP, DRY, coupling, file organization
+- `naming-review.md` — naming clarity, conventions, magic values
+- `concurrency-review.md` — races, async pitfalls, idempotency, shared state
+- `performance-review.md` — leaks, N+1, unbounded growth, algorithmic issues
+- `js-fp-review.md` / `svelte-review.md` — JS/TS purity / Svelte reactivity
+- `refactor-opportunity-review.md` — post-green refactoring opportunities
+- `spec-compliance-review.md` — does the code match the spec (run first)
+- `data-flow-tracer.md` — trace data through layers
+- `token-efficiency-review.md` — file length / LLM anti-patterns
+
+Duplication: `~/.copilot/dev-team/knowledge/skills/semantic-scan/SKILL.md`,
+`~/.copilot/dev-team/knowledge/skills/semantic-duplication-scan/SKILL.md`.

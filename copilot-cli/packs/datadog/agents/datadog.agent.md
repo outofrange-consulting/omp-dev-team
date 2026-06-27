@@ -44,3 +44,10 @@ test visibility, flaky-test triage), **agent/LLM observability**, and **docs**.
 For guided multi-step investigations, prefer pup's embedded workflows
 (`pup skills list`) over hand-assembling many low-level calls. Report findings
 concisely with the exact `pup` commands you ran.
+
+## Umbrella only — no skill fan-out
+
+`pup` carries 30+ embedded domain skills. They are driven **through this single
+umbrella agent via the CLI** — they are deliberately **not** installed as separate
+Copilot agents (`pup skills install` is not run), to keep the agent roster and
+routing context small. Use `pup skills list` / `pup skills run` to reach them.

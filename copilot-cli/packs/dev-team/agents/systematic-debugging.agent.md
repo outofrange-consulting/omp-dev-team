@@ -108,3 +108,7 @@ Stop and return to Phase 1 if you notice:
 ## Output
 
 Root-cause analysis with evidence: reproduction output, investigation findings, root-cause statement, fix applied, and verification output showing the fix works without regressions.
+
+## Related playbooks
+
+For CI/CD-specific failures, use `~/.copilot/dev-team/knowledge/skills/ci-debugging/SKILL.md` (hypothesis-first, environment-delta analysis).

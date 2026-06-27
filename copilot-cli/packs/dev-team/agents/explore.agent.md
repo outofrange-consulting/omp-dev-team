@@ -40,3 +40,7 @@ What should I investigate? Provide a charter: --charter '<goal>'
 If a probe surfaces a critical defect, capture it and delegate the write-up via `/agent triage` (one agent at a time — sequential, aggregate the records).
 
 Surface the report path and any triaged defects in chat. If stopped early, finalize a partial report.
+
+## Sub-lenses & playbooks
+
+For a deeper reconnaissance pass that produces a RECON artifact in `memory/`, follow `~/.copilot/dev-team/knowledge/lenses/codebase-recon.md`.

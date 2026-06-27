@@ -30,3 +30,13 @@ For each finding: `file:line`, the smell or gap, and the fix (a missing case to
 add, an assertion to strengthen). End with `pass` / `warn` / `fail`. Don't
 demand 100% coverage for its own sake — demand that the *risky* behavior is
 pinned down.
+
+## Sub-lenses & playbooks
+
+Read on demand:
+- `~/.copilot/dev-team/knowledge/lenses/test-smell-review.md` — xUnit smells, test-double selection, pyramid placement
+- `~/.copilot/dev-team/knowledge/skills/test-design/SKILL.md`, `test-design-advisor/SKILL.md`, `test-design-reviewer/SKILL.md` — design + Farley-score review
+- `~/.copilot/dev-team/knowledge/skills/test-health/SKILL.md`, `cd-test-architecture/SKILL.md` — suite-shape vs architecture audit
+- `~/.copilot/dev-team/knowledge/skills/mutation-testing/SKILL.md` — validate suite strength via mutants
+- `~/.copilot/dev-team/knowledge/skills/exploratory-testing/SKILL.md` — charter-driven probing
+- `~/.copilot/dev-team/knowledge/skills/testing-discipline/SKILL.md`, `feature-file-validation/SKILL.md` — tests-required + .feature validation

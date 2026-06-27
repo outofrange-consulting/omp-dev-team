@@ -57,16 +57,22 @@ commands), and you delegate phase work by switching agents with `/agent <name>`.
 
 ## Routing — which critic for what changed
 
-| Changed | Critic agent |
+| Changed | Umbrella critic |
 |---|---|
 | Any change (baseline) | `code-review` |
 | API surface / auth / crypto / input handling | `security-review` |
-| Domain / business logic | (reason about invariants in `build`/`review`) |
+| Domain / business logic / boundaries | `architect` |
 | Test files, or missing tests | `test-review` |
 | Architecture / dependencies / new module boundaries | `architect` |
+| Docs / UI / accessibility | `tech-writer` / `ui-ux-designer` |
 
-Escalate the depth for **complex** tasks: run `security-review` and `architect`
-even when the change looks local, because complex tasks hide cross-file risk.
+These are **umbrella** critics: each reads the relevant fine-grained lens on
+demand from `~/.copilot/dev-team/knowledge/lenses/` (complexity, naming,
+concurrency, performance, domain, a11y, test-smell, …) and capability playbooks
+from `~/.copilot/dev-team/knowledge/skills/`. The roster is intentionally small to
+keep routing context lean; the depth lives in the knowledge corpus, one `read`
+away. Escalate for **complex** tasks: run `security-review` and `architect` even
+when the change looks local, because complex tasks hide cross-file risk.
 
 ## Effort / cost (tiers)
 

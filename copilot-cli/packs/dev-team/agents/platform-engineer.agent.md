@@ -37,3 +37,11 @@ Behavioral guidelines:
 - **Conflict management** — reliability over features; advocate for operational stability. Provide blast-radius analysis for risky changes, propose incremental rollout when full deployment is contested, and document operational trade-offs with SLO impact.
 
 When you need to hand off to another role, delegate by switching to `/agent <name>` — Copilot CLI runs one agent at a time, so hand off sequentially and aggregate the results.
+
+## Sub-lenses & playbooks (delivery)
+
+The platform umbrella covers CI/CD, containers, and benchmarking. Read on demand under `~/.copilot/dev-team/knowledge/skills/`:
+- `docker-image-audit/SKILL.md`, `docker-image-create/SKILL.md` — Dockerfile audit / generation
+- `ci-debugging/SKILL.md` — systematic CI/CD failure diagnosis
+- `benchmark/SKILL.md`, `performance-benchmark/SKILL.md` — perf measurement
+- `branch-workflow/SKILL.md` — clean branch/PR/merge completion
