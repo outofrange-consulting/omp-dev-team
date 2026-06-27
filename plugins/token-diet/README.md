@@ -17,7 +17,7 @@ in place of it.
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 | **read-dedup** + **context-dedup** | re-reads of unchanged files + byte-identical repeated blocks inflate **input** | LOSSLESS, on: re-read → stub; identical blocks collapsed before each call | caveman-code's "Read Dedup", reimplemented on OMP's `tool_call`/`context` hooks |
 | **context-compress** | old **prose** context stays verbose every turn | protect-masked prose shrink of old messages — code/paths/numbers byte-identical (`safe` on by default; `lite`/`full` opt-in) | quality-preserving take on [caveman-code](https://github.com/JuliusBrussee/caveman-code)'s LLMLingua/Provence |
-| **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: `/cache-health` shows prompt-cache read-rate + churn + cost + thinking-share + provider quota, and **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers |
+| **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: a live **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) + `/cache-health` for the full read-rate / churn / cost / thinking-share / provider-quota breakdown; **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers + `ui.setStatus` |
 | **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
 | **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
 | **C# LSP** | `csharp-ls` wired as OMP-native language server — used for precise C# semantics that the knowledge graph can't give (rename, exact references, live diagnostics, hover) | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
@@ -136,16 +136,20 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
 - **cache-meter** → a **read-only** extension (never mutates a request) that
   accumulates OMP's per-turn `usage` (`turn_end.message.usage`:
   input/output/**cacheRead/cacheWrite**/cost/thinking) plus the provider
-  rate-limit headers (`after_provider_response`). `/cache-health` prints the
-  prompt-cache **read-rate** and **churn**, cumulative **cost**, thinking-token
-  share, context-window %, and provider quota. Its point is the closing-the-loop
+  rate-limit headers (`after_provider_response`). It keeps a live footer
+  **statusline** via `ctx.ui.setStatus` (`td $<cost> cache <read%> churn <%>`,
+  with a ⚠ on cache-bust risk — the always-visible glance at cost/cache health),
+  and `/cache-health` prints the full breakdown: prompt-cache **read-rate** and
+  **churn**, cumulative **cost**, thinking-token share, context-window %, and
+  provider quota. Its point is the closing-the-loop
   check for the rest of token-diet: because `context-compress`/the dedups rewrite
   **old** messages — exactly the stable prefix a provider KV-caches — they can
   *raise* visible-token savings while *busting* the 10×-cheaper cache read. The
   meter **warns** when prefix-mutating compression (`lite`/`full`) coincides with
   high cache churn, so the "CacheAligner" prefix-freeze is only built if the
-  numbers actually show a problem (measure first). Off with
-  `TOKEN_DIET_CACHE_METER=off`; pure math in `extensions/lib/cache-stats.ts`,
+  numbers actually show a problem (measure first). Off (whole meter) with
+  `TOKEN_DIET_CACHE_METER=off`, or silence just the footer line with
+  `TOKEN_DIET_CACHE_STATUSLINE=off`; pure math in `extensions/lib/cache-stats.ts`,
   unit-tested. (OMP exposes this usage to extensions today — the older
   "token usage isn't available to hooks" assumption no longer holds.)
 
