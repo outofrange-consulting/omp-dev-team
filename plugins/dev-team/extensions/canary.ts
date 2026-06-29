@@ -8,17 +8,15 @@
 // noticed" failure. This canary surfaces that at session start, not twenty
 // minutes in.
 //
-// What it proves (honestly): the operating-manual rule shipped in the *loaded*
-// package (mirrored to ~/.omp/agent or the marketplace cache — which CI cannot
-// see) is present, still alwaysApply, and still carries the sentinel. Because
-// this extension runs from that same package, an intact sibling rule means OMP's
-// rule-bucket discovery loads it into the system prompt. It does NOT prove the
-// model "read" it — no extension API exposes the assembled system prompt (it is a
-// separate `systemPrompt: string[]`, not part of the `context` event's messages).
-// CI check E in ci-framework-compliance.mjs covers the *source* file; this covers
-// the *installed copy* at runtime. Belt and braces.
+// What it proves (honestly): the operating-manual rule shipped in the *installed*
+// package (plugin cache under ~/.omp/plugins/cache) is present, still alwaysApply,
+// and still carries the sentinel. OMP stages only extensions/ + package.json into
+// ~/.omp/agent/extensions/dev-team/ — the full package (including rules/) lives in
+// the plugin cache resolved via installed_plugins.json. CI check E in
+// ci-framework-compliance.mjs covers the *source* file; this covers the *installed
+// copy* at runtime. Belt and braces.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
@@ -28,9 +26,53 @@ import { appendJSONL, nowISO, statePath } from "./lib/shared.ts";
 // in scripts/ci-framework-compliance.mjs (check E enforces all three agree).
 const CANARY_TOKEN = "DT-CANARY-7Q2F";
 
-// canary.ts lives at <pkg>/extensions/canary.ts, so <pkg> is one level up.
-const PKG_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const RULE_PATH = join(PKG_ROOT, "rules", "dev-team-operating-manual.md");
+// OMP stages only extensions/ + package.json into the agent dir; the full package
+// (including rules/) lives in the plugin cache.  Walk up from the staging root to
+// <omp_data> and consult installed_plugins.json for the authoritative installPath.
+const STAGING_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+function resolveRulePath(): string {
+	// Fast path: full package was staged (local dev or future OMP behaviour).
+	const staged = join(STAGING_ROOT, "rules", "dev-team-operating-manual.md");
+	if (existsSync(staged)) return staged;
+
+	// STAGING_ROOT = <omp_data>/agent/extensions/dev-team → ../../.. = <omp_data>
+	const ompData = resolve(STAGING_ROOT, "../../..");
+
+	// Consult installed_plugins.json for the exact installPath.
+	const installedJson = join(ompData, "plugins", "installed_plugins.json");
+	if (existsSync(installedJson)) {
+		try {
+			const db = JSON.parse(readFileSync(installedJson, "utf8")) as {
+				plugins?: Record<string, Array<{ installPath: string }>>;
+			};
+			const entries = db.plugins?.["dev-team@omp-dev-team"];
+			if (entries?.length) {
+				const installPath = entries[entries.length - 1].installPath;
+				return join(installPath, "rules", "dev-team-operating-manual.md");
+			}
+		} catch {
+			/* fall through */
+		}
+	}
+
+	// Last resort: glob the cache dir for any dev-team package.
+	const cacheDir = join(ompData, "plugins", "cache", "plugins");
+	if (existsSync(cacheDir)) {
+		const dirs = readdirSync(cacheDir).filter((d) =>
+			d.startsWith("omp-dev-team___dev-team___"),
+		);
+		if (dirs.length) {
+			dirs.sort();
+			return join(cacheDir, dirs[dirs.length - 1], "rules", "dev-team-operating-manual.md");
+		}
+	}
+
+	// No cache found — return the staged path so checkCanary emits "not found".
+	return staged;
+}
+
+const RULE_PATH = resolveRulePath();
 
 interface CanaryResult {
 	ok: boolean;
