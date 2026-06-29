@@ -79,3 +79,25 @@ SWE-bench), so it is *not* the default orchestration model.
 Rough output-cost ranking (cheapest → priciest): GPT-5 mini ($2) <
 MAI-Code-1-Flash ≈ GPT-5.4 mini ($4.50) < Haiku 4.5 ($5) < GPT-5.3-Codex ($14) <
 Sonnet 4.5/4.6 ≈ GPT-5.4 ($15) < Opus 4.6/4.8 ($25) < GPT-5.5 ($30) < Fable 5 ($50).
+
+## Cost impact of the smol-tier switch (Haiku 4.5 → MAI-Code-1-Flash)
+
+The small tier is the highest-volume tier (parallel checklist/pattern agents),
+and output dominates the bill. The switch is cheaper on two compounding levers —
+lower rate *and* fewer tokens — and is never more expensive than Haiku:
+
+| | Input | Cached in | Output |
+|---|---|---|---|
+| Claude Haiku 4.5 (before) | $1.00 | $0.10 | $5.00 |
+| MAI-Code-1-Flash (after) | $0.75 | $0.075 | $4.50 |
+| Δ per token | −25% | −25% | −10% |
+
+Worked example — 1M output tokens at this tier (1 AI credit = $0.01):
+
+- Haiku 4.5: $5.00 → **500 credits**
+- MAI at equal token volume: $4.50 → **450 credits** (−10%)
+- MAI with up to 60% fewer tokens (≈0.4M): $1.80 → **180 credits** (**−64%**)
+
+So expect **−10% to −64%** on the priciest-by-volume tier, with *better* coding
+quality (Haiku is beaten on all three benches). `gpt-5-mini` ($2 output) is the
+only cheaper option, but it trades away coding quality — not worth it here.
