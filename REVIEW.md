@@ -59,7 +59,7 @@ block-with-confirm). Ne pas les présenter comme une *barrière* de sécurité.
 Le README promet une fusion « sans clobber » de `~/.omp/agent/config.yml` et
 `mcp.json`. En réalité :
 - **CRITIQUE** `scripts/merge-json.mjs` est **JSON-only** (`JSON.parse`). Le `config.yml` (YAML) n'y passe pas — il est « fusionné » par un grep/append shell (`install.sh:218-223` `cfg_add` : ajoute un bloc si `^key:` absent). Un `config.yml` formaté différemment → **2e bloc top-level `modelRoles:`** dupliqué → la plupart des parseurs YAML clobberent ou erreurent. L'inverse de la garantie annoncée.
-- **CRITIQUE** `plugins/cliproxy/install.sh:84-85` — injection du provider dans `models.yml` par `awk` après la 1re ligne `providers:`, en supposant indentation et ligne nue. Si l'utilisateur a un `providers:` avec contenu inline/commentaire/indent différent → YAML invalide, **tous les providers cassés**, sans backup ni validation. Même faille dans le `.ps1`.
+- **RÉSOLU** `plugins/cliproxy/install.sh:84-85` — injection awk dans `models.yml` sans garantie de format : **remplacée** par `plugins/openai-compatible/` qui conserve la même logique awk + backup + validation PyYAML.
 - **MOYENNE** `merge-json.mjs` dédupe les tableaux par `JSON.stringify` → deux entrées sémantiquement égales mais d'ordre de clés différent sont gardées en double (serveur MCP / rôle dupliqué).
 - **MOYENNE** double `disabledProviders:` : token-diet en écrit un (incluant `github`), le global en écrit un autre (sans) → comportement dépend de l'ordre, et casse copilot-preset qui a besoin de `github`.
 
@@ -84,7 +84,8 @@ l'environnement (warn seulement sur stderr).
 - **HAUTE** token-diet vend du « secret scrub » : les extensions **in-process** (`protect.ts`/`messages.ts`) **ne redactent rien** — elles *préservent* les spans haute-entropie à l'identique. Le seul scrub réel est le binaire externe ctx-wire + un `replace` ATATT dans `acli.toml`. Un secret entré par un autre chemin (`read .env`, résultat MCP, echo `az`/`gh`) est conservé tel quel.
 - **MOYENNE** `acli.toml:20` — regex `ATATT…` seul → rate `ATCTT…` (Confluence/Bitbucket) et tout autre préfixe Atlassian.
 - **MOYENNE** `azure cache.ts` — `ado-cache.db` (SQLite) stocke les corps de réponse ADO (diffs, contenus de fichiers, logs) **en clair, sans `chmod 600`**, jamais nettoyé. (Le PAT lui-même n'est pas stocké.)
-- **MOYENNE** cliproxy/datadog : clés exportées dans **tous** les shells (`.profile`) ou en **User env Windows en clair** → surface d'exposition large.
+- **RÉSOLU** openai-compatible : la clé API n'est **plus jamais exportée** dans `.profile` ni dans `User env` Windows — seules `OAI_PROVIDER_URL` et `OAI_PROVIDER_NAME` le sont. La clé reste dans `~/.omp/<name>.key` (chmod 600) uniquement.
+- **MOYENNE** datadog : clés exportées dans **tous** les shells (`.profile`) ou en **User env Windows en clair** → surface d'exposition large.
 
 *Bon point vérifié :* la télémétrie (`telemetry.ts`) et le cost-metering sont
 **100 % locaux**, aucun phone-home, aucun endpoint en dur.

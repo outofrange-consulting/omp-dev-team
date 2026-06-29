@@ -1,0 +1,8 @@
+{
+  "name": "openai-compatible",
+  "version": "1.0.0",
+  "description": "Register any OpenAI-compatible provider (LiteLLM, Ollama, vLLM, LocalAI, …) in Oh-My-Pi. Supply the provider name, base URL, and API key; the installer lists available models and writes the provider into ~/.omp/agent/models.yml with runtime model discovery. The API key is stored chmod 600 in ~/.omp/<name>.key, never written inline or exported to shell profiles.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
+}

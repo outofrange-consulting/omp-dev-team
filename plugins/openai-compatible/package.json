@@ -1,0 +1,11 @@
+{
+  "name": "@omp-dev-team/openai-compatible",
+  "version": "1.0.0",
+  "description": "Register any OpenAI-compatible provider (LiteLLM, Ollama, vLLM, …) in OMP.",
+  "license": "MIT",
+  "private": true,
+  "omp": {
+    "extensions": ["./extensions/openai-provider.ts"]
+  },
+  "comment": "The extension reads OAI_PROVIDER_NAME + OAI_PROVIDER_URL at startup, derives the API key from ~/.omp/<name>.key (never from env), registers the provider live via registerProvider, and exposes /oai-provider to re-list models on demand. install.sh/ps1 drive the same CLI for initial setup."
+}

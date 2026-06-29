@@ -257,7 +257,7 @@ cfg_add() {  # cfg_add <topkey> ; YAML block on stdin ; append only if topkey ab
 # Existing top-level keys are ALWAYS preserved — we only add what's missing.
 write_config() {
   [ "$NO_CONFIG" = 1 ] && { say "Keeping your OMP config as-is (--no-config)"; return 0; }
-  [ "${SEL_DEVTEAM:-0}${SEL_COPILOT:-0}${SEL_TOKENDIET:-0}${SEL_CLIPROXY:-0}" = "0000" ] && return 0
+  [ "${SEL_DEVTEAM:-0}${SEL_COPILOT:-0}${SEL_TOKENDIET:-0}${SEL_OAI_COMPAT:-0}" = "0000" ] && return 0
   mkdir -p "$(dirname "$CFG")"; touch "$CFG"
   bold "OMP config"; say "Merging defaults into $CFG (existing values preserved)"
   grep -q "omp-dev-team" "$CFG" 2>/dev/null || printf '# omp-dev-team — merged defaults (your existing values are preserved on re-run).\n' >> "$CFG"
@@ -378,7 +378,7 @@ EOF
 
 # --- 3) Per-plugin prompts --------------------------------------------------
 bold "Plugins"
-SEL_DEVTEAM=0; SEL_COPILOT=0; SEL_TOKENDIET=0; SEL_CLIPROXY=0
+SEL_DEVTEAM=0; SEL_COPILOT=0; SEL_TOKENDIET=0; SEL_OAI_COMPAT=0
 
 if ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?"; then
   plug dev-team "$ROOT/plugins/dev-team"; SEL_DEVTEAM=1
@@ -392,8 +392,8 @@ if ask "Install token-diet (ctx-wire + codebase-memory-mcp + caveman + yagni + a
   plug token-diet "$ROOT/plugins/token-diet"; SEL_TOKENDIET=1
 fi
 
-if ask "Install cliproxy (register a CLIProxyAPI gateway as a model provider)?" "N"; then
-  plug cliproxy "$ROOT/plugins/cliproxy"; SEL_CLIPROXY=1
+if ask "Install openai-compatible (register a LiteLLM/Ollama/vLLM endpoint as a model provider)?" "N"; then
+  plug openai-compatible "$ROOT/plugins/openai-compatible"; SEL_OAI_COMPAT=1
 fi
 
 if ask "Install datadog (Pup CLI + Datadog observability skills)?" "N"; then

@@ -65,7 +65,7 @@ jobs:
             plugins/dev-team/extensions/*.ts \
             plugins/token-diet/extensions/*.ts \
             plugins/azure-devops-fs/extensions/*.ts \
-            plugins/cliproxy/extensions/*.ts; do
+            plugins/openai-compatible/extensions/*.ts; do
             if bun build "$f" --target node >/dev/null; then
               echo "ok $f"
             else
@@ -118,7 +118,7 @@ jobs:
           export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
           omp --version
           omp plugin list | tee /tmp/plugins.txt
-          for p in dev-team copilot-preset token-diet azure-devops-fs cliproxy datadog; do
+          for p in dev-team copilot-preset token-diet azure-devops-fs openai-compatible datadog; do
             grep -q "$p@omp-dev-team" /tmp/plugins.txt || { echo "missing $p"; exit 1; }
           done
           echo "all plugins installed"
@@ -135,7 +135,7 @@ jobs:
           omp --version
           $list = omp plugin list 2>$null
           $list
-          foreach ($p in 'dev-team','copilot-preset','token-diet','azure-devops-fs','cliproxy','datadog') {
+          foreach ($p in 'dev-team','copilot-preset','token-diet','azure-devops-fs','openai-compatible','datadog') {
             if (-not ($list | Select-String "$p@omp-dev-team")) { Write-Error "missing $p"; exit 1 }
           }
           Write-Host "all plugins installed"

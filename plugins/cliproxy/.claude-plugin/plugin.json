@@ -1,8 +1,0 @@
-{
-  "name": "cliproxy",
-  "version": "1.0.0",
-  "description": "Register a CLIProxyAPI gateway (router-for-me/CLIProxyAPI) as an OpenAI-compatible model provider in Oh-My-Pi. You supply the gateway URL + API key; the installer lists the available models and writes a 'cliproxy' provider into ~/.omp/agent/models.yml with runtime model discovery, so any upstream the gateway exposes (Gemini/Codex/Claude/Grok via CLI accounts) is usable as cliproxy/<model-id>.",
-  "author": { "name": "outofrange-consulting" },
-  "license": "MIT",
-  "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
-}

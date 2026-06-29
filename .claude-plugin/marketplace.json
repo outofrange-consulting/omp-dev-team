@@ -40,9 +40,9 @@
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
     },
     {
-      "name": "cliproxy",
-      "source": "./cliproxy",
-      "description": "Register a CLIProxyAPI gateway (router-for-me/CLIProxyAPI) as an OpenAI-compatible model provider. You supply the gateway URL + API key; the installer lists the models and writes a 'cliproxy' provider into ~/.omp/agent/models.yml with runtime discovery, so any upstream the gateway exposes is usable as cliproxy/<model-id>.",
+      "name": "openai-compatible",
+      "source": "./openai-compatible",
+      "description": "Register any OpenAI-compatible provider (LiteLLM, Ollama, vLLM, LocalAI, …) in Oh-My-Pi. Supply a provider name, base URL, and API key; the installer lists the models and writes the provider into ~/.omp/agent/models.yml with runtime discovery, so any model the endpoint exposes is usable as <name>/<model-id>. API key stored chmod 600, never in env.",
       "category": "configuration",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

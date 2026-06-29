@@ -12,7 +12,7 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
 | **[`token-diet`](plugins/token-diet/)** | **Réduction agressive des tokens** — ctx-wire (compression transparente de la sortie des commandes + scrub des secrets), codebase-memory-mcp (requêtes de graphe de symboles via MCP au lieu de grep+read ; le LSP csharp-ls est conservé pour les sémantiques C# précises), un cache-meter en lecture seule (statusline coût/cache live + `/cache-health`), un skill « caveman » de sortie laconique, un skill « yagni » de code minimal, et un skill `mcp-as-cli-skill-creator` qui transforme un MCP/OpenAPI/GraphQL en CLI à l'exécution sans schéma — par-dessus la compaction/`astGrep` natives d'OMP. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Propulsé par l'**Azure CLI** (`az` + extension azure-devops), auth PAT, cache SQLite ; fonctionne derrière les proxys TLS d'entreprise. |
-| **[`cliproxy`](plugins/cliproxy/)** | **CLIProxyAPI comme fournisseur de modèles** — pointez-le vers une passerelle [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (URL + clé API) ; l'installeur liste les modèles et écrit un fournisseur `cliproxy` dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `cliproxy/<id-modèle>`. |
+| **[`openai-compatible`](plugins/openai-compatible/)** | **N'importe quel fournisseur compatible OpenAI** — pointez-le vers un endpoint LiteLLM, Ollama, vLLM ou LocalAI (nom + URL + clé API) ; l'installeur liste les modèles et écrit le fournisseur dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `<nom>/<id-modèle>`. Clé API en chmod 600, jamais dans l'env. |
 | **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
 
 ## Démarrage rapide (recommandé)
@@ -91,7 +91,7 @@ omp plugin install dev-team@omp-dev-team
 omp plugin install copilot-preset@omp-dev-team
 omp plugin install token-diet@omp-dev-team
 omp plugin install azure-devops-fs@omp-dev-team
-omp plugin install cliproxy@omp-dev-team
+omp plugin install openai-compatible@omp-dev-team
 omp plugin install datadog@omp-dev-team
 ```
 
@@ -100,7 +100,7 @@ omp plugin install datadog@omp-dev-team
 > installation via le cache marketplace — seuls skills/commands/agents/rules/MCP
 > y sont exposés. Les plugins dont le cœur *est* une extension —
 > **azure-devops-fs** (l'outil `ado`), **dev-team** (les garde-fous bloquants +
-> le routage de modèles) et **cliproxy** (le fournisseur) — ont donc besoin que
+> le routage de modèles) et **openai-compatible** (le fournisseur) — ont donc besoin que
 > leur installeur tourne aussi. Le `install.sh` global et chaque
 > `install.sh`/`install.ps1` de plugin recopient ces modules dans le dossier natif
 > d'OMP `~/.omp/agent/extensions/<plugin>/` (toujours découvert, survit aux resets
@@ -115,7 +115,7 @@ du plugin dans leur dernière version) — voir son README :
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
 - **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire + codebase-memory-mcp, indexe tous les repos sous votre racine de sources), puis activez le serveur MCP `codebase-memory-mcp`.
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installe l'Azure CLI + l'extension azure-devops, demande org/projet/**PAT**, lance `az devops login`), puis redémarrez `omp` pour charger l'outil `ado`.
-- **cliproxy** → `bash plugins/cliproxy/install.sh --url=http://localhost:8317 --api-key=…` (liste les modèles de la passerelle, écrit le fournisseur `cliproxy` dans `~/.omp/agent/models.yml`), puis redémarrez `omp`.
+- **openai-compatible** → `bash plugins/openai-compatible/install.sh --name=litellm --url=http://localhost:4000 --api-key=…` (liste les modèles de l'endpoint, écrit le fournisseur dans `~/.omp/agent/models.yml`), puis redémarrez `omp`.
 - **datadog** → `bash plugins/datadog/install.sh` (installe la CLI Datadog `pup` + configure l'auth ; `--with-skills` pour aussi ajouter les skills par domaine de pup).
 
 ## Disposition
@@ -130,7 +130,7 @@ plugins/
   copilot-preset/   config.snippet.yml · pricing.md · skills/ · install.{sh,ps1}
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ (ado.ts + lib/az.ts) commands/ skills/ rules/ knowledge/ · install.{sh,ps1}
-  cliproxy/         extensions/ (cliproxy.ts) · skills/ · install.{sh,ps1}
+  openai-compatible/  extensions/ (openai-provider.ts) · skills/ · install.{sh,ps1}
   datadog/          skills/ (umbrella) · install.{sh,ps1}
 ```
 
@@ -166,7 +166,7 @@ Vérifié de bout en bout et en intégration continue (Linux/macOS/Windows,
 voir [`.github/workflows/installers.yml`](.github/workflows/installers.yml)) : tous
 les `install.sh` passent `bash -n` ; tous les `install.ps1` se parsent sous
 PowerShell 7 ; tous les manifestes sont du JSON valide ; les 8 extensions de
-dev-team (plus les modules d'extension de token-diet, azure-devops-fs et cliproxy)
+dev-team (plus les modules d'extension de token-diet, azure-devops-fs et openai-compatible)
 compilent sous `bun` ; ctx-wire, codebase-memory-mcp et OMP s'installent via les commandes
 exactes des scripts ; et les six plugins s'installent via le vrai OMP sur chaque OS.
 

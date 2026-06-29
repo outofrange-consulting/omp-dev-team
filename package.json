@@ -1,9 +1,9 @@
 {
   "name": "omp-dev-team",
   "version": "0.1.0",
-  "description": "Oh-My-Pi marketplace of six independent plugins: dev-team, copilot-preset, token-diet, azure-devops-fs, cliproxy, and datadog.",
+  "description": "Oh-My-Pi marketplace of six independent plugins: dev-team, copilot-preset, token-diet, azure-devops-fs, openai-compatible, and datadog.",
   "license": "MIT",
   "private": true,
-  "keywords": ["oh-my-pi", "omp", "marketplace", "plugin", "agents", "azure-devops", "copilot", "datadog", "cliproxy", "token-diet"],
+  "keywords": ["oh-my-pi", "omp", "marketplace", "plugin", "agents", "azure-devops", "copilot", "datadog", "litellm", "openai-compatible", "token-diet"],
   "comment": "This repo is an OMP MARKETPLACE. Catalog: .claude-plugin/marketplace.json; plugins live under plugins/<name>/, each with its own package.json (omp.extensions) and .claude-plugin/plugin.json. Add it with `omp plugin marketplace add <repo-or-./>` then install plugins individually. All six plugins are independent and share nothing."
 }

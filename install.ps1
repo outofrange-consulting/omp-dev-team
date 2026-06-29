@@ -158,7 +158,7 @@ function Cfg-Add ($key, $block) {  # append YAML block only if top-level key abs
 
 function Write-Config {
   if ($NoConfig) { Say "Keeping your OMP config as-is (-NoConfig)"; return }
-  if (-not ($SEL_DEVTEAM -or $SEL_COPILOT -or $SEL_TOKENDIET -or $SEL_CLIPROXY)) { return }
+  if (-not ($SEL_DEVTEAM -or $SEL_COPILOT -or $SEL_TOKENDIET -or $SEL_OAI_COMPAT)) { return }
   New-Item -ItemType Directory -Force -Path (Split-Path $Cfg) | Out-Null
   if (-not (Test-Path $Cfg)) { New-Item -ItemType File -Force -Path $Cfg | Out-Null }
   Bold "OMP config"; Say "Merging defaults into $Cfg (existing values preserved)"
@@ -253,7 +253,7 @@ function Write-Mcp {
 
 # --- 3) Per-plugin prompts --------------------------------------------------
 Bold "Plugins"
-$SEL_DEVTEAM = $false; $SEL_COPILOT = $false; $SEL_TOKENDIET = $false; $SEL_CLIPROXY = $false
+$SEL_DEVTEAM = $false; $SEL_COPILOT = $false; $SEL_TOKENDIET = $false; $SEL_OAI_COMPAT = $false
 
 if (Ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?") {
   Plug 'dev-team' (Join-Path $Root 'plugins\dev-team'); $SEL_DEVTEAM = $true
@@ -265,8 +265,8 @@ if (Ask "Install token-diet (ctx-wire + codebase-memory-mcp + caveman + yagni + 
   Plug 'token-diet' (Join-Path $Root 'plugins\token-diet'); $SEL_TOKENDIET = $true
   Ensure-Path (Join-Path $HOME ".local\bin")
 }
-if (Ask "Install cliproxy (register a CLIProxyAPI gateway as a model provider)?" 'N') {
-  Plug 'cliproxy' (Join-Path $Root 'plugins\cliproxy'); $SEL_CLIPROXY = $true
+if (Ask "Install openai-compatible (register a LiteLLM/Ollama/vLLM endpoint as a model provider)?" 'N') {
+  Plug 'openai-compatible' (Join-Path $Root 'plugins\openai-compatible'); $SEL_OAI_COMPAT = $true
 }
 if (Ask "Install datadog (Pup CLI + Datadog observability skills)?" 'N') {
   Plug 'datadog' (Join-Path $Root 'plugins\datadog')
