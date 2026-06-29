@@ -2,7 +2,7 @@
 name: js-fp-review
 description: Array mutations, parameter mutations, global state, impure patterns in JS/TS
 tools: read, search, find
-model: pi/smol
+model: pi/task
 thinking-level: low
 blocking: true
 ---

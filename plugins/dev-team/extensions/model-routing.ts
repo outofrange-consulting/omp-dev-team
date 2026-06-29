@@ -5,7 +5,7 @@
 // top: the model is derived from the TASK SIZE (trivial/standard/complex, from
 // the task-size-classifier, recorded by /scope in plan-gate state), not only
 // from the agent's static tier. The agent's declared tier is the BASE band; the
-// task size shifts it along the ladder [small, balanced, deep]. This is more
+// task size shifts it along the ladder [nano, code, balanced, deep]. This is more
 // deterministic than one-model-per-agent and ties spend to the work.
 //
 // It also logs every dispatch (observability) and registers /routing.
@@ -31,14 +31,23 @@ import {
 	statePath,
 } from "./lib/shared.ts";
 
-const SMALL_TIER_MODELS = new Set(["pi/smol", "smol"]);
+// Cheap end is split by workload shape: `nano` (lexical/scan, role smol) and
+// `code` (coding/tool-use, role task). Both the provider-agnostic role aliases
+// and the concrete copilot ids each role resolves to map back to their tier.
+const NANO_TIER_MODELS = new Set(["pi/smol", "smol"]);
+const CODE_TIER_MODELS = new Set(["pi/task", "task"]);
+const TIER_LITERALS = new Set(["nano", "code", "balanced", "deep"]);
 
 function tierOf(model: string | null): string {
 	if (model === null || model === "") return "default";
-	if (SMALL_TIER_MODELS.has(model)) return "small";
+	if (NANO_TIER_MODELS.has(model)) return "nano";
+	if (CODE_TIER_MODELS.has(model)) return "code";
 	if (model.includes("opus")) return "deep";
 	if (model.includes("sonnet")) return "balanced";
-	if (model === "small" || model === "balanced" || model === "deep") return model;
+	// Concrete cheap-tier ids (copilot-preset): gpt-5-mini -> nano, mai-code -> code.
+	if (model.includes("gpt-5-mini")) return "nano";
+	if (model.includes("mai-code")) return "code";
+	if (TIER_LITERALS.has(model)) return model;
 	return "pinned";
 }
 

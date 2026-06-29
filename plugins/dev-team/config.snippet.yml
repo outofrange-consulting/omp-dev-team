@@ -8,17 +8,22 @@
 # ---------------------------------------------------------------------------
 # MODEL ROUTING (tier -> model)
 # ---------------------------------------------------------------------------
-# Agents declare a tier in their `model:` frontmatter:
-#   small/pattern agents -> `pi/smol`        (resolved here)
-#   balanced agents      -> `claude-sonnet-4-6`
-#   deep-reasoning agents-> `claude-opus-4-8`
+# Agents declare a tier in their `model:` frontmatter (the cheap end is split by
+# WORKLOAD SHAPE):
+#   nano (lexical/scan) agents -> `pi/smol`   (resolved here, role smol)
+#   code (coding/tool-use)     -> `pi/task`   (resolved here, role task)
+#   balanced agents            -> `claude-sonnet-4-6`
+#   deep-reasoning agents      -> `claude-opus-4-8`
 #
-# The small tier is a CHEAP-CLOUD, high-volume tier: lexical/structural checks
-# and checklist reviews that don't need Sonnet/Opus. Keep it on the cheapest
-# capable model to limit token spend.
+# nano + code are CHEAP-CLOUD high-volume tiers: nano is pure lexical/checklist
+# review and input-bound scan (no code semantics, no tool-use); code is cheap
+# coding & agentic tool-use. Keep both on the cheapest capable model for the
+# shape. On base Anthropic both resolve to Haiku; copilot-preset splits them
+# (smol -> gpt-5-mini, task -> mai-code-1-flash).
 modelRoles:
-  # high-volume small tier + subagent execution -> Haiku (cheap, fast).
+  # nano tier (lexical/scan) -> cheapest capable. copilot-preset -> gpt-5-mini.
   smol: claude-haiku-4-5
+  # code tier (coding/tool-use) -> cheap coding model. copilot-preset -> mai-code-1-flash.
   task: claude-haiku-4-5
   # everyday DEFAULT -> Sonnet runs the orchestrator (non-trivial -> research ->
   # plan -> implement -> review).
@@ -89,7 +94,7 @@ eval:
 # ---------------------------------------------------------------------------
 # Phase-aware bump-from-floor: the effort goes into spec/plan, not the build. The
 # TASK SIZE (set by /scope) raises the band ONLY while planning (stage
-# needs-plan): target trivial->small, standard->balanced, complex->deep, and
+# needs-plan): target trivial->code, standard->balanced, complex->deep, and
 # effective = max(agent floor, target). Once the plan is approved, build/review
 # run at the floor (no bump) — a solid plan makes the build routine. An agent is
 # never routed BELOW its tier (high-stakes deep agents hold). No signal -> floor.

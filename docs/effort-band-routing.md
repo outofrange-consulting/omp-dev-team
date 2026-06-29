@@ -6,7 +6,9 @@ breaking** the tier model or `copilot-preset`: the model is derived from the
 
 ## The insight
 
-Our three tiers (`small`/`balanced`/`deep`) already *are* three effort bands. The
+Our tiers already *are* effort bands. The cheap end is now split by **workload
+shape** into `nano` (lexical/scan) and `code` (coding/tool-use), giving a
+cost-ordered ladder `[nano, code, balanced, deep]`. The
 improvement over one-model-per-agent: **derive the band from objective signals**
 (the `task-size-classifier`, recorded by `/scope`) — and spend the effort where
 it pays. The effort belongs in **spec/plan**: a complex task needs deep reasoning
@@ -19,8 +21,8 @@ floor.
 `model-routing.json` gains an `effortBand`:
 
 ```
-ladder:     [small, balanced, deep]
-sizeBand:   { trivial: small, standard: balanced, complex: deep }
+ladder:     [nano, code, balanced, deep]
+sizeBand:   { trivial: code, standard: balanced, complex: deep }
 bumpStages: [needs-plan]          # the planning phase: /scope -> /specs -> /plan
 ```
 

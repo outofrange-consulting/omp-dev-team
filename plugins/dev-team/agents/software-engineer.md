@@ -2,7 +2,7 @@
 name: software-engineer
 description: Full-stack development, code generation, implementation, and refactoring
 tools: read, search, find, edit, write, bash
-model: claude-sonnet-4-6
+model: pi/task
 thinking-level: medium
 ---
 

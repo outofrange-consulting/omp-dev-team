@@ -6,11 +6,16 @@ globs:
 
 **Every agent file must declare its tier and a minimal tool set.**
 
-- `model:` frontmatter declares the tier:
-  - `pi/smol` — small cheap-cloud tier (lexical/structural pattern matching,
-    checklist review). Routed via `modelRoles.smol` (default Haiku).
-  - `claude-sonnet-4-6` — balanced semantic analysis.
-  - `claude-opus-4-8` — deep cross-file reasoning / synthesis.
+- `model:` frontmatter declares the tier (cheap end split by **workload shape** —
+  pick by the *shape* of the work, not only its difficulty):
+  - `pi/smol` — **nano**: pure lexical/structural pattern matching + checklist
+    review + input-bound scan, no code-semantics or tool-use. Routed via
+    `modelRoles.smol` (default Haiku; copilot-preset → gpt-5-mini).
+  - `pi/task` — **code**: cheap work needing code semantics or agentic tool-use
+    (post-plan implementation, structural code-semantic review). Routed via
+    `modelRoles.task` (default Haiku; copilot-preset → mai-code-1-flash).
+  - `claude-sonnet-4-6` — **balanced** semantic / cross-file analysis.
+  - `claude-opus-4-8` — **deep** high-stakes cross-file reasoning / synthesis.
 - Grant only the tools the agent needs (OMP names: `read, search, find, edit,
   write, bash, task, web_search, ask`). Review agents are typically
   `read, search, find` only.

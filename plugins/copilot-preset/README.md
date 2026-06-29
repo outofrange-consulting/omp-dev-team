@@ -38,11 +38,12 @@ cheapest-first comparison: **[`pricing.md`](pricing.md)**.
 `modelRoles` mapping tiers to Copilot models, `enabledModels: [github-copilot/*]`,
 `modelProviderOrder: [github-copilot]`:
 
-| Role | Model | in / out (per 1M) |
-|---|---|---|
-| `smol` / `task` (dev-team small tier) | `github-copilot/mai-code-1-flash` | $0.75 / $4.50 |
-| `default` / `plan` | `github-copilot/claude-sonnet-4.6` | $3.00 / $15.00 |
-| `slow` (deep) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
+| Role | Tier | Model | in / out (per 1M) |
+|---|---|---|---|
+| `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
+| `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash` | $0.75 / $4.50 |
+| `default` / `plan` | balanced | `github-copilot/claude-sonnet-4.6` | $3.00 / $15.00 |
+| `slow` | deep | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
 
 ## MAI-Code-1-Flash ("MIA Coding")
 
@@ -50,10 +51,11 @@ Microsoft's cheap, coding-tuned model ($0.75 / $4.50), **GA on Copilot since
 2026-06-02** (Business/Enterprise + all surfaces by 2026-06-26). It beats Claude
 Haiku 4.5 on every coding bench Microsoft tested (SWE-Bench Verified 71.6 vs 66.6,
 SWE-Bench Pro 51.2 vs 35.2, Terminal Bench 2 54.8 vs 41.6) with up to 60% fewer
-tokens — and it's cheaper than Haiku ($1/$5). The snippet now runs the **cheap
-tiers (`smol`/`task`) on `github-copilot/mai-code-1-flash`** (a Pareto win over
-Haiku). It's left below Sonnet for `default`/`plan` orchestration; a commented
-block lets you move those to it too for an ultra-cheap profile.
+tokens — and it's cheaper than Haiku ($1/$5). The snippet runs the **`task`/code
+tier on `github-copilot/mai-code-1-flash`** (post-plan implementation + structural
+code review), while the lower `smol`/nano tier drops to even-cheaper `gpt-5-mini`
+for pure-lexical work. It's left below Sonnet for `default`/`plan` orchestration;
+a commented block lets you move that to it too for an ultra-cheap profile.
 
 ## Notes
 
@@ -63,7 +65,7 @@ block lets you move those to it too for an ultra-cheap profile.
   Sonnet 4.5/4.6, Opus 4.6/4.8, Fable 5).
 - **Caching is a real lever now** — cached input is ~10× cheaper; stable system
   prompts / reused context get cached automatically.
-- **dev-team interplay**: the small tier (`pi/smol`) follows this automatically;
-  agents that pin Anthropic ids need an interactive Copilot default or a `model:`
-  edit. See `skill://copilot-preset`.
+- **dev-team interplay**: the nano (`pi/smol`) and code (`pi/task`) tiers follow
+  this automatically; agents that pin Anthropic ids need an interactive Copilot
+  default or a `model:` edit. See `skill://copilot-preset`.
 - Independent of `dev-team` and `azure-devops-fs`.

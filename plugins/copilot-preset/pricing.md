@@ -62,10 +62,15 @@ SWE-bench), so it is *not* the default orchestration model.
 
 ## Cheapest-first guidance (limit token spend)
 
-- **High-volume / small tier** (`smol`/`task`, dev-team triage & pattern agents):
-  `mai-code-1-flash` ($0.75/$4.50) — best coding quality per dollar at this tier,
-  beats Haiku 4.5 on every bench at lower cost. `gpt-5-mini` ($0.25/$2.00) is
-  cheaper still if you want rock-bottom price over coding quality.
+- **High-volume cheap end, split by workload shape** (dev-team's `nano` + `code`):
+  - `smol` → **nano** ($0.25/$2.00 `gpt-5-mini`): pure lexical/checklist reviewers
+    (naming, complexity, token-efficiency, a11y, progress-guardian) and
+    input-bound scan — no code semantics or tool-use, so the cheapest model wins.
+  - `task` → **code** ($0.75/$4.50 `mai-code-1-flash`): work that edits code or
+    drives tools (post-plan implementation, js-fp/svelte structural review) —
+    best coding quality per dollar, beats Haiku 4.5 on every bench at lower cost.
+  - Don't put coding/tool-use work on `gpt-5-mini` (weaker at code) or lexical
+    checklists on `mai-code-1-flash` (over-pays ~2×) — match the model to the shape.
 - **Balanced everyday** (`default`/`plan`): `claude-sonnet-4.6` ($3/$15) for
   quality, or `mai-code-1-flash` / `gpt-5.4-mini` for an ultra-cheap profile.
 - **Deep reasoning** (`slow`): `claude-opus-4.8` ($5/$25). Reserve **Fable 5**
@@ -80,11 +85,15 @@ Rough output-cost ranking (cheapest → priciest): GPT-5 mini ($2) <
 MAI-Code-1-Flash ≈ GPT-5.4 mini ($4.50) < Haiku 4.5 ($5) < GPT-5.3-Codex ($14) <
 Sonnet 4.5/4.6 ≈ GPT-5.4 ($15) < Opus 4.6/4.8 ($25) < GPT-5.5 ($30) < Fable 5 ($50).
 
-## Cost impact of the smol-tier switch (Haiku 4.5 → MAI-Code-1-Flash)
+## Cost impact of the cheap-tier switches
 
-The small tier is the highest-volume tier (parallel checklist/pattern agents),
-and output dominates the bill. The switch is cheaper on two compounding levers —
-lower rate *and* fewer tokens — and is never more expensive than Haiku:
+The cheap tiers are the highest-volume (parallel checklist/pattern + impl agents),
+and output dominates the bill. Two switches compound here, and the cheap end is
+now split by workload shape:
+
+**`task`/code tier — Haiku 4.5 → MAI-Code-1-Flash** (coding/tool-use work).
+Cheaper on two compounding levers — lower rate *and* fewer tokens — and never
+more expensive than Haiku:
 
 | | Input | Cached in | Output |
 |---|---|---|---|
@@ -98,6 +107,11 @@ Worked example — 1M output tokens at this tier (1 AI credit = $0.01):
 - MAI at equal token volume: $4.50 → **450 credits** (−10%)
 - MAI with up to 60% fewer tokens (≈0.4M): $1.80 → **180 credits** (**−64%**)
 
-So expect **−10% to −64%** on the priciest-by-volume tier, with *better* coding
-quality (Haiku is beaten on all three benches). `gpt-5-mini` ($2 output) is the
-only cheaper option, but it trades away coding quality — not worth it here.
+So expect **−10% to −64%** on the code tier, with *better* coding quality (Haiku
+is beaten on all three benches).
+
+**`smol`/nano tier — → GPT-5-mini** (pure lexical/checklist + scan). For work
+with no code-semantics or tool-use, `gpt-5-mini` ($0.25/$2.00) is a further
+~67% input / ~56% output cut vs MAI on the highest-volume tier — coding quality
+is irrelevant there, so the trade-off MAI was protecting against doesn't apply.
+Keep code-semantic work (js-fp, svelte, implementation) on the code tier.

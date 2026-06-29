@@ -23,27 +23,29 @@ This file contains the complete registry tables. CLAUDE.md references this file 
 
 Spawned by the orchestrator during Phase 3 inline checkpoints and full `/code-review` runs. Each agent declares a tier alias in its `model:` frontmatter; OMP resolves the tier natively (`modelRoles`) and the `model-routing` extension applies effort-band routing per the **Resolution Procedure** in `agents/orchestrator.md`.
 
+Model tier is the agent's `model:` frontmatter floor (cheap end split by workload shape: `nano` = `pi/smol` lexical/scan, `code` = `pi/task` coding/tool-use, `balanced` = Sonnet, `deep` = Opus). The effort-band may raise it during planning per the Resolution Procedure.
+
 | Agent | File | Model Tier | What It Checks |
 |-------|------|------------|----------------|
-| spec-compliance-review | `agents/spec-compliance-review.md` | mid | Spec-to-code matching — first gate before quality review |
-| a11y-review | `agents/a11y-review.md` | mid | WCAG 2.1 AA, ARIA, keyboard nav, focus management |
-| arch-review | `agents/arch-review.md` | frontier | ADR compliance, layer boundary violations, dependency direction, pattern consistency |
-| complexity-review | `agents/complexity-review.md` | small | Function size, cyclomatic complexity, nesting, parameters |
-| concurrency-review | `agents/concurrency-review.md` | mid | Race conditions, async pitfalls, shared state |
-| doc-review | `agents/doc-review.md` | mid | README accuracy, API doc alignment, inline comment drift, ADR update triggers |
-| domain-review | `agents/domain-review.md` | frontier | Domain boundaries, abstraction leaks, entity/DTO confusion |
-| js-fp-review | `agents/js-fp-review.md` | mid | Array mutations, impure patterns, global state |
-| naming-review | `agents/naming-review.md` | small | Intent-revealing names, boolean prefixes, magic values |
-| performance-review | `agents/performance-review.md` | small | Resource leaks, N+1 queries, unbounded growth |
-| security-review | `agents/security-review.md` | frontier | Injection, auth/authz, data exposure, crypto |
-| structure-review | `agents/structure-review.md` | mid | SRP violations, DRY, coupling, file organization |
-| svelte-review | `agents/svelte-review.md` | mid | Svelte reactivity pitfalls, closure state leaks |
-| test-review | `agents/test-review.md` | mid | Coverage gaps, assertion quality, test hygiene |
-| test-smell-review | `agents/test-smell-review.md` | mid | xUnit test smells, test-double selection, test-pyramid layer placement |
-| token-efficiency-review | `agents/token-efficiency-review.md` | small | File/function size, LLM anti-patterns, token usage |
-| progress-guardian | `agents/progress-guardian.md` | mid | Plan adherence, commit discipline, scope creep detection |
-| refactor-opportunity-review | `agents/refactor-opportunity-review.md` | mid | Post-GREEN refactoring opportunities, semantic vs structural duplication |
-| data-flow-tracer | `agents/data-flow-tracer.md` | mid | Data flow tracing through architecture layers (analysis-only) |
+| spec-compliance-review | `agents/spec-compliance-review.md` | balanced | Spec-to-code matching — first gate before quality review |
+| a11y-review | `agents/a11y-review.md` | nano | WCAG 2.1 AA, ARIA, keyboard nav, focus management |
+| arch-review | `agents/arch-review.md` | deep | ADR compliance, layer boundary violations, dependency direction, pattern consistency |
+| complexity-review | `agents/complexity-review.md` | nano | Function size, cyclomatic complexity, nesting, parameters |
+| concurrency-review | `agents/concurrency-review.md` | balanced | Race conditions, async pitfalls, shared state |
+| doc-review | `agents/doc-review.md` | balanced | README accuracy, API doc alignment, inline comment drift, ADR update triggers |
+| domain-review | `agents/domain-review.md` | deep | Domain boundaries, abstraction leaks, entity/DTO confusion |
+| js-fp-review | `agents/js-fp-review.md` | code | Array mutations, impure patterns, global state |
+| naming-review | `agents/naming-review.md` | nano | Intent-revealing names, boolean prefixes, magic values |
+| performance-review | `agents/performance-review.md` | balanced | Resource leaks, N+1 queries, unbounded growth |
+| security-review | `agents/security-review.md` | deep | Injection, auth/authz, data exposure, crypto |
+| structure-review | `agents/structure-review.md` | balanced | SRP violations, DRY, coupling, file organization |
+| svelte-review | `agents/svelte-review.md` | code | Svelte reactivity pitfalls, closure state leaks |
+| test-review | `agents/test-review.md` | balanced | Coverage gaps, assertion quality, test hygiene |
+| test-smell-review | `agents/test-smell-review.md` | balanced | xUnit test smells, test-double selection, test-pyramid layer placement |
+| token-efficiency-review | `agents/token-efficiency-review.md` | nano | File/function size, LLM anti-patterns, token usage |
+| progress-guardian | `agents/progress-guardian.md` | nano | Plan adherence, commit discipline, scope creep detection |
+| refactor-opportunity-review | `agents/refactor-opportunity-review.md` | balanced | Post-GREEN refactoring opportunities, semantic vs structural duplication |
+| data-flow-tracer | `agents/data-flow-tracer.md` | balanced | Data flow tracing through architecture layers (analysis-only) |
 
 ## Skills Registry
 

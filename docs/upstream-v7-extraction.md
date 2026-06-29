@@ -44,7 +44,7 @@ version and have since evolved heavily), and what we pulled into our OMP port.
 ## Deliberately NOT ported (with rationale)
 
 - **Effort-band model routing (v7.0.0).** Breaking change that replaces tiers.
-  We intentionally keep the tier model (`pi/smol`/sonnet/opus) because it's wired
+  We intentionally keep the tier model (`pi/smol` nano / `pi/task` code / sonnet / opus) because it's wired
   to `copilot-preset` and `model-routing.json` + the pre-dispatch routing
   extension. Re-architecting to effort-bands would churn that and the Copilot
   cost story for little gain. Revisit only if we adopt per-call effort signals.

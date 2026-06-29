@@ -67,7 +67,7 @@ Expected saving on small tasks (upstream measurement): **~65% fewer turns,
 The size is also the **effort signal for model routing** (phase-aware
 bump-from-floor). `/scope` records the size and stage in plan-gate state; the
 `model-routing` extension raises the band **only during planning**
-(`stage = needs-plan`): target `trivial`→small, `standard`→balanced,
+(`stage = needs-plan`): target `trivial`→code, `standard`→balanced,
 `complex`→deep, and each agent routes at **max(its floor tier, that target)** —
 never below its declared tier. **Once the plan is approved, there is no bump** —
 the build/review runs at the floor (a solid plan makes implementation routine).

@@ -22,20 +22,29 @@ modelProviderOrder:
 # Tier -> Copilot model (out-of-the-box: cheap execution, Sonnet orchestration,
 # Opus for the hard stuff). rates per 1M tokens, in/out — see pricing.md.
 modelRoles:
-  # high-volume small tier + subagent execution — MAI-Code-1-Flash (cheap, fast,
-  # coding-tuned). GA on Copilot since 2026-06-02; beats Haiku 4.5 on every coding
-  # bench tested (SWE-Bench Verified 71.6 vs 66.6, SWE-Bench Pro 51.2 vs 35.2,
-  # Terminal Bench 2 54.8 vs 41.6) with up to 60% fewer tokens — AND it's cheaper.
-  # A strict Pareto win over Haiku for this tier.
-  smol: github-copilot/mai-code-1-flash    # $0.75 / $4.50
-  task: github-copilot/mai-code-1-flash
+  # The cheap end is SPLIT by workload shape (dev-team's nano + code tiers):
+  #
+  # smol = NANO tier — pure lexical/checklist review + input-bound scan (no code
+  # semantics, no tool-use): naming, complexity, token-efficiency, a11y,
+  # progress-guardian. Highest volume, runs in parallel every checkpoint, so the
+  # output rate dominates — route to the cheapest capable model. GPT-5-mini is
+  # ~55% cheaper output / ~66% cheaper input than MAI, and good enough for
+  # checklist work.
+  smol: github-copilot/gpt-5-mini          # nano  $0.25 / $2.00
+  # task = CODE tier — cheap work that DOES need code semantics or agentic
+  # tool-use: post-plan implementation (software-engineer build floor), js-fp &
+  # svelte structural review. MAI-Code-1-Flash is coding-tuned and agentic; it
+  # beats Haiku 4.5 on every coding bench tested (SWE-Bench Verified 71.6 vs 66.6,
+  # SWE-Bench Pro 51.2 vs 35.2, Terminal Bench 2 54.8 vs 41.6) with up to 60%
+  # fewer tokens — and it's cheaper than Haiku.
+  task: github-copilot/mai-code-1-flash    # code  $0.75 / $4.50
   # everyday DEFAULT — Sonnet runs the dev-team orchestrator (non-trivial work ->
-  # research -> plan -> implement -> review). Kept on Sonnet: MAI-Code-1-Flash is
-  # an "everyday" coding model (71.6 SWE-bench), still below Sonnet for the
-  # cross-file reasoning the orchestrator does. Want ultra-cheap? See block below.
+  # research -> plan -> implement -> review) and codebase-recon's narrative. Kept
+  # on Sonnet: MAI-Code-1-Flash is an "everyday" coding model (71.6 SWE-bench),
+  # still below Sonnet for cross-file reasoning. Want ultra-cheap? See block below.
   default: github-copilot/claude-sonnet-4.6 # $3.00 / $15.00
   plan: github-copilot/claude-sonnet-4.6
-  # deep reasoning / big-complex analysis — reserve Opus for it.
+  # deep reasoning / high-stakes synthesis — reserve Opus for it.
   slow: github-copilot/claude-opus-4.8     # $5.00 / $25.00
 
 skills:
@@ -52,8 +61,9 @@ skills:
 # ---------------------------------------------------------------------------
 
 # NOTE — running the dev-team fully on Copilot:
-# dev-team's *small tier* uses the `pi/smol` role, so it follows modelRoles.smol
-# automatically (this is the high-volume tier, biggest savings). dev-team's
+# dev-team's *nano tier* uses the `pi/smol` role and its *code tier* uses
+# `pi/task`, so both follow modelRoles.smol / modelRoles.task automatically
+# (these are the high-volume tiers, biggest savings). dev-team's
 # balanced/deep agents PIN concrete Anthropic ids (claude-sonnet-4-6 /
 # claude-opus-4-8) in frontmatter, so they go direct to Anthropic unless you
 # either (a) run your interactive default on a github-copilot model, or (b) edit

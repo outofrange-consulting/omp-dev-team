@@ -51,22 +51,25 @@ human gate between phases. Plus `/code-review` (`/review`), `/review-agent`,
 `/continue`, `/triage`, `/design-doc`, `/issues-from-plan`, and the `/routing`
 diagnostic. Every skill is also available as `/skill:<name>`.
 
-## Model tiers (all cloud)
+## Model tiers (all cloud, workload-shaped)
 
 Agents declare a tier in `model:` frontmatter, resolved natively by your
-`modelRoles`:
+`modelRoles`. The cheap end is split by **workload shape** so neither half
+over-pays for the other's model:
 
 | Tier | Frontmatter | For |
 |---|---|---|
-| small | `pi/smol` (cheap cloud, default Haiku) | lexical/structural checks, checklist reviews — high volume |
-| balanced | `claude-sonnet-4-6` | most team & review agents, orchestrator |
-| deep | `claude-opus-4-8` | cross-file reasoning, design synthesis, threat modeling, recon |
+| nano | `pi/smol` (cheapest cloud; Haiku, or gpt-5-mini on Copilot) | pure lexical/checklist review + input-bound scan — no code semantics, no tool-use; highest volume |
+| code | `pi/task` (cheap coding cloud; Haiku, or mai-code-1-flash on Copilot) | cheap work needing code semantics or agentic tool-use: post-plan implementation, structural code review |
+| balanced | `claude-sonnet-4-6` | most team & review agents, orchestrator, codebase-recon |
+| deep | `claude-opus-4-8` | high-stakes cross-file reasoning, design synthesis, threat modeling |
 
-The high-volume **small tier** is where token spend concentrates — keep it cheap.
-Point `modelRoles.smol` at `claude-haiku-4-5`, or (with the **copilot-preset**
-plugin) at `github-copilot/gpt-5-mini` to run it on your Copilot license. Pair
-with **token-diet** to cut tokens further. Source of truth:
-`skills/dev-team-knowledge/model-routing.json`; diagnose with `/routing`.
+The high-volume **nano + code tiers** are where token spend concentrates — keep
+them cheap. On base Anthropic both resolve to Haiku; the **copilot-preset** plugin
+splits them (`smol` → `github-copilot/gpt-5-mini`, `task` →
+`github-copilot/mai-code-1-flash`). Pair with **token-diet** to cut tokens
+further. Source of truth: `skills/dev-team-knowledge/model-routing.json`;
+diagnose with `/routing`.
 
 ## Guardrails (extensions)
 

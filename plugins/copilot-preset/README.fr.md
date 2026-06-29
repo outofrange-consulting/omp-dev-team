@@ -39,11 +39,12 @@ complète et comparatif du moins cher au plus cher : **[`pricing.md`](pricing.md
 `modelRoles` mappant les tiers vers des modèles Copilot, `enabledModels:
 [github-copilot/*]`, `modelProviderOrder: [github-copilot]` :
 
-| Rôle | Modèle | entrée / sortie (par 1M) |
-|---|---|---|
-| `smol` / `task` (tier small de dev-team) | `github-copilot/mai-code-1-flash` | 0,75 $ / 4,50 $ |
-| `default` / `plan` | `github-copilot/claude-sonnet-4.6` | 3,00 $ / 15,00 $ |
-| `slow` (deep) | `github-copilot/claude-opus-4.8` | 5,00 $ / 25,00 $ |
+| Rôle | Tier | Modèle | entrée / sortie (par 1M) |
+|---|---|---|---|
+| `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | 0,25 $ / 2,00 $ |
+| `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash` | 0,75 $ / 4,50 $ |
+| `default` / `plan` | balanced | `github-copilot/claude-sonnet-4.6` | 3,00 $ / 15,00 $ |
+| `slow` | deep | `github-copilot/claude-opus-4.8` | 5,00 $ / 25,00 $ |
 
 ## MAI-Code-1-Flash (« MIA Coding »)
 
@@ -52,10 +53,11 @@ Le modèle de Microsoft, bon marché et taillé pour le code (0,75 $ / 4,50 $),
 les surfaces au 2026-06-26). Il bat Claude Haiku 4.5 sur tous les benchs coding
 testés par Microsoft (SWE-Bench Verified 71,6 vs 66,6, SWE-Bench Pro 51,2 vs 35,2,
 Terminal Bench 2 54,8 vs 41,6) avec jusqu'à 60 % de tokens en moins — et il est
-moins cher que Haiku (1 $/5 $). L'extrait route désormais les **tiers bon marché
-(`smol`/`task`) sur `github-copilot/mai-code-1-flash`** (gain Pareto sur Haiku).
-Il reste sous Sonnet pour l'orchestration `default`/`plan` ; un bloc commenté
-permet de les y basculer aussi pour un profil ultra-bon-marché.
+moins cher que Haiku (1 $/5 $). L'extrait route le **tier `task` (code) sur
+`github-copilot/mai-code-1-flash`** (implémentation post-plan + revue structurelle),
+tandis que `smol` (nano, lexical) descend sur `gpt-5-mini` encore moins cher. Il
+reste sous Sonnet pour l'orchestration `default`/`plan` ; un bloc commenté permet
+de l'y basculer aussi pour un profil ultra-bon-marché.
 
 ## Notes
 
@@ -65,7 +67,7 @@ permet de les y basculer aussi pour un profil ultra-bon-marché.
   l'extrait (jeu Anthropic actuel : Haiku 4.5, Sonnet 4.5/4.6, Opus 4.6/4.8, Fable 5).
 - **Le cache est un vrai levier maintenant** — l'entrée cachée est ~10× moins chère ;
   prompts système stables / contexte réutilisé sont mis en cache automatiquement.
-- **Interaction avec dev-team** : le tier small (`pi/smol`) suit ceci
-  automatiquement ; les agents qui figent des ids Anthropic nécessitent un défaut
+- **Interaction avec dev-team** : les tiers nano (`pi/smol`) et code (`pi/task`)
+  suivent ceci automatiquement ; les agents qui figent des ids Anthropic nécessitent un défaut
   Copilot interactif ou une édition `model:`. Voir `skill://copilot-preset`.
 - Indépendant de `dev-team` et `azure-devops-fs`.

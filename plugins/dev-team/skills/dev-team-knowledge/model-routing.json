@@ -1,28 +1,34 @@
 {
-  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Agents declare a tier in their `model:` frontmatter: small/pattern agents use the `pi/smol` role (resolved by .omp/config.yml modelRoles.smol -> a cheap CLOUD model); balanced/deep agents pin a concrete cloud model id. The small tier is a CHEAP-CLOUD high-volume tier (it replaces the expensive Sonnet/Opus calls for lexical/structural checks), not a local-GPU tier.",
+  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Tiers are WORKLOAD-SHAPED, not a single cost ladder: the cheap end is split into `nano` (pure lexical/checklist + input-bound scan -> the cheapest capable model) and `code` (cheap coding & agentic tool-use -> a coding-tuned cheap model). Agents declare a tier in their `model:` frontmatter via a provider-agnostic role (`pi/smol` -> nano, `pi/task` -> code) or a pinned cloud id (balanced/deep). Roles resolve through .omp/config.yml modelRoles (default cheap-cloud Haiku; with copilot-preset, smol -> github-copilot/gpt-5-mini and task -> github-copilot/mai-code-1-flash). Both cheap tiers are CHEAP-CLOUD high-volume tiers, not local-GPU.",
   "tiers": {
-    "small": {
+    "nano": {
       "role": "smol",
       "frontmatter": "pi/smol",
-      "intent": "cheap-cloud",
-      "rationale": "Lexical/structural pattern matching, checklist-style verification (naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian). Cheap, high-volume, parallel. Routed to whatever modelRoles.smol points at -- a cheap cloud model (default claude-haiku-4-5; with the copilot-preset plugin, github-copilot/mai-code-1-flash)."
+      "intent": "cheap-cloud-lexical",
+      "rationale": "Pure lexical/structural pattern matching and checklist verification with NO code-semantics or tool-use requirement: naming, complexity, token-efficiency, a11y/WCAG checklist, progress/plan-adherence. Also the cheapest tier for input-bound scan work. Highest volume, runs in parallel at every checkpoint, so the output rate dominates the bill -> route to the cheapest capable model (default claude-haiku-4-5; with copilot-preset, github-copilot/gpt-5-mini at $0.25/$2.00 — ~55% cheaper output than the code tier)."
+    },
+    "code": {
+      "role": "task",
+      "frontmatter": "pi/task",
+      "intent": "cheap-cloud-code",
+      "rationale": "Cheap work that DOES need code semantics or agentic tool-use: post-plan implementation of scoped slices (software-engineer build floor), structural code-semantic reviews (js-fp, svelte). Route to a coding-tuned cheap model (default claude-haiku-4-5; with copilot-preset, github-copilot/mai-code-1-flash at $0.75/$4.50 — coding-tuned, agentic, beats Haiku on every coding bench tested)."
     },
     "balanced": {
       "frontmatter": "claude-sonnet-4-6",
       "intent": "cloud",
-      "rationale": "Semantic analysis with balanced cost/quality (most team agents + most review agents + orchestrator)."
+      "rationale": "Semantic / cross-file analysis with balanced cost/quality: orchestration, spec-compliance, structural/test/concurrency/perf/doc review, most team agents, and codebase-recon's architecture narrative (recon is input-bound + script-driven, not deep synthesis — it does not need opus)."
     },
     "deep": {
       "frontmatter": "claude-opus-4-8",
       "intent": "cloud",
-      "rationale": "Cross-file reasoning, high-stakes design synthesis, threat modeling, broad reconnaissance (security-review, domain-review, arch-review, architect, security-engineer, codebase-recon)."
+      "rationale": "High-stakes cross-file reasoning and design synthesis where a wrong verdict is expensive: security-review, domain-review, arch-review, architect, security-engineer. Reserve it — most work does not need it."
     }
   },
   "effortBand": {
-    "$comment": "Effort-band routing (phase-aware bump-from-floor): the model is derived from the TASK SIZE (task-size-classifier, recorded by /scope in plan-gate state) and the PIPELINE STAGE, floored by the agent's declared tier. Put the effort into spec/plan: the size raises the band ONLY while planning (stage in bumpStages, default needs-plan); once the plan is approved, build/review run at the floor (a solid plan makes the build routine). effective = (stage in bumpStages) ? max(floor, sizeBand[size]) : floor. The agent tier is a FLOOR — never routed below it (high-stakes deep agents hold). No signal -> floor (static, retro-compatible). copilot-preset is unaffected — the band picks a tier, then modelRoles resolves the model.",
-    "ladder": ["small", "balanced", "deep"],
+    "$comment": "Effort-band routing (phase-aware bump-from-floor): the model is derived from the TASK SIZE (task-size-classifier, recorded by /scope in plan-gate state) and the PIPELINE STAGE, floored by the agent's declared tier. Put the effort into spec/plan: the size raises the band ONLY while planning (stage in bumpStages, default needs-plan); once the plan is approved, build/review run at the floor (a solid plan makes the build routine). effective = (stage in bumpStages) ? max(floor, sizeBand[size]) : floor. The agent tier is a FLOOR — never routed below it (high-stakes deep agents hold). No signal -> floor (static, retro-compatible). The ladder is cost-ordered [nano, code, balanced, deep]; `nano` is a workload-shape tier (lexical), so sizeBand starts at `code` (the cheapest implementation-capable band). copilot-preset is unaffected — the band picks a tier, then modelRoles resolves the model.",
+    "ladder": ["nano", "code", "balanced", "deep"],
     "sizeBand": {
-      "trivial": "small",
+      "trivial": "code",
       "standard": "balanced",
       "complex": "deep"
     },
@@ -34,5 +40,5 @@
     "enforcement": "advisory",
     "$enforcementNote": "advisory: the extension logs + warns on a dispatch whose tier != the effort-band tier (the orchestrator applies the rule). Set env DEV_TEAM_EFFORT_ROUTING=enforce to upgrade the warning to a block, or =off to disable the band entirely (pure static tiers, agent tier only)."
   },
-  "notes": "Keep the high-volume `small` tier on the cheapest capable model to limit token spend; reserve balanced/deep for work that needs them. Pair with the copilot-preset and token-diet plugins for further cost control."
+  "notes": "Keep the high-volume `nano`/`code` tiers on the cheapest capable models to limit token spend; reserve balanced/deep for work that needs them. The cheap end is split by WORKLOAD SHAPE (nano = lexical/scan, code = coding/tool-use) so neither over-pays for the other's model. Pair with the copilot-preset and token-diet plugins for further cost control."
 }

@@ -27,9 +27,11 @@ cannot name the friction it removes does not ship.
 - **Model routing** (tier → model) — source of truth is
   `skill://dev-team-knowledge/model-routing.json`, enforced by the
   `model-routing` extension; inspect with `/routing`.
-  Tiers: `pi/smol` (cheap, high-volume lexical/checklist review),
-  `claude-sonnet-4-6` (balanced; most agents + the orchestrator),
-  `claude-opus-4-8` (deep reasoning). Keep `smol` on the cheapest capable model.
+  Tiers (cheap end split by workload shape): `pi/smol` (**nano** — lexical/
+  checklist review + input-bound scan), `pi/task` (**code** — cheap coding &
+  tool-use), `claude-sonnet-4-6` (**balanced**; most agents + orchestrator + recon),
+  `claude-opus-4-8` (**deep** reasoning). Keep `smol`/`task` on the cheapest
+  capable model for their shape.
 - **Output discipline** — the `output-discipline` rule (always loaded): artifacts
   to files, no narration, plan-only means plan-only, name your evidence.
 - **Verification / quality gates** — the `no-disable-analyzers` and

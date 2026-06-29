@@ -2,8 +2,8 @@
 name: codebase-recon
 description: Reconnaissance agent that surveys a codebase's structure, entry points, dependencies, security surface, and git history. Produces a contract-conformant RECON artifact at `memory/recon-<slug>.{md,json}` that other agents consume.
 tools: read, search, find, bash
-model: claude-opus-4-8
-thinking-level: high
+model: claude-sonnet-4-6
+thinking-level: medium
 ---
 
 ## Thinking Guidance

@@ -53,23 +53,25 @@ Implement** avec un point de contrôle humain entre les phases. Plus `/code-revi
 `/issues-from-plan`, et le diagnostic `/routing`. Chaque skill est aussi
 disponible en `/skill:<nom>`.
 
-## Tiers de modèles (tous cloud)
+## Tiers de modèles (tous cloud, orientés-workload)
 
 Les agents déclarent un tier dans leur frontmatter `model:`, résolu nativement par
-vos `modelRoles` :
+vos `modelRoles`. Le bas de gamme est **scindé par forme de workload** pour
+qu'aucune moitié ne surpaie le modèle de l'autre :
 
 | Tier | Frontmatter | Pour |
 |---|---|---|
-| small | `pi/smol` (cloud bon marché, Haiku par défaut) | vérifs lexicales/structurelles, revues par checklist — gros volume |
-| balanced | `claude-sonnet-4-6` | la plupart des agents d'équipe et de revue, l'orchestrateur |
-| deep | `claude-opus-4-8` | raisonnement multi-fichiers, synthèse de design, threat modeling, recon |
+| nano | `pi/smol` (cloud le moins cher ; Haiku, ou gpt-5-mini sur Copilot) | revue purement lexicale/checklist + scan input-bound — pas de sémantique code ni de tool-use ; plus gros volume |
+| code | `pi/task` (cloud coding bon marché ; Haiku, ou mai-code-1-flash sur Copilot) | travail cheap nécessitant de la sémantique code ou du tool-use agentique : implémentation post-plan, revue structurelle |
+| balanced | `claude-sonnet-4-6` | la plupart des agents d'équipe et de revue, l'orchestrateur, codebase-recon |
+| deep | `claude-opus-4-8` | raisonnement multi-fichiers à fort enjeu, synthèse de design, threat modeling |
 
-Le tier **small** à gros volume est là où la dépense de tokens se concentre —
-gardez-le bon marché. Pointez `modelRoles.smol` vers `claude-haiku-4-5`, ou (avec
-le plugin **copilot-preset**) vers `github-copilot/gpt-5-mini` pour le faire
-tourner sur votre licence Copilot. Combinez avec **token-diet** pour réduire encore
-les tokens. Source de vérité : `skills/dev-team-knowledge/model-routing.json` ;
-diagnostic via `/routing`.
+Les tiers **nano + code** à gros volume sont là où la dépense de tokens se
+concentre — gardez-les bon marché. Sur Anthropic de base, les deux résolvent vers
+Haiku ; le plugin **copilot-preset** les scinde (`smol` → `github-copilot/gpt-5-mini`,
+`task` → `github-copilot/mai-code-1-flash`). Combinez avec **token-diet** pour
+réduire encore les tokens. Source de vérité :
+`skills/dev-team-knowledge/model-routing.json` ; diagnostic via `/routing`.
 
 ## Garde-fous (extensions)
 

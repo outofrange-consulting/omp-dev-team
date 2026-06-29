@@ -150,7 +150,7 @@ export interface RoutingTier {
 
 export interface EffortBandConfig {
 	ladder: string[];
-	// Task size -> target band (e.g. { trivial: "small", standard: "balanced", complex: "deep" }).
+	// Task size -> target band (e.g. { trivial: "code", standard: "balanced", complex: "deep" }).
 	sizeBand: Record<string, string>;
 	// Pipeline stages where the size bump applies. The effort goes into spec/plan
 	// (`needs-plan`); once the plan is approved, implementation/review run at the
