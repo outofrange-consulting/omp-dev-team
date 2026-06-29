@@ -39,9 +39,9 @@ modelRoles:
   # fewer tokens — and it's cheaper than Haiku.
   task: github-copilot/mai-code-1-flash    # code  $0.75 / $4.50
   # everyday DEFAULT — Sonnet runs the dev-team orchestrator (non-trivial work ->
-  # research -> plan -> implement -> review) and codebase-recon's narrative. Kept
-  # on Sonnet: MAI-Code-1-Flash is an "everyday" coding model (71.6 SWE-bench),
-  # still below Sonnet for cross-file reasoning. Want ultra-cheap? See block below.
+  # research -> plan -> implement -> review). Kept on Sonnet: MAI-Code-1-Flash is
+  # an "everyday" coding model (71.6 SWE-bench), still below Sonnet for the
+  # cross-file reasoning orchestration needs. Want ultra-cheap? See block below.
   default: github-copilot/claude-sonnet-4.6 # $3.00 / $15.00
   plan: github-copilot/claude-sonnet-4.6
   # deep reasoning / high-stakes synthesis — reserve Opus for it.

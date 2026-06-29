@@ -2,7 +2,7 @@
 name: qa-engineer
 description: Acceptance-scenario-based testing, test generation, quality metrics, and regression testing
 tools: read, search, find, edit, write, bash
-model: claude-sonnet-4-6
+model: pi/task
 thinking-level: medium
 ---
 

@@ -29,7 +29,8 @@ cannot name the friction it removes does not ship.
   `model-routing` extension; inspect with `/routing`.
   Tiers (cheap end split by workload shape): `pi/smol` (**nano** — lexical/
   checklist review + input-bound scan), `pi/task` (**code** — cheap coding &
-  tool-use), `claude-sonnet-4-6` (**balanced**; most agents + orchestrator + recon),
+  tool-use; build-phase impl/QA + recon sit here, size-proportional via the
+  effort-band), `claude-sonnet-4-6` (**balanced**; most reviewers + orchestrator),
   `claude-opus-4-8` (**deep** reasoning). Keep `smol`/`task` on the cheapest
   capable model for their shape.
 - **Output discipline** — the `output-discipline` rule (always loaded): artifacts
