@@ -96,6 +96,106 @@ if [ -d "$PACK_DIR" ]; then
   elif have python3; then run "python3 '$HERE/ctx-wire/scripts/verify-filters.py' '$PACK_DIR' || true"; fi
 fi
 
+# --- Patch helpers (idempotent; re-applied after each context-mode / OMP update) ---
+
+# Fix: OMP plugin onLoad interceptor forces the 'js' loader on ALL deps including
+# .json files, which Bun's JS parser rejects (7 parse errors). Proxy the JSON
+# catalog as a valid ESM module and patch the import in pricing.js.
+patch_context_mode() {
+  local CM_DIR="${OMP_HOME:-$HOME/.omp}/plugins/node_modules/context-mode"
+  local PRICING="$CM_DIR/build/session/pricing.js"
+  local JSON_SRC="$CM_DIR/build/session/model-prices.json"
+  local JS_PROXY="$CM_DIR/build/session/model-prices-catalog.js"
+  [ -f "$PRICING" ] && [ -f "$JSON_SRC" ] || return 0
+  grep -q 'model-prices-catalog' "$PRICING" 2>/dev/null && return 0   # already patched
+  if have python3; then
+    python3 - "$JSON_SRC" "$JS_PROXY" <<'PYEOF'
+import json, sys
+data = json.load(open(sys.argv[1]))
+open(sys.argv[2], 'w').write(
+  '// OMP plugin onLoad forces js loader on all deps — proxy JSON as valid ESM.\n'
+  'export default ' + json.dumps(data, indent=2) + ';\n')
+PYEOF
+  elif have node; then
+    node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
+fs.writeFileSync(process.argv[2],'// OMP plugin onLoad forces js loader on all deps — proxy JSON as valid ESM.\nexport default '+JSON.stringify(d,null,2)+';\n');" \
+      "$JSON_SRC" "$JS_PROXY"
+  else warn "context-mode patch: need python3 or node — skip"; return 0; fi
+  sed -i 's|import catalog from "./model-prices.json" with { type: "json" };|import catalog from "./model-prices-catalog.js";|' "$PRICING"
+  say "context-mode: patched JSON loader compatibility (model-prices-catalog.js)"
+}
+
+# Fix: OMP renders hook statuses (ctx.ui.setStatus) as a separate line below the
+# status bar. Patch StatusLineComponent to include them inline in the top border.
+patch_omp_status_line() {
+  local OMP_PKG="$HOME/.bun/install/global/node_modules/@oh-my-pi/pi-coding-agent"
+  local COMPONENT="$OMP_PKG/src/modes/components/status-line/component.ts"
+  [ -f "$COMPONENT" ] || { warn "OMP status-line patch: component.ts not found — skip"; return 0; }
+  grep -q 'hookText' "$COMPONENT" 2>/dev/null && return 0   # already patched
+  python3 - "$COMPONENT" <<'PYEOF'
+import sys, re
+src = open(sys.argv[1]).read()
+# 1. Inject hook statuses into rightParts right after the subagentBadge block.
+ANCHOR = '\t\tif (subagentBadge) {\n\t\t\trightParts.unshift(subagentBadge);\n\t\t}'
+INJECT = (
+  '\n\t\tconst showHooks = this.#settings.showHookStatus ?? true;\n'
+  '\t\tif (showHooks && this.#hookStatuses.size > 0) {\n'
+  '\t\t\tconst hookText = Array.from(this.#hookStatuses.entries())\n'
+  '\t\t\t\t.sort(([a], [b]) => a.localeCompare(b))\n'
+  '\t\t\t\t.map(([, text]) => sanitizeStatusText(text))\n'
+  '\t\t\t\t.join(" ")\n'
+  '\t\t\t\t.trim();\n'
+  '\t\t\tif (hookText) rightParts.push(theme.fg("muted", hookText));\n'
+  '\t\t}'
+)
+if ANCHOR not in src:
+  print('ERROR: anchor not found in component.ts', file=sys.stderr); sys.exit(1)
+src = src.replace(ANCHOR, ANCHOR + INJECT, 1)
+# 2. Replace render() body — drop the separate hook line.
+OLD_RENDER = (
+  '\trender(width: number): readonly string[] {\n'
+  '\t\t// Only render hook statuses - main status is in editor\'s top border\n'
+  '\t\tconst showHooks = this.#settings.showHookStatus ?? true;\n'
+  '\t\tif (!showHooks || this.#hookStatuses.size === 0) {\n'
+  '\t\t\treturn [];\n'
+  '\t\t}\n\n'
+  '\t\tconst sortedStatuses = Array.from(this.#hookStatuses.entries())\n'
+  '\t\t\t.sort(([a], [b]) => a.localeCompare(b))\n'
+  '\t\t\t.map(([, text]) => sanitizeStatusText(text));\n'
+  '\t\tconst hookLine = sortedStatuses.join(" ");\n'
+  '\t\treturn [truncateToWidth(hookLine, width)];\n'
+  '\t}'
+)
+NEW_RENDER = (
+  '\trender(_width: number): readonly string[] {\n'
+  '\t\t// Hook statuses are rendered inline in the top-border status line.\n'
+  '\t\treturn [];\n'
+  '\t}'
+)
+if OLD_RENDER not in src:
+  print('ERROR: render() original body not found in component.ts', file=sys.stderr); sys.exit(1)
+src = src.replace(OLD_RENDER, NEW_RENDER, 1)
+open(sys.argv[1], 'w').write(src)
+print('patched')
+PYEOF
+  [ $? -ne 0 ] && { warn "OMP status-line patch: python script failed — skip rebuild"; return 0; }
+  # Rebuild dist/cli.js with the same flags used by bundle-dist.ts
+  say "OMP status-line: rebuilding dist/cli.js…"
+  (cd "$OMP_PKG" && bun build \
+    --target=bun --outdir dist --minify --keep-names \
+    --external mupdf --external @oh-my-pi/pi-natives \
+    --external "@huggingface/transformers" --external fastembed \
+    --external onnxruntime-node --external puppeteer-core \
+    --external "@puppeteer/browsers" --external "@babel/parser" \
+    --external "@xterm/headless" --external turndown \
+    --external turndown-plugin-gfm --external "@mozilla/readability" \
+    --external linkedom --external "@agentclientprotocol/sdk" \
+    --define 'process.env.PI_BUNDLED="true"' \
+    ./src/cli.ts 2>/dev/null) \
+  && say "OMP status-line: hook statuses now inline in top-border (rebuilt dist/cli.js)" \
+  || warn "OMP status-line: bun build failed — OMP may need a manual reinstall"
+}
+
 # --- context-mode (locale-agnostic output sandbox; complements ctx-wire) ------
 if [ "$NO_CTXMODE" = 0 ]; then
   if have omp; then
@@ -113,6 +213,7 @@ if [ "$NO_CTXMODE" = 0 ]; then
     warn "omp CLI not found — skip context-mode (run later: omp plugin install context-mode)"
   fi
 fi
+patch_context_mode
 
 # --- acli (official Atlassian CLI: Jira / Confluence / Bitbucket) -------------
 # acli is our GO-TO for Atlassian — not an MCP. The URL serves the LATEST build,
@@ -296,4 +397,5 @@ if [ -d "$HERE/extensions" ]; then
   say "read-dedup + context-dedup + context-compress (safe) loaded"
 fi
 
+patch_omp_status_line
 say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."
