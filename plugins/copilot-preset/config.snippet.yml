@@ -22,11 +22,17 @@ modelProviderOrder:
 # Tier -> Copilot model (out-of-the-box: cheap execution, Sonnet orchestration,
 # Opus for the hard stuff). rates per 1M tokens, in/out — see pricing.md.
 modelRoles:
-  # high-volume small tier + subagent execution — Haiku (cheap, fast)
-  smol: github-copilot/claude-haiku-4.5    # $0.80 / $4.00
-  task: github-copilot/claude-haiku-4.5
+  # high-volume small tier + subagent execution — MAI-Code-1-Flash (cheap, fast,
+  # coding-tuned). GA on Copilot since 2026-06-02; beats Haiku 4.5 on every coding
+  # bench tested (SWE-Bench Verified 71.6 vs 66.6, SWE-Bench Pro 51.2 vs 35.2,
+  # Terminal Bench 2 54.8 vs 41.6) with up to 60% fewer tokens — AND it's cheaper.
+  # A strict Pareto win over Haiku for this tier.
+  smol: github-copilot/mai-code-1-flash    # $0.75 / $4.50
+  task: github-copilot/mai-code-1-flash
   # everyday DEFAULT — Sonnet runs the dev-team orchestrator (non-trivial work ->
-  # research -> plan -> implement -> review).
+  # research -> plan -> implement -> review). Kept on Sonnet: MAI-Code-1-Flash is
+  # an "everyday" coding model (71.6 SWE-bench), still below Sonnet for the
+  # cross-file reasoning the orchestrator does. Want ultra-cheap? See block below.
   default: github-copilot/claude-sonnet-4.6 # $3.00 / $15.00
   plan: github-copilot/claude-sonnet-4.6
   # deep reasoning / big-complex analysis — reserve Opus for it.
@@ -36,15 +42,13 @@ skills:
   enableSkillCommands: true
 
 # ---------------------------------------------------------------------------
-# MAI-Code-1-Flash (Microsoft, "MIA Coding"): cheap, coding-tuned, pitched above
-# Claude Haiku 4.5 on price/perf at $0.75 / $4.50. Currently rolling out via the
-# Copilot model picker. The MOMENT it shows in `omp --list-models`, prefer it for
-# the cheap tiers — uncomment to make it your low-cost default:
+# MAI-Code-1-Flash (Microsoft, "MIA Coding"): now wired into the cheap tiers
+# above (smol/task). To go further and run the EVERYDAY default ultra-cheap too,
+# uncomment — trades some orchestration quality for ~4x cheaper output vs Sonnet:
 #
 # modelRoles:
-#   smol: github-copilot/mai-code-1-flash
 #   default: github-copilot/mai-code-1-flash   # ultra-cheap everyday profile
-#   task: github-copilot/mai-code-1-flash
+#   plan:    github-copilot/mai-code-1-flash
 # ---------------------------------------------------------------------------
 
 # NOTE — running the dev-team fully on Copilot:

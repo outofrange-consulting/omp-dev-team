@@ -5,7 +5,7 @@
       "role": "smol",
       "frontmatter": "pi/smol",
       "intent": "cheap-cloud",
-      "rationale": "Lexical/structural pattern matching, checklist-style verification (naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian). Cheap, high-volume, parallel. Routed to whatever modelRoles.smol points at -- a cheap cloud model (default claude-haiku-4-5; with the copilot-preset plugin, e.g. github-copilot/gpt-5-mini)."
+      "rationale": "Lexical/structural pattern matching, checklist-style verification (naming, complexity, a11y, svelte, js-fp, token-efficiency, claude-setup, progress-guardian). Cheap, high-volume, parallel. Routed to whatever modelRoles.smol points at -- a cheap cloud model (default claude-haiku-4-5; with the copilot-preset plugin, github-copilot/mai-code-1-flash)."
     },
     "balanced": {
       "frontmatter": "claude-sonnet-4-6",

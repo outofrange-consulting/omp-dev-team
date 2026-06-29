@@ -40,17 +40,20 @@ cheapest-first comparison: **[`pricing.md`](pricing.md)**.
 
 | Role | Model | in / out (per 1M) |
 |---|---|---|
-| `smol` (dev-team small tier) | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
-| `default` / `task` | `github-copilot/claude-sonnet-4.6` | $3.00 / $15.00 |
+| `smol` / `task` (dev-team small tier) | `github-copilot/mai-code-1-flash` | $0.75 / $4.50 |
+| `default` / `plan` | `github-copilot/claude-sonnet-4.6` | $3.00 / $15.00 |
 | `slow` (deep) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
 
 ## MAI-Code-1-Flash ("MIA Coding")
 
-Microsoft's cheap, coding-tuned model ($0.75 / $4.50), pitched above Haiku 4.5 on
-price-to-performance, currently rolling out through the Copilot model picker. The
-snippet includes a commented block to make it the low-cost default — switch the
-`smol`/`default` tiers to `github-copilot/mai-code-1-flash` the moment it shows in
-`omp --list-models`.
+Microsoft's cheap, coding-tuned model ($0.75 / $4.50), **GA on Copilot since
+2026-06-02** (Business/Enterprise + all surfaces by 2026-06-26). It beats Claude
+Haiku 4.5 on every coding bench Microsoft tested (SWE-Bench Verified 71.6 vs 66.6,
+SWE-Bench Pro 51.2 vs 35.2, Terminal Bench 2 54.8 vs 41.6) with up to 60% fewer
+tokens — and it's cheaper than Haiku ($1/$5). The snippet now runs the **cheap
+tiers (`smol`/`task`) on `github-copilot/mai-code-1-flash`** (a Pareto win over
+Haiku). It's left below Sonnet for `default`/`plan` orchestration; a commented
+block lets you move those to it too for an ultra-cheap profile.
 
 ## Notes
 
