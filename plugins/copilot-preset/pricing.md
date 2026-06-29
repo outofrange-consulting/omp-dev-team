@@ -43,17 +43,30 @@ Source: GitHub Docs — *Models and pricing for GitHub Copilot*.
 |---|---|---|---|
 | **MAI-Code-1-Flash** | **$0.75** | **$0.075** | **$4.50** |
 
-MAI-Code-1-Flash is Microsoft's cheap, coding-tuned model (Build 2026), pitched
-*above* Claude Haiku 4.5 on price-to-performance, rolling out through the Copilot
-model picker. Use it for the cheap tiers as soon as it appears in
-`omp --list-models | grep github-copilot`.
+MAI-Code-1-Flash is Microsoft's cheap, coding-tuned model (Build 2026), **GA on
+GitHub Copilot since 2026-06-02** (Free/Pro/Pro+/Max, then CLI/cloud-agent/IDEs
+from 2026-06-18, and Business/Enterprise from 2026-06-26). Microsoft's own
+benchmarks put it *above* Claude Haiku 4.5 on coding — and it's **cheaper** than
+Haiku ($1/$5):
+
+| Bench (vendor-run) | MAI-Code-1-Flash | Claude Haiku 4.5 |
+|---|---|---|
+| SWE-Bench Verified | **71.6** | 66.6 |
+| SWE-Bench Pro | **51.2** | 35.2 |
+| Terminal Bench 2 | **54.8** | 41.6 |
+
+…with up to **60% fewer tokens** (vendor results, not independent). That makes it
+a strict Pareto improvement over Haiku for the high-volume cheap tiers — this
+preset now routes `smol`/`task` to it. It still sits below Sonnet (71.6
+SWE-bench), so it is *not* the default orchestration model.
 
 ## Cheapest-first guidance (limit token spend)
 
-- **High-volume / small tier** (`smol`, dev-team triage & pattern agents):
-  `gpt-5-mini` is the cheapest solid choice today ($0.25/$2.00). Switch to
-  `mai-code-1-flash` when available for better coding quality at low cost.
-- **Balanced everyday** (`default`/`task`): `claude-sonnet-4.6` ($3/$15) for
+- **High-volume / small tier** (`smol`/`task`, dev-team triage & pattern agents):
+  `mai-code-1-flash` ($0.75/$4.50) — best coding quality per dollar at this tier,
+  beats Haiku 4.5 on every bench at lower cost. `gpt-5-mini` ($0.25/$2.00) is
+  cheaper still if you want rock-bottom price over coding quality.
+- **Balanced everyday** (`default`/`plan`): `claude-sonnet-4.6` ($3/$15) for
   quality, or `mai-code-1-flash` / `gpt-5.4-mini` for an ultra-cheap profile.
 - **Deep reasoning** (`slow`): `claude-opus-4.8` ($5/$25). Reserve **Fable 5**
   ($10/$50) for genuinely long-horizon autonomous tasks — it's 2× Opus.
