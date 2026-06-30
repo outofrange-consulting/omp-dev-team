@@ -268,8 +268,8 @@ write_config() {
     cfg_add modelRoles <<'EOF'
 # Models via GitHub Copilot. Run 'omp' -> /login -> GitHub Copilot first.
 modelRoles:
-  smol: github-copilot/claude-haiku-4.5
-  task: github-copilot/claude-haiku-4.5
+  smol: github-copilot/gpt-5-mini
+  task: github-copilot/mai-code-1-flash
   default: github-copilot/claude-sonnet-4.6
   plan: github-copilot/claude-sonnet-4.6
   slow: github-copilot/claude-opus-4.8
