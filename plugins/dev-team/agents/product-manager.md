@@ -2,7 +2,7 @@
 name: product-manager
 description: Requirements clarification, priority management, and stakeholder alignment
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 

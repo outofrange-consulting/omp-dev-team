@@ -2,7 +2,7 @@
 name: ui-ux-designer
 description: User interface design, UX optimization, and accessibility compliance
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 

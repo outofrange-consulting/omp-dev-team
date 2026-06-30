@@ -3,7 +3,7 @@ name: orchestrator
 description: Central dispatcher that routes tasks to specialized agents and coordinates multi-agent collaboration
 tools: read, search, find, task
 spawns: "*"
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 
@@ -28,7 +28,7 @@ thinking-level: medium
 
 ## Resolution Procedure (floor tier + effort band)
 
-Each agent's `model:` frontmatter declares its **floor tier**. The cheap end is split by **workload shape**: `pi/smol` (**nano** — lexical/scan), `pi/task` (**code** — coding/tool-use), `claude-sonnet-4-6` (**balanced**), `claude-opus-4-8` (**deep**). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
+Each agent's `model:` frontmatter declares its **floor tier**. The cheap end is split by **workload shape**: `pi/smol` (**nano** — lexical/scan), `pi/task` (**code** — coding/tool-use), `pi/plan` (**balanced**), `pi/slow` (**deep**). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
 
 On top of the floor, the `model-routing` extension applies **phase-aware effort-band routing (bump-from-floor)**. The effort goes into **spec/plan**, not the build: the **task size** (recorded at `/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`) raises the band **only while planning** (`stage = needs-plan`, i.e. `/scope` → `/specs` → `/plan`):
 
@@ -46,8 +46,8 @@ Each agent's `model:` frontmatter is the authoritative routing input. Tiers are 
 
 - `nano` (`pi/smol`) — **pure lexical/structural pattern matching and checklist verification, no code-semantics or tool-use** (naming-review, complexity-review, token-efficiency-review, a11y-review, progress-guardian). Also the cheapest tier for input-bound scan work. Highest volume → cheapest capable model.
 - `code` (`pi/task`) — **cheap work that needs code semantics or agentic tool-use, where the plan + review gates protect quality**: post-plan implementation (software-engineer build floor), build-phase test generation (qa-engineer), structural code-semantic review (js-fp-review, svelte-review), and **codebase-recon** (script-driven enumeration + grep scan; a *floor*, so the effort-band makes recon size-proportional during planning — code/balanced/deep by task size — and the agents that *judge* its output run at deep). Coding-tuned cheap model.
-- `balanced` (`claude-sonnet-4-6`) — semantic / cross-file analysis with balanced cost/quality (spec-compliance-review, test-review, test-smell-review, structure-review, concurrency-review, doc-review, refactor-opportunity-review, data-flow-tracer, performance-review, orchestrator, tech-writer, platform-engineer, product-manager, ui-ux-designer, adr-author).
-- `deep` (`claude-opus-4-8`) — high-stakes cross-file reasoning, design synthesis, threat modeling where a wrong verdict is expensive (security-review, domain-review, arch-review, architect, security-engineer).
+- `balanced` (`pi/plan`) — semantic / cross-file analysis with balanced cost/quality (spec-compliance-review, test-review, test-smell-review, structure-review, concurrency-review, doc-review, refactor-opportunity-review, data-flow-tracer, performance-review, orchestrator, tech-writer, platform-engineer, product-manager, ui-ux-designer, adr-author).
+- `deep` (`pi/slow`) — high-stakes cross-file reasoning, design synthesis, threat modeling where a wrong verdict is expensive (security-review, domain-review, arch-review, architect, security-engineer).
 
 ## Command Delegation
 

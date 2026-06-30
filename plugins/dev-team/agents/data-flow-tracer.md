@@ -2,7 +2,7 @@
 name: data-flow-tracer
 description: Traces a use case through all architecture layers, mapping data access patterns, caching, external integrations, and identifying gaps. Analysis-only agent (read-only).
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 

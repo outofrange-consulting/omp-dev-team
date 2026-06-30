@@ -2,7 +2,7 @@
 name: structure-review
 description: SRP violations, DRY, coupling, nesting depth, file organization
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 blocking: true
 ---

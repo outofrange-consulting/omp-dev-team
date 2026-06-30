@@ -2,7 +2,7 @@
 name: architect
 description: System design, architecture definition, and technical decision oversight
 tools: read, search, find, bash
-model: claude-opus-4-8
+model: pi/slow
 thinking-level: high
 ---
 

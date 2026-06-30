@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Tiers are WORKLOAD-SHAPED, not a single cost ladder: the cheap end is split into `nano` (pure lexical/checklist + input-bound scan -> the cheapest capable model) and `code` (cheap coding & agentic tool-use -> a coding-tuned cheap model). Agents declare a tier in their `model:` frontmatter via a provider-agnostic role (`pi/smol` -> nano, `pi/task` -> code) or a pinned cloud id (balanced/deep). Roles resolve through .omp/config.yml modelRoles (default cheap-cloud Haiku; with copilot-preset, smol -> github-copilot/gpt-5-mini and task -> github-copilot/mai-code-1-flash). Both cheap tiers are CHEAP-CLOUD high-volume tiers, not local-GPU.",
+  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Tiers are WORKLOAD-SHAPED, not a single cost ladder: the cheap end is split into `nano` (pure lexical/checklist + input-bound scan -> the cheapest capable model) and `code` (cheap coding & agentic tool-use -> a coding-tuned cheap model). Agents declare a tier in their `model:` frontmatter via a provider-agnostic role (`pi/smol` -> nano, `pi/task` -> code, `pi/plan` -> balanced, `pi/slow` -> deep). Roles resolve through .omp/config.yml modelRoles (default Haiku/Sonnet/Opus; with copilot-preset, smol -> github-copilot/gpt-5-mini, task -> github-copilot/mai-code-1-flash, plan -> github-copilot/claude-sonnet-4.6, slow -> github-copilot/claude-opus-4.8). Using pi/ role aliases everywhere keeps agents provider-agnostic — no hardcoded Anthropic ids that break in Copilot-only environments.",
   "tiers": {
     "nano": {
       "role": "smol",
@@ -14,12 +14,12 @@
       "rationale": "Cheap work that DOES need code semantics or agentic tool-use: post-plan implementation of scoped slices (software-engineer build floor), build-phase test generation (qa-engineer), structural code-semantic reviews (js-fp, svelte), and codebase-recon (script-driven enumeration + grep scan; a FLOOR here, so the effort-band makes it SIZE-PROPORTIONAL during planning — trivial->code, standard->balanced, complex->deep — and the downstream judging agents run at deep). Route to a coding-tuned cheap model (default claude-haiku-4-5; with copilot-preset, github-copilot/mai-code-1-flash at $0.75/$4.50 — coding-tuned, agentic, beats Haiku on every coding bench tested). The plan + review gates protect quality, so the build runs cheap."
     },
     "balanced": {
-      "frontmatter": "claude-sonnet-4-6",
+      "frontmatter": "pi/plan",
       "intent": "cloud",
       "rationale": "Semantic / cross-file analysis with balanced cost/quality: orchestration, spec-compliance, structural/test/concurrency/perf/doc review, and most non-build team agents (product-manager, ui-ux-designer, tech-writer, platform-engineer, adr-author). Build-phase execution agents (software-engineer, qa-engineer) and recon sit at the cheaper code tier — the plan protects quality."
     },
     "deep": {
-      "frontmatter": "claude-opus-4-8",
+      "frontmatter": "pi/slow",
       "intent": "cloud",
       "rationale": "High-stakes cross-file reasoning and design synthesis where a wrong verdict is expensive: security-review, domain-review, arch-review, architect, security-engineer. Reserve it — most work does not need it."
     }

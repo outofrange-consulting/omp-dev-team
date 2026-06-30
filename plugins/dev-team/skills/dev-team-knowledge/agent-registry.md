@@ -23,7 +23,7 @@ This file contains the complete registry tables. CLAUDE.md references this file 
 
 Spawned by the orchestrator during Phase 3 inline checkpoints and full `/code-review` runs. Each agent declares a tier alias in its `model:` frontmatter; OMP resolves the tier natively (`modelRoles`) and the `model-routing` extension applies effort-band routing per the **Resolution Procedure** in `agents/orchestrator.md`.
 
-Model tier is the agent's `model:` frontmatter floor (cheap end split by workload shape: `nano` = `pi/smol` lexical/scan, `code` = `pi/task` coding/tool-use, `balanced` = Sonnet, `deep` = Opus). The effort-band may raise it during planning per the Resolution Procedure.
+Model tier is the agent's `model:` frontmatter floor (cheap end split by workload shape: `nano` = `pi/smol` lexical/scan, `code` = `pi/task` coding/tool-use, `balanced` = `pi/plan` Sonnet, `deep` = `pi/slow` Opus). The effort-band may raise it during planning per the Resolution Procedure.
 
 | Agent | File | Model Tier | What It Checks |
 |-------|------|------------|----------------|

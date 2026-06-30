@@ -2,7 +2,7 @@
 name: tech-writer
 description: Project documentation, terminology consistency, and ubiquitous language enforcement
 tools: read, search, find, edit, write
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 

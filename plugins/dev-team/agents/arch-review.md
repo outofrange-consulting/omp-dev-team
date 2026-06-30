@@ -2,7 +2,7 @@
 name: arch-review
 description: Architectural alignment — ADR compliance, layer boundary violations, dependency direction, pattern consistency
 tools: read, search, find
-model: claude-opus-4-8
+model: pi/slow
 thinking-level: high
 blocking: true
 ---

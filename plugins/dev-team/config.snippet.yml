@@ -12,8 +12,8 @@
 # WORKLOAD SHAPE):
 #   nano (lexical/scan) agents -> `pi/smol`   (resolved here, role smol)
 #   code (coding/tool-use)     -> `pi/task`   (resolved here, role task)
-#   balanced agents            -> `claude-sonnet-4-6`
-#   deep-reasoning agents      -> `claude-opus-4-8`
+#   balanced agents            -> `pi/plan`   (resolved here, role plan)
+#   deep-reasoning agents      -> `pi/slow`   (resolved here, role slow)
 #
 # nano + code are CHEAP-CLOUD high-volume tiers: nano is pure lexical/checklist
 # review and input-bound scan (no code semantics, no tool-use); code is cheap

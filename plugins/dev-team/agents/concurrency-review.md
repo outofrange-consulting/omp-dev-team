@@ -2,7 +2,7 @@
 name: concurrency-review
 description: Race conditions, async pitfalls, idempotency, shared state safety
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 blocking: true
 ---

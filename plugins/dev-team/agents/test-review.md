@@ -2,7 +2,7 @@
 name: test-review
 description: Test quality, coverage gaps, assertion quality, and test hygiene
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 blocking: true
 ---

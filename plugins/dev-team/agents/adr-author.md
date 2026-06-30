@@ -2,7 +2,7 @@
 name: adr-author
 description: Creates and manages Architecture Decision Records (ADRs) with a decision framework for when to create one
 tools: read, write, find, search
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 

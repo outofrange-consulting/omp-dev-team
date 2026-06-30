@@ -36,12 +36,16 @@ import {
 // and the concrete copilot ids each role resolves to map back to their tier.
 const NANO_TIER_MODELS = new Set(["pi/smol", "smol"]);
 const CODE_TIER_MODELS = new Set(["pi/task", "task"]);
+const BALANCED_TIER_MODELS = new Set(["pi/plan", "plan", "pi/default"]);
+const DEEP_TIER_MODELS = new Set(["pi/slow", "slow"]);
 const TIER_LITERALS = new Set(["nano", "code", "balanced", "deep"]);
 
 function tierOf(model: string | null): string {
 	if (model === null || model === "") return "default";
 	if (NANO_TIER_MODELS.has(model)) return "nano";
 	if (CODE_TIER_MODELS.has(model)) return "code";
+	if (BALANCED_TIER_MODELS.has(model)) return "balanced";
+	if (DEEP_TIER_MODELS.has(model)) return "deep";
 	if (model.includes("opus")) return "deep";
 	if (model.includes("sonnet")) return "balanced";
 	// Concrete cheap-tier ids (copilot-preset): gpt-5-mini -> nano, mai-code -> code.

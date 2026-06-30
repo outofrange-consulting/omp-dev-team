@@ -2,7 +2,7 @@
 name: security-engineer
 description: Threat modeling, security analysis, vulnerability assessment, and secure design guidance
 tools: read, search, find, bash
-model: claude-opus-4-8
+model: pi/slow
 thinking-level: high
 ---
 

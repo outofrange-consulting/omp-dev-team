@@ -61,10 +61,7 @@ skills:
 # ---------------------------------------------------------------------------
 
 # NOTE — running the dev-team fully on Copilot:
-# dev-team's *nano tier* uses the `pi/smol` role and its *code tier* uses
-# `pi/task`, so both follow modelRoles.smol / modelRoles.task automatically
-# (these are the high-volume tiers, biggest savings). dev-team's
-# balanced/deep agents PIN concrete Anthropic ids (claude-sonnet-4-6 /
-# claude-opus-4-8) in frontmatter, so they go direct to Anthropic unless you
-# either (a) run your interactive default on a github-copilot model, or (b) edit
-# those agents' `model:` to a github-copilot id.
+# All dev-team agents use provider-agnostic `pi/` role aliases in their `model:`
+# frontmatter: `pi/smol` (nano), `pi/task` (code), `pi/plan` (balanced),
+# `pi/slow` (deep). Every tier resolves through modelRoles above — no agent
+# pins a concrete Anthropic id, so the full team runs on Copilot-served models.

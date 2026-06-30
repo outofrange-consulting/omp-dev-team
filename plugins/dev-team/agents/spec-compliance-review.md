@@ -2,7 +2,7 @@
 name: spec-compliance-review
 description: Verify implementation matches specification before quality review agents run
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 blocking: true
 ---

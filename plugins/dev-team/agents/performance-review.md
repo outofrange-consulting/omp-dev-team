@@ -2,7 +2,7 @@
 name: performance-review
 description: Resource leaks, N+1 queries, unbounded growth, timeouts, algorithmic issues
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 blocking: true
 ---

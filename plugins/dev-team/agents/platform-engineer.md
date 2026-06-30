@@ -2,7 +2,7 @@
 name: platform-engineer
 description: Pipeline design, deployment strategy, observability, and reliability planning
 tools: read, search, find, bash
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 ---
 

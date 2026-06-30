@@ -2,7 +2,7 @@
 name: refactor-opportunity-review
 description: Assesses refactoring opportunities after tests pass (the test-after refactoring step), distinguishing semantic duplication from structural similarity
 tools: read, search, find
-model: claude-sonnet-4-6
+model: pi/plan
 thinking-level: medium
 blocking: true
 ---
