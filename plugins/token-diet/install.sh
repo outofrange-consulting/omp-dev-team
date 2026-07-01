@@ -11,6 +11,8 @@
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --no-context-mode    don't install the context-mode OMP plugin
 #   --no-acli            don't install / authenticate the Atlassian CLI (acli)
+#   ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN (env)  non-interactive acli auth (auto-run
+#                        on install when acli isn't already authenticated)
 #   -y, --yes            non-interactive (don't prompt for the sources root / auth)
 set -euo pipefail
 
@@ -231,10 +233,14 @@ if [ "$NO_ACLI" = 0 ]; then
       run "mkdir -p \"$HOME/.local/bin\" && curl -fsSL -o \"$HOME/.local/bin/acli\" \"$ACLI_URL\" && chmod +x \"$HOME/.local/bin/acli\" || true"
     else warn "need curl to install acli — see https://developer.atlassian.com/cloud/acli/"; fi
   fi
-  # Authenticate (Jira) when interactive and not already logged in.
-  if have acli && [ "$YES" = 0 ] && [ -r /dev/tty ] && ! acli jira auth status >/dev/null 2>&1; then
-    printf '    Authenticate acli now (Jira/Confluence)? [Y/n] '; read -r ans </dev/tty || ans=""
-    case "${ans:-Y}" in [Yy]*)
+  # Authenticate (Jira) when not already logged in — runs automatically (no
+  # Y/n gate); non-interactive installs can supply ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN.
+  if have acli && ! acli jira auth status >/dev/null 2>&1; then
+    if [ -n "${ACLI_SITE:-}" ] && [ -n "${ACLI_EMAIL:-}" ] && [ -n "${ACLI_TOKEN:-}" ]; then
+      printf '%s' "$ACLI_TOKEN" | acli jira auth login --site "$ACLI_SITE" --email "$ACLI_EMAIL" --token >/dev/null 2>&1 \
+        && echo "  acli authenticated ($ACLI_SITE)" || warn "acli auth failed — run 'acli jira auth login' manually."
+    elif [ "$YES" = 0 ] && [ -r /dev/tty ]; then
+      say "Authenticating acli (Jira/Confluence)"
       printf '    Atlassian site (e.g. mysite.atlassian.net): '; read -r ACLI_SITE </dev/tty || ACLI_SITE=""
       printf '    Email: '; read -r ACLI_EMAIL </dev/tty || ACLI_EMAIL=""
       printf '    API token (hidden; id.atlassian.com -> Security -> API tokens): '; read -r -s ACLI_TOKEN </dev/tty || ACLI_TOKEN=""; echo
@@ -242,8 +248,9 @@ if [ "$NO_ACLI" = 0 ]; then
         printf '%s' "$ACLI_TOKEN" | acli jira auth login --site "$ACLI_SITE" --email "$ACLI_EMAIL" --token >/dev/null 2>&1 \
           && echo "  acli authenticated ($ACLI_SITE)" || warn "acli auth failed — run 'acli jira auth login' manually."
       else warn "incomplete input — run 'acli jira auth login' manually."; fi
-      ;;
-    esac
+    else
+      warn "acli not authenticated — set ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN, or run 'acli jira auth login' manually."
+    fi
   fi
 fi
 

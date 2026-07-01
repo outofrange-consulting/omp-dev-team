@@ -7,6 +7,8 @@
   Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive),
          -SourcesRoot <path> (parent of your repos; default cwd), -Depth N (default 3),
          -NoConfig.
+  Env (acli): ACLI_SITE / ACLI_EMAIL / ACLI_TOKEN — non-interactive acli auth,
+         auto-run on install when acli isn't already authenticated.
 #>
 [CmdletBinding()]
 param([switch]$NoUpdate, [switch]$Yes, [string]$SourcesRoot, [int]$Depth = 3, [switch]$NoConfig)
@@ -66,6 +68,30 @@ else {
   Say "Installing Atlassian CLI (acli)"
   try { Invoke-WebRequest -Uri 'https://acli.atlassian.com/windows/latest/acli_windows_amd64/acli.exe' -OutFile (Join-Path $BinDir 'acli.exe') }
   catch { Warn "acli download failed — see https://developer.atlassian.com/cloud/acli/" }
+}
+
+# Authenticate (Jira) when not already logged in — runs automatically (no
+# Y/n gate); non-interactive installs can supply $env:ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN.
+if (Have acli) {
+  acli jira auth status *> $null
+  if ($LASTEXITCODE -ne 0) {
+    if ($env:ACLI_SITE -and $env:ACLI_EMAIL -and $env:ACLI_TOKEN) {
+      $env:ACLI_TOKEN | acli jira auth login --site $env:ACLI_SITE --email $env:ACLI_EMAIL --token *> $null
+      if ($LASTEXITCODE -eq 0) { Write-Host "  acli authenticated ($($env:ACLI_SITE))" } else { Warn "acli auth failed — run 'acli jira auth login' manually." }
+    } elseif (-not $Yes) {
+      Say "Authenticating acli (Jira/Confluence)"
+      $acliSite  = Read-Host "    Atlassian site (e.g. mysite.atlassian.net)"
+      $acliEmail = Read-Host "    Email"
+      $acliToken = Read-Host "    API token (id.atlassian.com -> Security -> API tokens)" -AsSecureString
+      $acliPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($acliToken))
+      if ($acliSite -and $acliEmail -and $acliPlain) {
+        $acliPlain | acli jira auth login --site $acliSite --email $acliEmail --token *> $null
+        if ($LASTEXITCODE -eq 0) { Write-Host "  acli authenticated ($acliSite)" } else { Warn "acli auth failed — run 'acli jira auth login' manually." }
+      } else { Warn "incomplete input — run 'acli jira auth login' manually." }
+    } else {
+      Warn "acli not authenticated — set ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN env vars, or run 'acli jira auth login' manually."
+    }
+  }
 }
 
 # --- ast-grep (structural search/rewrite) -----------------------------------
