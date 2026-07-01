@@ -101,13 +101,16 @@ omp plugin install datadog@omp-dev-team
 > installation via le cache marketplace — seuls skills/commands/agents/rules/MCP
 > y sont exposés. Les plugins dont le cœur *est* une extension —
 > **azure-devops-fs** (l'outil `ado`), **dev-team** (les garde-fous bloquants +
-> le routage de modèles) et **openai-compatible** (le fournisseur) — ont donc besoin que
+> le routage de modèles), **openai-compatible** (le fournisseur), **token-diet**
+> (read-dedup/context-dedup/context-compress/cache-meter + `path-inject`, qui
+> place `~/.local/bin` dans le PATH propre à OMP) et **datadog** (`path-inject`,
+> même raison — `pup` s'installe dans `~/.local/bin`) — ont donc besoin que
 > leur installeur tourne aussi. Le `install.sh` global et chaque
 > `install.sh`/`install.ps1` de plugin recopient ces modules dans le dossier natif
 > d'OMP `~/.omp/agent/extensions/<plugin>/` (toujours découvert, survit aux resets
-> de config), pour que l'outil `ado` / les garde-fous / le fournisseur se chargent
-> réellement. Un simple `omp plugin install <nom>@omp-dev-team` affichera le skill
-> mais **n'enregistrera pas** l'outil.
+> de config), pour que l'outil `ado` / les garde-fous / le fournisseur / le
+> correctif PATH se chargent réellement. Un simple `omp plugin install
+> <nom>@omp-dev-team` affichera le skill mais **n'enregistrera pas** l'extension.
 
 Chaque plugin fournit son propre `install.sh` + `install.ps1` (installe les outils
 du plugin dans leur dernière version) — voir son README :
@@ -132,7 +135,7 @@ plugins/
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ (ado.ts + lib/az.ts) commands/ skills/ rules/ knowledge/ · install.{sh,ps1}
   openai-compatible/  extensions/ (openai-provider.ts) · skills/ · install.{sh,ps1}
-  datadog/          skills/ (umbrella) · install.{sh,ps1}
+  datadog/          extensions/ (path-inject.ts) · skills/ (umbrella) · install.{sh,ps1}
 ```
 
 ## Agent Package Manager (APM) & définitions dupliquées
@@ -167,7 +170,7 @@ Vérifié de bout en bout et en intégration continue (Linux/macOS/Windows,
 voir [`.github/workflows/installers.yml`](.github/workflows/installers.yml)) : tous
 les `install.sh` passent `bash -n` ; tous les `install.ps1` se parsent sous
 PowerShell 7 ; tous les manifestes sont du JSON valide ; les 8 extensions de
-dev-team (plus les modules d'extension de token-diet, azure-devops-fs et openai-compatible)
+dev-team (plus les modules d'extension de token-diet, azure-devops-fs, openai-compatible et datadog)
 compilent sous `bun` ; ctx-wire, codebase-memory-mcp et OMP s'installent via les commandes
 exactes des scripts ; et les six plugins s'installent via le vrai OMP sur chaque OS.
 

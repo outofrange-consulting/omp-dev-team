@@ -98,13 +98,16 @@ omp plugin install datadog@omp-dev-team
 > (a plugin's `package.json` `omp.extensions`) from a marketplace cache install —
 > only skills/commands/agents/rules/MCP surface that way. The plugins whose core
 > behavior *is* an extension — **azure-devops-fs** (the `ado` tool),
-> **dev-team** (the blocking guards + model-routing), and **openai-compatible** (the
-> provider) — therefore need their installer to run too. The global `install.sh`
-> and each plugin's `install.sh`/`install.ps1` mirror those modules into OMP's
-> native `~/.omp/agent/extensions/<plugin>/` dir (always discovered, survives
-> config resets), so the `ado` tool / guards / provider actually load. A bare
+> **dev-team** (the blocking guards + model-routing), **openai-compatible** (the
+> provider), **token-diet** (read-dedup/context-dedup/context-compress/cache-meter
+> + `path-inject`, which puts `~/.local/bin` on OMP's own PATH), and **datadog**
+> (`path-inject`, same reason — `pup` lands in `~/.local/bin`) — therefore need
+> their installer to run too. The global `install.sh` and each plugin's
+> `install.sh`/`install.ps1` mirror those modules into OMP's native
+> `~/.omp/agent/extensions/<plugin>/` dir (always discovered, survives config
+> resets), so the `ado` tool / guards / provider / PATH fix actually load. A bare
 > `omp plugin install <name>@omp-dev-team` alone will show the skill but **not**
-> register the tool.
+> register the extension.
 
 Each plugin ships its own `install.sh` + `install.ps1` (installs that plugin's
 tools at their latest versions) — see its README:
@@ -129,7 +132,7 @@ plugins/
   token-diet/       .mcp.json · rules/ · skills/ · install.{sh,ps1}
   azure-devops-fs/  extensions/ (ado.ts + lib/az.ts) commands/ skills/ rules/ knowledge/ · install.{sh,ps1}
   openai-compatible/  extensions/ (openai-provider.ts) · skills/ · install.{sh,ps1}
-  datadog/          skills/ (umbrella) · install.{sh,ps1}
+  datadog/          extensions/ (path-inject.ts) · skills/ (umbrella) · install.{sh,ps1}
 ```
 
 Each plugin's extensions load from its own `package.json` `omp.extensions`; the
@@ -168,7 +171,7 @@ Verified end-to-end and in CI (Linux/macOS/Windows — see
 [`.github/workflows/installers.yml`](.github/workflows/installers.yml)): all
 `install.sh` pass `bash -n`; all `install.ps1` parse under PowerShell 7; all
 manifests are valid JSON; the 8 dev-team extensions (plus the token-diet,
-azure-devops-fs, and openai-compatible extension modules) compile under `bun`; ctx-wire,
+azure-devops-fs, openai-compatible, and datadog extension modules) compile under `bun`; ctx-wire,
 codebase-memory-mcp, and OMP install via the exact commands the scripts use; and all six
 plugins install through real OMP on each OS (`omp plugin marketplace add ./` →
 `omp plugin install <name>@omp-dev-team`).

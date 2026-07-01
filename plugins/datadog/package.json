@@ -1,8 +1,11 @@
 {
   "name": "@omp-dev-team/datadog",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Datadog observability for OMP via the Datadog 'pup' CLI — one broad skill that drives pup.",
   "license": "MIT",
   "private": true,
-  "comment": "Config-only plugin: install.sh/ps1 install the pup CLI (DataDog/pup) and set up auth. The single 'datadog' skill routes everything through pup so OMP's skill list isn't flooded by pup's ~30 embedded domain skills. --with-skills opts into `pup skills install pi`."
+  "omp": {
+    "extensions": ["./extensions/path-inject.ts"]
+  },
+  "comment": "Config-only plugin: install.sh/ps1 install the pup CLI (DataDog/pup) and set up auth. The single 'datadog' skill routes everything through pup so OMP's skill list isn't flooded by pup's ~30 embedded domain skills. --with-skills opts into `pup skills install pi`. Ships a path-inject extension (prepends ~/.local/bin to process.env.PATH at OMP startup, since OMP spawns bash non-login/non-interactive and never sources shell profiles — otherwise `pup`, landed in ~/.local/bin by install.sh's prebuilt-tarball fallback, is invisible to the bash tool even after a restart). install.sh mirrors extensions/ into ~/.omp/agent/extensions/datadog (OMP does not load extensions from marketplace cache installs)."
 }

@@ -108,7 +108,21 @@ if [ "$WITH_SKILLS" = 1 ] && have pup; then
   pup skills install pi || warn "pup skills install pi failed (newer pup may differ) — the datadog skill still works via the CLI."
 fi
 
+# --- Load the path-inject extension ------------------------------------------
+# OMP does NOT load extension modules (package.json `omp.extensions`) from
+# marketplace cache installs, so path-inject would otherwise never run and
+# `pup` (landed in ~/.local/bin by install_pup's prebuilt-tarball fallback)
+# would stay invisible to the bash tool forever, even across restarts.
+# Mirror it into OMP's native user-extension dir, which is always discovered.
+HERE_EXT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$HERE_EXT/extensions" ]; then
+  DEST="$HOME/.omp/agent/extensions/datadog"
+  rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE_EXT/extensions" "$DEST/"
+  [ -f "$HERE_EXT/package.json" ] && cp "$HERE_EXT/package.json" "$DEST/"
+  say "path-inject loaded into $DEST — pup stays visible to OMP's bash tool after a restart"
+fi
+
 if have pup && ! bash -lc 'command -v pup' >/dev/null 2>&1; then
-  warn "pup installed but NOT visible in a fresh shell yet. An already-running OMP process keeps missing it until you RESTART OMP — re-running this script again will not fix it."
+  warn "pup installed but NOT visible in a fresh shell yet. RESTART OMP to pick it up (path-inject now fixes this for OMP's own bash tool on restart; re-running this script again will not, since it's the already-running OMP process's env that's stale)."
 fi
 say "datadog ready. Restart omp and use the 'datadog' skill (it drives the pup CLI). Auth: 'pup auth login' or DD_API_KEY/DD_APP_KEY/DD_SITE."
