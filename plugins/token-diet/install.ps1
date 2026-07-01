@@ -179,6 +179,6 @@ if (-not $NoConfig -and (Test-Path $claudeMd) -and -not (Test-Path $agentsMd)) {
 # NOTE: unlike install.sh, we can't reliably probe an already-running OMP
 # process's inherited environment from here (no non-interactive-login-shell
 # equivalent) — so this warning is unconditional rather than detected.
-Warn "ctx-wire shims write to $BinDir and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (shims invisible) until you RESTART OMP."
+Warn "ctx-wire shims, acli, ast-grep, ctx7, and .NET/csharp-ls tools write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
 
 Say "token-diet active: ctx-wire shims, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."

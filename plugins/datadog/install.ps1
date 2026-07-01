@@ -16,7 +16,11 @@ function Have ($c) { [bool](Get-Command $c -ErrorAction SilentlyContinue) }
 
 $binDir = Join-Path $HOME '.local\bin'
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-if (";$env:Path;" -notlike "*;$binDir;*") { $env:Path = "$binDir;$env:Path" }
+if (";$env:Path;" -notlike "*;$binDir;*") {
+  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  [Environment]::SetEnvironmentVariable('Path', "$userPath;$binDir", 'User')
+  $env:Path = "$binDir;$env:Path"
+}
 
 function Install-Pup {
   if ((Have pup) -and $NoUpdate) { Say "pup present ($(pup --version 2>$null))"; return }
@@ -75,4 +79,5 @@ if ($WithSkills -and (Have pup)) {
   try { pup skills install pi } catch { Warn "pup skills install pi failed — the datadog skill still works via the CLI." }
 }
 
+if (Have pup) { Warn "pup writes to $binDir and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (pup invisible) until you RESTART OMP." }
 Say "datadog ready. Restart omp and use the 'datadog' skill (it drives the pup CLI)."

@@ -43,7 +43,14 @@ fi
 # --- Azure CLI (az) + azure-devops extension --------------------------------
 # The `ado` tool drives `az` so it inherits the OS cert store + proxy (works
 # behind Zscaler/Trend under WSL). Everything is per-user (no sudo).
+# Persist ~/.local/bin on PATH for future shells too — matters when `az` falls
+# back to `pip install --user` below, landing it there instead of a system path.
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
+  [ -e "$p" ] || continue
+  grep -qsF "$HOME/.local/bin" "$p" 2>/dev/null && continue
+  printf '\n# omp-dev-team\nexport PATH="%s:$PATH"\n' "$HOME/.local/bin" >> "$p"
+done
 if have az; then
   say "Azure CLI present ($(az version --query '"azure-cli"' -o tsv 2>/dev/null || echo ok))"
 else
@@ -119,6 +126,15 @@ if [ -d "$HERE_EXT/extensions" ]; then
   rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE_EXT/extensions" "$DEST/"
   [ -f "$HERE_EXT/package.json" ] && cp "$HERE_EXT/package.json" "$DEST/"
   say "ado tool loaded into $DEST"
+fi
+
+# If az landed in ~/.local/bin (pip --user fallback), warn when it's not yet
+# visible to a fresh shell — an already-running OMP process keeps its old
+# PATH until restarted (re-running this script again will not fix it).
+if have az; then
+  case "$(command -v az)" in
+    "$HOME/.local/bin/"*) bash -lc 'command -v az' >/dev/null 2>&1 || warn "az installed to ~/.local/bin but NOT visible in a fresh shell yet. An already-running OMP process keeps missing it until you RESTART OMP." ;;
+  esac
 fi
 
 cat <<'EOF'

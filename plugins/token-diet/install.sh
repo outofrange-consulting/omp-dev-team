@@ -72,18 +72,6 @@ else
 fi
 # Wire it into the command path TRANSPARENTLY via PATH shims in ~/.local/bin.
 if have ctx-wire; then run "ctx-wire shims install || true"; fi
-# OMP's bash tool caches a shell session for the life of the OMP process; if
-# this install ran while OMP was already open, or ~/.local/bin only just
-# landed on PATH, that session's cached PATH predates it and shims stay
-# invisible until OMP restarts (this is the same failure mode that broke the
-# old RTK integration — a ~/.local/bin binary is only as good as the PATH the
-# consuming process was started with). Detect it now from a FRESH
-# non-interactive login shell — the same invocation OMP's bash tool uses —
-# rather than trusting this script's own already-exported PATH.
-SHIMS_STALE=0
-if have ctx-wire && ! bash -lc 'command -v ctx-wire' >/dev/null 2>&1; then
-  SHIMS_STALE=1
-fi
 
 # --- Multilingual ctx-wire filters (EN+FR) -----------------------------------
 PACK_DIR="$HERE/ctx-wire/filters.d"
@@ -439,7 +427,18 @@ if [ "$NO_CONFIG" = 0 ] && [ -f "$HOME/.claude/CLAUDE.md" ] && [ ! -f "$HOME/.om
 fi
 
 patch_omp_status_line
-if [ "$SHIMS_STALE" = 1 ]; then
-  warn "ctx-wire shims are on disk in ~/.local/bin but NOT visible in a fresh shell yet. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
+# OMP's bash tool caches a shell session's PATH for the life of the OMP
+# process (the failure mode that broke the old RTK integration): a
+# ~/.local/bin / ~/.dotnet/tools binary is only as good as the PATH the
+# consuming process was started with. Detect staleness now, for every tool
+# this installer can newly land, from a FRESH login shell (bash -l) — the
+# same invocation OMP's bash tool uses — rather than trusting this script's
+# own already-exported PATH.
+STALE_TOOLS=""
+for t in ctx-wire acli ast-grep csharp-ls dotnet ctx7 codebase-memory-mcp; do
+  have "$t" && ! bash -lc "command -v $t" >/dev/null 2>&1 && STALE_TOOLS="$STALE_TOOLS $t"
+done
+if [ -n "$STALE_TOOLS" ]; then
+  warn "installed but NOT visible in a fresh shell yet:$STALE_TOOLS. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
 fi
 say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."

@@ -435,7 +435,20 @@ else
   warn "omp did not launch — ensure \$HOME/.bun/bin is on PATH"; fail=1
 fi
 
+# OMP's own bash tool caches a shell session's PATH for the life of the OMP
+# process: if this install ran while OMP was already open, or ~/.local/bin /
+# ~/.bun/bin only just landed on PATH, that session stays stale until OMP
+# restarts. Detect it from a FRESH login shell (bash -l) rather than trusting
+# this script's own already-exported PATH.
+STALE_TOOLS=""
+for t in omp bun; do
+  have "$t" && ! bash -lc "command -v $t" >/dev/null 2>&1 && STALE_TOOLS="$STALE_TOOLS $t"
+done
+if [ -n "$STALE_TOOLS" ]; then
+  warn "installed but NOT visible in a fresh shell yet:$STALE_TOOLS. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
+fi
+
 echo
 [ "$fail" = 0 ] && bold "All set ✓" || bold "Finished with warnings — see above"
-echo "Open a NEW shell (or 'source ~/.profile') so PATH changes persist, then run: omp"
+echo "Open a NEW shell (or 'source ~/.profile') so PATH changes persist. If OMP is already running, RESTART it — a new shell alone won't refresh an already-running process's PATH."
 [ "$fail" = 0 ] || exit 1

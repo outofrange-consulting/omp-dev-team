@@ -26,7 +26,14 @@ have() { command -v "$1" >/dev/null 2>&1; }
 CA_FILE="${CA_FILE:-${OMP_CA_FILE:-}}"
 [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ] && export CURL_CA_BUNDLE="$CA_FILE" GIT_SSL_CAINFO="$CA_FILE"
 
+# Persist ~/.local/bin on PATH for future shells too — pup's prebuilt-tarball
+# fallback in install_pup() below lands it there (no sudo).
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
+  [ -e "$p" ] || continue
+  grep -qsF "$HOME/.local/bin" "$p" 2>/dev/null && continue
+  printf '\n# omp-dev-team\nexport PATH="%s:$PATH"\n' "$HOME/.local/bin" >> "$p"
+done
 
 # --- install the pup CLI ----------------------------------------------------
 install_pup() {
@@ -101,4 +108,7 @@ if [ "$WITH_SKILLS" = 1 ] && have pup; then
   pup skills install pi || warn "pup skills install pi failed (newer pup may differ) — the datadog skill still works via the CLI."
 fi
 
+if have pup && ! bash -lc 'command -v pup' >/dev/null 2>&1; then
+  warn "pup installed but NOT visible in a fresh shell yet. An already-running OMP process keeps missing it until you RESTART OMP — re-running this script again will not fix it."
+fi
 say "datadog ready. Restart omp and use the 'datadog' skill (it drives the pup CLI). Auth: 'pup auth login' or DD_API_KEY/DD_APP_KEY/DD_SITE."

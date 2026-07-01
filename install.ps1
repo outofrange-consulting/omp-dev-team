@@ -304,5 +304,5 @@ if ((Have omp) -and (omp --version 2>$null)) {
 
 Write-Host ""
 if (-not $fail) { Bold "All set" } else { Bold "Finished with warnings — see above" }
-Write-Host "Open a NEW shell so PATH changes persist, then run: omp"
+Write-Host "Open a NEW shell so PATH changes persist. If OMP is already running, RESTART it — registry PATH updates only apply to processes started AFTER this script ran; an already-running OMP process keeps its old PATH."
 if ($fail) { exit 1 }
