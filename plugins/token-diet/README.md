@@ -46,6 +46,11 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   `ctx-wire gain` shows savings; `ctx-wire doctor` verifies; `ctx-wire mcp-wrap` can also compress
   MCP-server output. Replaces the earlier RTK integration (RTK is also English-only,
   so it offered no localization advantage).
+  **Restart required**: shims land in `~/.local/bin`; an OMP process already
+  running when `install.sh` executes keeps its old PATH and won't see them
+  until you restart OMP (re-running the installer again does not help). The
+  installer now probes a fresh non-interactive shell right after `ctx-wire
+  shims install` and prints an explicit warning if this session is stale.
   **Multilingual filters** → `install.sh` merges EN+FR overrides
   (`ctx-wire/filters.d/`) for `git status` + `dotnet build`/`test` (VSTest **and**
   Microsoft.Testing.Platform)/`restore`/`run`/`tool` into
@@ -56,6 +61,16 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   **No Romanian** — git and .NET ship no `ro` translation, so they emit English
   in a `ro_RO` locale; Romanian only appears in *data*, handled by context-mode.
   See `ctx-wire/README.md`.
+- **token-tools rule** → `rules/token-tools.md` (`alwaysApply: true`) is the
+  agent-facing routing guidance for everything on this page: run commands with
+  no prefix, prefer codebase-memory-mcp over grep/glob/Read for structural
+  questions, `csharp-ls` for precise C# semantics, `astEdit` over whole-file
+  rewrites, and how to recognize a stale/pre-restart shim session. OMP's rule
+  provider only auto-discovers `rules/*.md` inside *configured* extension
+  package roots, and a bare marketplace install of this plugin isn't one — so
+  `install.sh`/`install.ps1` copy it into `~/.omp/agent/rules/token-diet-*.md`
+  (same workaround the `extensions/` mirror below already uses), where OMP's
+  native provider always scans it.
 - **context-mode** → `omp plugin install context-mode` (run by `install.sh`,
   `--no-context-mode` to skip). A native OMP plugin on the
   `tool_call`/`tool_result`/`session_start`/`session_before_compact` hooks that
@@ -110,6 +125,13 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   `~/.gemini`, `~/.cursor`, `~/.codeium/windsurf`, `~/.copilot`, `~/.config/opencode`,
   `.clinerules`. Existing users who re-run `install.sh` get a `disabledProviders`
   block appended without touching other settings.
+- **Context-file heads-up** → if you don't yet have `~/.omp/agent/AGENTS.md`,
+  OMP falls back to reading `~/.claude/CLAUDE.md` verbatim at user scope,
+  including any Claude-Code-only advice it carries (e.g. a ctx-wire-injected
+  block telling the agent to prefer raw shell over built-in tools — right for
+  Claude Code, wrong for OMP). `install.sh`/`install.ps1` print a one-time
+  warning when this applies; consider a native `AGENTS.md` with just the
+  conventions that actually apply to OMP.
 - **C# LSP** → `install.sh` installs `csharp-ls` via `dotnet tool install -g csharp-ls`
   (if .NET SDK present) and writes `~/.omp/agent/lsp.json` to register it for `.cs`/
   `.csx` files. OMP auto-activates it when a `.sln`/`.slnx`/`.csproj` is detected. It

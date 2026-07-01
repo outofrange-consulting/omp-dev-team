@@ -13,6 +13,19 @@ description: Token-saving tool routing (ctx-wire + codebase-memory-mcp)
   Compaction is **locale-aware** for git/dotnet (EN+FR filters), and the
   **context-mode** plugin sandboxes any-language output (incl. Romanian) — so
   non-English command output is compacted too; never switch locale to "help" it.
+- **This does not override OMP's own tool policy.** `read`/`grep`/`glob`/`edit`/
+  `astEdit` are still the required routing for file reads, searches, and edits —
+  ctx-wire only compresses `bash` tool output; it is not a reason to prefer raw
+  shell over those built-ins. (A Claude-Code-oriented ctx-wire block — e.g. one
+  `ctx-wire init claude` auto-injects into `~/.claude/CLAUDE.md` — says the
+  opposite; that's because Claude Code's own Read/Grep bypass ctx-wire, so
+  shelling out is its only route to compression. OMP's built-ins are already
+  token-optimized, so that advice does not apply here.)
+- **If compression/shims seem inactive** (raw uncompressed command output, or
+  `command -v ctx-wire` failing) the shim install most likely ran after this
+  OMP session started — PATH updates from `~/.local/bin` never reach an
+  already-running process. Say so and ask for an OMP restart; don't fall back
+  to a manual `rtk`/`ctx-wire` prefix, and don't conclude the tool is missing.
 - **Code structure via codebase-memory-mcp.** When the codebase-memory-mcp tools
   are available, prefer them over `grep`/`glob`/`Read` for "who calls X", "what
   does X call", "where is symbol Y", "what's the impact of changing Z", and

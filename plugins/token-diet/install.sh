@@ -72,6 +72,18 @@ else
 fi
 # Wire it into the command path TRANSPARENTLY via PATH shims in ~/.local/bin.
 if have ctx-wire; then run "ctx-wire shims install || true"; fi
+# OMP's bash tool caches a shell session for the life of the OMP process; if
+# this install ran while OMP was already open, or ~/.local/bin only just
+# landed on PATH, that session's cached PATH predates it and shims stay
+# invisible until OMP restarts (this is the same failure mode that broke the
+# old RTK integration — a ~/.local/bin binary is only as good as the PATH the
+# consuming process was started with). Detect it now from a FRESH
+# non-interactive login shell — the same invocation OMP's bash tool uses —
+# rather than trusting this script's own already-exported PATH.
+SHIMS_STALE=0
+if have ctx-wire && ! bash -lc 'command -v ctx-wire' >/dev/null 2>&1; then
+  SHIMS_STALE=1
+fi
 
 # --- Multilingual ctx-wire filters (EN+FR) -----------------------------------
 PACK_DIR="$HERE/ctx-wire/filters.d"
@@ -397,5 +409,37 @@ if [ -d "$HERE/extensions" ]; then
   say "read-dedup + context-dedup + context-compress (safe) loaded"
 fi
 
+# --- Load the always-on OMP-native rule (ctx-wire/codebase-memory-mcp routing) ---
+# NOTE: OMP's omp-plugins rule provider only discovers rules/*.md inside
+# *configured* extension package roots (extensions:/-e/npm-linked) — a bare
+# marketplace install of this plugin is NOT one, so rules/token-tools.md would
+# silently never load (same gap the extensions/ mirror above works around).
+# Copy it into ~/.omp/agent/rules, which the native provider (priority 100)
+# always scans, namespaced so it never collides with another plugin's rule.
+if [ -d "$HERE/rules" ]; then
+  RULES_DEST="$HOME/.omp/agent/rules"
+  mkdir -p "$RULES_DEST"
+  for f in "$HERE"/rules/*.md; do
+    [ -e "$f" ] || continue
+    cp "$f" "$RULES_DEST/token-diet-$(basename "$f")"
+  done
+  say "token-tools rule installed to $RULES_DEST (native, always-on)"
+fi
+
+# --- Heads-up: OMP context-file precedence -----------------------------------
+# OMP reads ONE context file at user scope: native ~/.omp/agent/AGENTS.md
+# (priority 100) if present, else ~/.claude/CLAUDE.md (priority 80, verbatim).
+# A CLAUDE.md may carry Claude-Code-only advice (e.g. its own ctx-wire block
+# telling the agent to prefer raw shell over built-in tools — correct for
+# Claude Code, wrong for OMP, which already routes through read/grep/glob and
+# this plugin's own token-tools rule). OMP inherits that by accident, not
+# design, whenever no native AGENTS.md exists yet.
+if [ "$NO_CONFIG" = 0 ] && [ -f "$HOME/.claude/CLAUDE.md" ] && [ ! -f "$HOME/.omp/agent/AGENTS.md" ]; then
+  warn "no ~/.omp/agent/AGENTS.md — OMP falls back to reading ~/.claude/CLAUDE.md verbatim, including any Claude-Code-only guidance (e.g. 'prefer shell over built-in tools'). Consider a native AGENTS.md with just the conventions that apply to OMP."
+fi
+
 patch_omp_status_line
+if [ "$SHIMS_STALE" = 1 ]; then
+  warn "ctx-wire shims are on disk in ~/.local/bin but NOT visible in a fresh shell yet. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
+fi
 say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."

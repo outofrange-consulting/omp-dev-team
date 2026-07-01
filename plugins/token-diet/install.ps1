@@ -145,4 +145,40 @@ if (Test-Path $src) {
   Say "read-dedup + context-dedup + context-compress (safe) loaded into $dest"
 }
 
+# --- Load the always-on OMP-native rule (ctx-wire/codebase-memory-mcp routing) ---
+# NOTE: OMP's omp-plugins rule provider only discovers rules/*.md inside
+# *configured* extension package roots (extensions:/-e/npm-linked) — a bare
+# marketplace install of this plugin is NOT one, so rules/token-tools.md would
+# silently never load (same gap the extensions/ mirror above works around).
+# Copy it into ~/.omp/agent/rules, which the native provider (priority 100)
+# always scans, namespaced so it never collides with another plugin's rule.
+$rulesSrc = Join-Path $Here 'rules'
+if (Test-Path $rulesSrc) {
+  $rulesDest = Join-Path $HOME ".omp\agent\rules"
+  New-Item -ItemType Directory -Force -Path $rulesDest | Out-Null
+  Get-ChildItem -Path $rulesSrc -Filter '*.md' | ForEach-Object {
+    Copy-Item -Force $_.FullName (Join-Path $rulesDest "token-diet-$($_.Name)")
+  }
+  Say "token-tools rule installed to $rulesDest (native, always-on)"
+}
+
+# --- Heads-up: OMP context-file precedence -----------------------------------
+# OMP reads ONE context file at user scope: native ~/.omp/agent/AGENTS.md
+# (priority 100) if present, else ~/.claude/CLAUDE.md (priority 80, verbatim).
+# A CLAUDE.md may carry Claude-Code-only advice (e.g. its own ctx-wire block
+# telling the agent to prefer raw shell over built-in tools — correct for
+# Claude Code, wrong for OMP, which already routes through read/grep/glob and
+# this plugin's own token-tools rule). OMP inherits that by accident, not
+# design, whenever no native AGENTS.md exists yet.
+$claudeMd = Join-Path $HOME ".claude\CLAUDE.md"
+$agentsMd = Join-Path $HOME ".omp\agent\AGENTS.md"
+if (-not $NoConfig -and (Test-Path $claudeMd) -and -not (Test-Path $agentsMd)) {
+  Warn "no ~/.omp/agent/AGENTS.md - OMP falls back to reading ~/.claude/CLAUDE.md verbatim, including any Claude-Code-only guidance (e.g. 'prefer shell over built-in tools'). Consider a native AGENTS.md with just the conventions that apply to OMP."
+}
+
+# NOTE: unlike install.sh, we can't reliably probe an already-running OMP
+# process's inherited environment from here (no non-interactive-login-shell
+# equivalent) — so this warning is unconditional rather than detected.
+Warn "ctx-wire shims write to $BinDir and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (shims invisible) until you RESTART OMP."
+
 Say "token-diet active: ctx-wire shims, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."
