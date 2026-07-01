@@ -10,7 +10,7 @@ you through them.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | **Agentic dev team** — orchestrator + 32 specialist/critic agents, the `/specs` → `/plan` → `/build` → `/pr` workflow, a **forced plan gate** (test-after, tests required) and human gates, ~78 skills, and blocking guard extensions. Port of [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). All-cloud tiers; keep the high-volume small tier cheap. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **GitHub Copilot model preset** — route OMP (and the dev-team tiers) through `github-copilot` to run on a Copilot license. Config-only: tier→model mapping, post-June-2026 AI-credit pricing comparison, and MAI-Code-1-Flash wired in. |
-| **[`token-diet`](plugins/token-diet/)** | **Aggressive token reduction** — ctx-wire (transparent command-output compression + secret scrub), codebase-memory-mcp (MCP symbol/call-graph queries instead of grep+read; csharp-ls LSP kept for precise C# semantics), a read-only cache-meter (live cost/prompt-cache statusline + `/cache-health`), a caveman terse-output skill, a yagni minimal-code skill, and an `mcp-as-cli-skill-creator` skill that turns an MCP/OpenAPI/GraphQL into a schema-free runtime CLI — layered on OMP's native compaction/`astGrep`. |
+| **[`token-diet`](plugins/token-diet/)** | **Aggressive token reduction** — ctx-wire (transparent command-output compression + secret scrub), codebase-memory-mcp (MCP symbol/call-graph queries instead of grep+read; csharp-ls LSP kept for precise C# semantics), an `atlassian` skill driving the `acli` CLI for Jira/Confluence reads and writes, a read-only cache-meter (live cost/prompt-cache statusline + `/cache-health`), a caveman terse-output skill, a yagni minimal-code skill, and an `mcp-as-cli-skill-creator` skill that turns an MCP/OpenAPI/GraphQL into a schema-free runtime CLI — layered on OMP's native compaction/`astGrep`. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem** — read repos/files/PRs/diffs via `ado://` URIs (paginated), PR **gates/policies** + CI (builds/logs/run), create/checkout/push/complete PRs, comment/vote. Backed by the **Azure CLI** (`az` + the azure-devops extension), PAT auth, SQLite read cache; works behind corporate TLS proxies. |
 | **[`openai-compatible`](plugins/openai-compatible/)** | **Any OpenAI-compatible provider** — point it at a LiteLLM, Ollama, vLLM, or LocalAI endpoint (name + URL + API key); the installer lists the models and writes the provider into `~/.omp/agent/models.yml` with runtime discovery, usable as `<name>/<model-id>`. API key stored chmod 600, never in env. |
 | **[`datadog`](plugins/datadog/)** | **Datadog observability from the terminal** — via the Datadog [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, RUM, security/audit, CI test visibility, LLM observability). One broad `datadog` skill drives pup; installer sets up pup + auth. |
@@ -42,7 +42,9 @@ config + mcp.json untouched.
 
 The only MCP server configured in `~/.omp/agent/mcp.json` is **`github`** (enabled when
 a PAT is provided / `$GITHUB_TOKEN` is set). **Context7** and **Atlassian** are used as
-**CLI + skill**, not MCP — `ctx7` and `acli` (both installed by token-diet).
+**CLI + skill**, not MCP — `ctx7` and `acli` (both installed by token-diet), driven by
+the `context7` and `atlassian` skills respectively so their tool schemas never inline
+into the system prompt.
 
 **Lean startup context (out of the box).** OMP loads every tool's JSON schema into
 the system prompt on *every* request, so a full dev-team install otherwise starts

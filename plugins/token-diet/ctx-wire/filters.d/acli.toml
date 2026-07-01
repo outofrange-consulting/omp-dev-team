@@ -1,8 +1,8 @@
-# acli (Atlassian CLI: Jira / Confluence / Bitbucket) — token-diet ctx-wire filter.
+# acli (Atlassian CLI: Jira / Confluence) — token-diet ctx-wire filter.
 # Output is English tables / key:value / JSON with language-neutral keys, so this
 # is a STRUCTURAL filter — no fr/ro localization needed (same call as grep/jira:
-# the tool is English-only regardless of locale). Prefer the Atlassian MCP for
-# structured reads; use acli for bulk/scripted writes and what MCP doesn't expose.
+# the tool is English-only regardless of locale). acli is our go-to for Atlassian —
+# reads and writes both — driven by the `atlassian` skill; no Atlassian MCP is registered.
 #
 # Defense-in-depth secret scrubbing: ctx-wire's built-in scrub already redacts
 # GitHub tokens, Authorization headers, scheme://user:pass@host URLs and

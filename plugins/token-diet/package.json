@@ -1,6 +1,6 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Token-reduction toolkit for OMP: ctx-wire + context-mode + codebase-memory-mcp + caveman + yagni, plus read/context dedup and a protect-masked context compressor (safe by default).",
   "license": "MIT",
   "private": true,
@@ -13,5 +13,5 @@
       "./extensions/cache-meter.ts"
     ]
   },
-  "comment": "Ships the codebase-memory-mcp MCP server (enabled in .mcp.json), an always-on rule, a config.snippet.yml, five skills (codebase-memory, caveman, yagni, token-diet, mcp-as-cli-skill-creator), a path-inject extension (prepends ~/.local/bin to process.env.PATH at OMP startup, since OMP spawns bash non-login/non-interactive and never sources shell profiles — otherwise every ~/.local/bin tool this plugin's install.sh lands, e.g. ctx-wire/acli/ast-grep/codebase-memory-mcp, is invisible to the bash tool), three context-transform extensions (read-dedup + context-dedup are lossless and on by default; context-compress runs at safe (near-lossless) by default, with lite|full (lossy) or off via TOKEN_DIET_CONTEXT_COMPRESS), and a read-only cache-meter extension (live footer statusline + /cache-health for prompt-cache read/churn + cost + thinking-share + provider quota; off with TOKEN_DIET_CACHE_METER=off, statusline-only off with TOKEN_DIET_CACHE_STATUSLINE=off). install.sh mirrors extensions/ into ~/.omp/agent/extensions/token-diet (OMP does not load extensions from marketplace cache installs) and installs ctx-wire PATH shims. Pure logic lives in extensions/lib and is unit-tested by scripts/extensions.test.ts."
+  "comment": "Ships the codebase-memory-mcp MCP server (enabled in .mcp.json), an always-on rule, a config.snippet.yml, six skills (codebase-memory, caveman, yagni, token-diet, mcp-as-cli-skill-creator, atlassian), a path-inject extension (prepends ~/.local/bin to process.env.PATH at OMP startup, since OMP spawns bash non-login/non-interactive and never sources shell profiles — otherwise every ~/.local/bin tool this plugin's install.sh lands, e.g. ctx-wire/acli/ast-grep/codebase-memory-mcp, is invisible to the bash tool), three context-transform extensions (read-dedup + context-dedup are lossless and on by default; context-compress runs at safe (near-lossless) by default, with lite|full (lossy) or off via TOKEN_DIET_CONTEXT_COMPRESS), and a read-only cache-meter extension (live footer statusline + /cache-health for prompt-cache read/churn + cost + thinking-share + provider quota; off with TOKEN_DIET_CACHE_METER=off, statusline-only off with TOKEN_DIET_CACHE_STATUSLINE=off). install.sh mirrors extensions/ into ~/.omp/agent/extensions/token-diet (OMP does not load extensions from marketplace cache installs) and installs ctx-wire PATH shims. Pure logic lives in extensions/lib and is unit-tested by scripts/extensions.test.ts."
 }

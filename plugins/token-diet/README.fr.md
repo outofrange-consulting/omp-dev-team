@@ -16,6 +16,7 @@ prompts côté fournisseur), pas à la place.
 | **caveman** | **sortie** laconique en fragments (à la demande) | ~65 % de tokens de sortie | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | écrire **moins de code** — YAGNI / dev sénior le plus fainéant (à la demande) | ~80–94 % de code en moins ; moins de tokens maintenant **et** à chaque tour futur | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 | **mcp-as-cli-skill-creator** (skill) | un serveur MCP au schéma chargé injecte tout son schéma d'outils dans le prompt système à chaque requête | transforme un MCP / OpenAPI / GraphQL en CLI mince à l'exécution + skill à la demande, gardant son schéma **hors de la fenêtre de contexte** (le pattern ctx7/acli, généralisé) | skill OMP natif |
+| **atlassian** (skill) | le travail Jira/Confluence nécessite un schéma MCP Atlassian toujours chargé, ou du `curl` fait main contre l'API REST | un skill (`skill://atlassian`) qui pilote le CLI `acli` déjà installé pour les lectures *et* écritures Jira/Confluence — recherche/vue/création/édition/commentaire/transition/lien d'issue, lectures de pages/espaces/blogs Confluence — déclenché automatiquement sur « Jira », « Confluence », une clé d'issue nue, ou une URL atlassian.net | skill OMP natif au-dessus du CLI officiel `acli` |
 | **read-dedup** + **context-dedup** | relectures de fichiers inchangés + blocs identiques répétés gonflent l'**entrée** | SANS PERTE, actif : relecture → stub ; blocs byte-identiques fusionnés avant chaque appel | « Read Dedup » de caveman-code, réimplémenté sur les hooks `tool_call`/`context` d'OMP |
 | **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques (`safe` actif par défaut ; `lite`/`full` opt-in) | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
 | **cache-meter** | les économies de prompt-cache que tu *crois* avoir sont non mesurées — et un transform qui modifie le préfixe peut les casser en silence | LECTURE SEULE, actif : une **statusline** live (`td $coût cache N% churn N%`, ⚠ si risque) + `/cache-health` pour le détail (taux de lecture cache + churn + coût + part de thinking + quota provider) ; **alerte** quand la compression `lite`/`full` coïncide avec un fort churn | `usage` par-tour d'OMP (`turn_end`) + en-têtes `after_provider_response` + `ui.setStatus` |
@@ -83,13 +84,18 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   Atlassian/Miro/GitHub sont réduits, ce que les shims ctx-wire (bash uniquement)
   ne voient pas. Pour les serveurs MCP que tu définis toi-même : `ctx-wire mcp-wrap
   --compress` ; voir `ctx-wire/README.md`.
-- **acli** → le **CLI officiel Atlassian** (Jira/Confluence/Bitbucket), installé dans
+- **acli** → le **CLI officiel Atlassian** (Jira/Confluence), installé dans
   `~/.local/bin` par `install.sh` (`--no-acli` pour sauter ; relancer pour mettre à
   jour — versions supportées ~6 mois). **acli est notre référence pour Atlassian** —
-  en lecture comme en écriture, plutôt que le MCP Atlassian. `install.sh` propose
-  aussi de lancer `acli jira auth login` en interactif. Sortie anglaise/structurelle —
-  `ctx-wire/filters.d/acli.toml` la compacte et masque les tokens `ATATT…` (ctx-wire
-  scrube déjà GitHub/ADO/Atlassian en forme header/URL/`clé=valeur`).
+  en lecture comme en écriture, plutôt qu'un MCP Atlassian (aucun n'est enregistré).
+  `install.sh` propose aussi de lancer `acli jira auth login` en interactif. Sortie
+  anglaise/structurelle — `ctx-wire/filters.d/acli.toml` la compacte et masque les
+  tokens `ATATT…` (ctx-wire scrube déjà GitHub/ADO/Atlassian en forme
+  header/URL/`clé=valeur`). Le **skill `atlassian`** (`skill://atlassian`) est ce qui
+  le pilote réellement : il enseigne à l'agent la surface de sous-commandes `acli
+  jira`/`acli confluence` et se déclenche automatiquement sur « Jira », « Confluence »,
+  une clé d'issue nue (`PROJ-123`), ou une URL `atlassian.net` — le même pattern de
+  déclenchement automatique que le skill **context7** ci-dessous.
 - **codebase-memory-mcp** → un serveur MCP (`.mcp.json`, binaire lancé en mode MCP,
   **activé par défaut**) exposant `search_graph`/`search_code`/`get_code_snippet`/
   `trace_path`/`get_architecture`/`query_graph`/`detect_changes`/`get_graph_schema`/

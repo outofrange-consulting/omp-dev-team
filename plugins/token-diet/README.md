@@ -16,6 +16,7 @@ in place of it.
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
 | **mcp-as-cli-skill-creator** (skill) | a schema-heavy MCP server inlines its whole tool schema into the system prompt every request | turns an MCP / OpenAPI / GraphQL into a thin runtime CLI + on-demand skill, keeping its schema **out of the context window** (the ctx7/acli pattern, generalized) | native OMP skill |
+| **atlassian** (skill) | Jira/Confluence work needs an always-loaded Atlassian MCP schema, or hand-rolled `curl` against the REST API | a skill (`skill://atlassian`) that drives the already-installed `acli` CLI for Jira/Confluence reads *and* writes — issue search/view/create/edit/comment/transition/link, Confluence page/space/blog reads — triggered automatically on "Jira", "Confluence", a bare issue key, or an atlassian.net URL | native OMP skill over the official `acli` CLI |
 | **read-dedup** + **context-dedup** | re-reads of unchanged files + byte-identical repeated blocks inflate **input** | LOSSLESS, on: re-read → stub; identical blocks collapsed before each call | caveman-code's "Read Dedup", reimplemented on OMP's `tool_call`/`context` hooks |
 | **context-compress** | old **prose** context stays verbose every turn | protect-masked prose shrink of old messages — code/paths/numbers byte-identical (`safe` on by default; `lite`/`full` opt-in) | quality-preserving take on [caveman-code](https://github.com/JuliusBrussee/caveman-code)'s LLMLingua/Provence |
 | **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: a live **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) + `/cache-health` for the full read-rate / churn / cost / thinking-share / provider-quota breakdown; **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers + `ui.setStatus` |
@@ -81,13 +82,18 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   `tool_result`), so the verbose Atlassian/Miro/GitHub MCP JSON is reduced too —
   the ctx-wire shims only see shell commands, not MCP. For self-defined MCP servers
   you can additionally use `ctx-wire mcp-wrap --compress`; see `ctx-wire/README.md`.
-- **acli** → the official **Atlassian CLI** (Jira/Confluence/Bitbucket), installed to
+- **acli** → the official **Atlassian CLI** (Jira/Confluence), installed to
   `~/.local/bin` by `install.sh` (`--no-acli` to skip; re-run to update — versions are
   supported ~6 months). **acli is our go-to for Atlassian** — for both reads and
-  writes, instead of the Atlassian MCP. `install.sh` also offers to run
-  `acli jira auth login` when interactive. Its output is English/structural — the
-  bundled `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…` API
-  tokens (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/`key=value` form).
+  writes, instead of an Atlassian MCP (none is registered). `install.sh` also offers
+  to run `acli jira auth login` when interactive. Its output is English/structural —
+  the bundled `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…`
+  API tokens (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/
+  `key=value` form). The bundled **`atlassian` skill** (`skill://atlassian`) is what
+  actually drives it: it teaches the agent the `acli jira`/`acli confluence`
+  subcommand surface and triggers automatically on "Jira", "Confluence", a bare
+  issue key (`PROJ-123`), or an `atlassian.net` URL — the same always-on trigger
+  pattern as the **context7** skill below.
 - **codebase-memory-mcp** → an MCP server (`.mcp.json`, binary launched in MCP mode,
   **enabled by default**) exposing `search_graph`/`search_code`/`get_code_snippet`/
   `trace_path`/`get_architecture`/`query_graph`/`detect_changes`/`get_graph_schema`/
