@@ -23,6 +23,7 @@ Source: GitHub Docs — *Models and pricing for GitHub Copilot*.
 | Claude Haiku 4.5 | $1.00 | $0.10 | $1.25 | $5.00 |
 | Claude Sonnet 4.5 | $3.00 | $0.30 | $3.75 | $15.00 |
 | Claude Sonnet 4.6 | $3.00 | $0.30 | $3.75 | $15.00 |
+| **Claude Sonnet 5** | **$3.00** | **$0.30** | **$3.75** | **$15.00** |
 | Claude Opus 4.6 | $5.00 | $0.50 | $6.25 | $25.00 |
 | Claude Opus 4.8 | $5.00 | $0.50 | $6.25 | $25.00 |
 | Claude Fable 5 | $10.00 | $1.00 | $12.50 | $50.00 |
@@ -71,10 +72,17 @@ SWE-bench), so it is *not* the default orchestration model.
     best coding quality per dollar, beats Haiku 4.5 on every bench at lower cost.
   - Don't put coding/tool-use work on `gpt-5-mini` (weaker at code) or lexical
     checklists on `mai-code-1-flash` (over-pays ~2×) — match the model to the shape.
-- **Balanced everyday** (`default`/`plan`): `claude-sonnet-4.6` ($3/$15) for
-  quality, or `mai-code-1-flash` / `gpt-5.4-mini` for an ultra-cheap profile.
-- **Deep reasoning** (`slow`): `claude-opus-4.8` ($5/$25). Reserve **Fable 5**
-  ($10/$50) for genuinely long-horizon autonomous tasks — it's 2× Opus.
+- **Balanced everyday** (`default`/`plan`): `claude-sonnet-5` ($3/$15) — same
+  price as Sonnet 4.6 but near-Opus quality on coding/agentic work and `xhigh`
+  effort, so it now also carries architecture/domain design synthesis
+  (architect, arch-review, domain-review, moved down from the deep tier). Or
+  `mai-code-1-flash` / `gpt-5.4-mini` for an ultra-cheap profile.
+- **Deep reasoning** (`slow`): `claude-opus-4.8` ($5/$25), reserved for
+  high-stakes SECURITY verdicts (security-review, security-engineer) where Opus
+  still leads Sonnet 5 — routing those to Sonnet 5 would save 40% in/40% out but
+  bets Sonnet 5 matches Opus on the exact class of task where a wrong verdict is
+  most expensive. Reserve **Fable 5** ($10/$50) for genuinely long-horizon
+  autonomous tasks — it's 2× Opus.
 - **Caching matters now**: cached input is ~10× cheaper than fresh input
   ($0.30 vs $3.00 on Sonnet). Stable system prompts / reused context get cached,
   so long-lived sessions are cheaper than many cold one-shots.
@@ -83,7 +91,7 @@ SWE-bench), so it is *not* the default orchestration model.
 
 Rough output-cost ranking (cheapest → priciest): GPT-5 mini ($2) <
 MAI-Code-1-Flash ≈ GPT-5.4 mini ($4.50) < Haiku 4.5 ($5) < GPT-5.3-Codex ($14) <
-Sonnet 4.5/4.6 ≈ GPT-5.4 ($15) < Opus 4.6/4.8 ($25) < GPT-5.5 ($30) < Fable 5 ($50).
+Sonnet 4.5/4.6/5 ≈ GPT-5.4 ($15) < Opus 4.6/4.8 ($25) < GPT-5.5 ($30) < Fable 5 ($50).
 
 ## Cost impact of the cheap-tier switches
 

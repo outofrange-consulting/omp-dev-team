@@ -61,8 +61,8 @@ over-pays for the other's model:
 |---|---|---|
 | nano | `pi/smol` (cheapest cloud; Haiku, or gpt-5-mini on Copilot) | pure lexical/checklist review + input-bound scan — no code semantics, no tool-use; highest volume |
 | code | `pi/task` (cheap coding cloud; Haiku, or mai-code-1-flash on Copilot) | cheap work needing code semantics or agentic tool-use: post-plan implementation (software-engineer, qa-engineer), structural code review (js-fp, svelte), codebase-recon (size-proportional via the effort-band) |
-| balanced | `claude-sonnet-4-6` | most review agents + orchestrator + non-build team agents |
-| deep | `claude-opus-4-8` | high-stakes cross-file reasoning, design synthesis, threat modeling |
+| balanced | `pi/plan` → `claude-sonnet-5` | most review agents + orchestrator + non-build team agents + architecture/domain design synthesis (architect, arch-review, domain-review) |
+| deep | `pi/slow` → `claude-opus-4-8` | high-stakes security verdicts (security-review, security-engineer) where Opus still leads Sonnet 5 |
 
 The high-volume **nano + code tiers** are where token spend concentrates — keep
 them cheap. On base Anthropic both resolve to Haiku; the **copilot-preset** plugin

@@ -36,8 +36,8 @@ The cheap end is **split by workload shape** (dev-team's `nano` + `code` tiers):
 |---|---|---|---|
 | `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
 | `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash` | $0.75 / $4.50 |
-| `default`/`plan` | balanced | `github-copilot/claude-sonnet-4.6` | $3.00 / $15.00 |
-| `slow` | deep | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
+| `default`/`plan` | balanced (+ archi/domain design) | `github-copilot/claude-sonnet-5` | $3.00 / $15.00 |
+| `slow` | deep (security verdicts) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
 
 `smol` (**nano**) drops to **gpt-5-mini** because the lexical/checklist reviewers
 it runs (naming, complexity, token-efficiency, a11y, progress-guardian) need no
@@ -45,6 +45,19 @@ code semantics or tool-use — ~55% cheaper output than MAI on the highest-volum
 tier. `task` (**code**) stays on coding-tuned **mai-code-1-flash** for work that
 edits code or drives tools. Reserve **Fable 5** ($10/$50) for long-horizon
 autonomous tasks only.
+
+## Claude Sonnet 5 (balanced + design synthesis)
+
+`default`/`plan` move from Sonnet 4.6 to **`github-copilot/claude-sonnet-5`** —
+same $3/$15 Sonnet price, but near-Opus quality on coding/agentic work and the
+first Sonnet with `xhigh` effort. Because of that quality jump, three
+design-synthesis agents drop from the **deep** tier to **balanced**:
+`architect`, `arch-review`, `domain-review`. The **deep** tier (`slow` →
+`claude-opus-4.8`) is now reserved for high-stakes **security** verdicts
+(`security-review`, `security-engineer`), where Opus still leads Sonnet 5 and a
+wrong verdict is most expensive. Routing security to Sonnet 5 too would save
+~40% in/out but bets it matches Opus on exactly that class of task — left on
+Opus by default.
 
 ## MAI-Code-1-Flash ("MIA Coding")
 

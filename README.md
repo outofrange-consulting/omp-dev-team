@@ -33,9 +33,10 @@ plugins to the latest** and brings runtimes/OMP/tooling **up to date by default*
 **merges** the managed model-roles + skills defaults into `~/.omp/agent/config.yml`
 and the team MCP servers into `~/.omp/agent/mcp.json` — **anything you've already set
 is preserved** (no clobber, no backup needed). With **copilot-preset** the tiers wire,
-via GitHub Copilot: `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 4.6** (runs
-the dev-team orchestrator — non-trivial work goes research → plan → implement →
-review), `slow` → **Opus**; without it, the same tiers on Anthropic ids. token-diet's
+via GitHub Copilot: `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 5** (runs
+the dev-team orchestrator + architecture/domain design — non-trivial work goes
+research → plan → implement → review), `slow` → **Opus** (high-stakes security
+verdicts); without it, the same tiers on Anthropic ids. token-diet's
 ctx-wire + codebase-memory-mcp and the skills are enabled too. **`--no-config`** leaves your
 config + mcp.json untouched.
 

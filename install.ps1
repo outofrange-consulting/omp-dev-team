@@ -173,8 +173,8 @@ function Write-Config {
 modelRoles:
   smol: github-copilot/claude-haiku-4.5
   task: github-copilot/claude-haiku-4.5
-  default: github-copilot/claude-sonnet-4.6
-  plan: github-copilot/claude-sonnet-4.6
+  default: github-copilot/claude-sonnet-5
+  plan: github-copilot/claude-sonnet-5
   slow: github-copilot/claude-opus-4.8
 "@
   } elseif ($SEL_DEVTEAM) {
@@ -182,8 +182,8 @@ modelRoles:
 modelRoles:
   smol: claude-haiku-4-5
   task: claude-haiku-4-5
-  default: claude-sonnet-4-6
-  plan: claude-sonnet-4-6
+  default: claude-sonnet-5
+  plan: claude-sonnet-5
   slow: claude-opus-4-8
 "@
   }

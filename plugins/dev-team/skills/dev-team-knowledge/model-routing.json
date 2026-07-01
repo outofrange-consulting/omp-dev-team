@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Tiers are WORKLOAD-SHAPED, not a single cost ladder: the cheap end is split into `nano` (pure lexical/checklist + input-bound scan -> the cheapest capable model) and `code` (cheap coding & agentic tool-use -> a coding-tuned cheap model). Agents declare a tier in their `model:` frontmatter via a provider-agnostic role (`pi/smol` -> nano, `pi/task` -> code, `pi/plan` -> balanced, `pi/slow` -> deep). Roles resolve through .omp/config.yml modelRoles (default Haiku/Sonnet/Opus; with copilot-preset, smol -> github-copilot/gpt-5-mini, task -> github-copilot/mai-code-1-flash, plan -> github-copilot/claude-sonnet-4.6, slow -> github-copilot/claude-opus-4.8). Using pi/ role aliases everywhere keeps agents provider-agnostic — no hardcoded Anthropic ids that break in Copilot-only environments.",
+  "$comment": "Single source of truth for tier -> model routing in omp-dev-team. The `model-routing` extension reads this file (inspect the resolved tiers and effective bands with the /routing command). Tiers are WORKLOAD-SHAPED, not a single cost ladder: the cheap end is split into `nano` (pure lexical/checklist + input-bound scan -> the cheapest capable model) and `code` (cheap coding & agentic tool-use -> a coding-tuned cheap model). Agents declare a tier in their `model:` frontmatter via a provider-agnostic role (`pi/smol` -> nano, `pi/task` -> code, `pi/plan` -> balanced, `pi/slow` -> deep). Roles resolve through .omp/config.yml modelRoles (default Haiku/Sonnet 5/Opus; with copilot-preset, smol -> github-copilot/gpt-5-mini, task -> github-copilot/mai-code-1-flash, plan -> github-copilot/claude-sonnet-5, slow -> github-copilot/claude-opus-4.8). Using pi/ role aliases everywhere keeps agents provider-agnostic — no hardcoded Anthropic ids that break in Copilot-only environments.",
   "tiers": {
     "nano": {
       "role": "smol",
@@ -16,12 +16,12 @@
     "balanced": {
       "frontmatter": "pi/plan",
       "intent": "cloud",
-      "rationale": "Semantic / cross-file analysis with balanced cost/quality: orchestration, spec-compliance, structural/test/concurrency/perf/doc review, and most non-build team agents (product-manager, ui-ux-designer, tech-writer, platform-engineer, adr-author). Build-phase execution agents (software-engineer, qa-engineer) and recon sit at the cheaper code tier — the plan protects quality."
+      "rationale": "Semantic / cross-file analysis with balanced cost/quality: orchestration, spec-compliance, structural/test/concurrency/perf/doc review, architecture & domain DESIGN SYNTHESIS (architect, arch-review, domain-review — moved down from deep now that the balanced model is Sonnet 5, which reaches near-Opus quality on cross-file design/coding at ~40% lower cost than Opus), and most non-build team agents (product-manager, ui-ux-designer, tech-writer, platform-engineer, adr-author). Build-phase execution agents (software-engineer, qa-engineer) and recon sit at the cheaper code tier — the plan protects quality. Default claude-sonnet-5; with copilot-preset, github-copilot/claude-sonnet-5 ($3/$15)."
     },
     "deep": {
       "frontmatter": "pi/slow",
       "intent": "cloud",
-      "rationale": "High-stakes cross-file reasoning and design synthesis where a wrong verdict is expensive: security-review, domain-review, arch-review, architect, security-engineer. Reserve it — most work does not need it."
+      "rationale": "High-stakes SECURITY reasoning where a wrong verdict is expensive and Opus still leads Sonnet 5: security-review, security-engineer. (Architecture/domain design synthesis — architect, arch-review, domain-review — moved to balanced/Sonnet 5.) Route to the strongest model (default claude-opus-4-8; with copilot-preset, github-copilot/claude-opus-4.8 at $5/$25). Reserve it — most work does not need it."
     }
   },
   "effortBand": {
