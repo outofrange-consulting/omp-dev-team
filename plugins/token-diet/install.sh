@@ -8,6 +8,9 @@
 #                        indexed (default: cwd; asked if interactive). --project= is an alias.
 #   --depth=N            how deep to look for repos under the root (default 3)
 #   --no-update          keep tools already installed (don't refresh them)
+#   --reindex            force a FULL codebase-memory reindex of every repo
+#                        (default: repos already indexed are left to auto-sync,
+#                        only not-yet-indexed repos get a full initial index)
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --no-context-mode    don't install the context-mode OMP plugin
 #   --no-acli            don't install / authenticate the Atlassian CLI (acli)
@@ -17,15 +20,15 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0
+YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0; REINDEX=0
 for a in "$@"; do case "$a" in
-  --no-update) NO_UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
+  --no-update) NO_UPDATE=1 ;; --reindex) REINDEX=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --sources-root=*|--project=*) SROOT="${a#*=}" ;;
   --depth=*) DEPTH="${a#*=}" ;;
   --no-config) NO_CONFIG=1 ;;
   --no-context-mode) NO_CTXMODE=1 ;;
   --no-acli) NO_ACLI=1 ;;
-  -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -312,9 +315,22 @@ if [ -z "$SROOT" ]; then
   SROOT="${SROOT:-$PWD}"
 fi
 # codebase-memory-mcp indexes a repo by absolute path; auto-sync keeps it fresh after.
+# True if this repo path is already in codebase-memory-mcp's project list.
+already_indexed() {  # already_indexed <abs_repo_path>
+  "$CBM_BIN" cli list_projects '{}' 2>/dev/null | grep -qF "$1"
+}
+# Index a repo, but only do the expensive FULL index the first time. If the repo
+# is already indexed, skip the rebuild — codebase-memory-mcp auto-syncs the graph
+# on file changes, so an existing index just needs keeping, not rebuilding.
+# `--reindex` forces a full rebuild regardless.
 index_one() {
-  say "  codebase-memory-mcp: $1"
-  run "$CBM_BIN cli index_repository '{\"repo_path\": \"$1\"}'" || true
+  if [ "$REINDEX" = 0 ] && already_indexed "$1"; then
+    say "  codebase-memory-mcp: $1 (already indexed — auto-sync keeps it fresh; --reindex to force)"
+    run "$CBM_BIN cli index_status '{\"repo_path\": \"$1\"}'" >/dev/null 2>&1 || true
+  else
+    say "  codebase-memory-mcp: $1 (full index)"
+    run "$CBM_BIN cli index_repository '{\"repo_path\": \"$1\"}'" || true
+  fi
 }
 if have "$CBM_BIN"; then
   run "$CBM_BIN config set auto_index true" || true
