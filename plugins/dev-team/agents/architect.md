@@ -2,7 +2,7 @@
 name: architect
 description: System design, architecture definition, and technical decision oversight
 tools: read, search, find, bash
-model: pi/slow
+model: pi/plan
 thinking-level: high
 ---
 

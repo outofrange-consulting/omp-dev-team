@@ -43,8 +43,8 @@ complète et comparatif du moins cher au plus cher : **[`pricing.md`](pricing.md
 |---|---|---|---|
 | `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | 0,25 $ / 2,00 $ |
 | `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash` | 0,75 $ / 4,50 $ |
-| `default` / `plan` | balanced | `github-copilot/claude-sonnet-4.6` | 3,00 $ / 15,00 $ |
-| `slow` | deep | `github-copilot/claude-opus-4.8` | 5,00 $ / 25,00 $ |
+| `default` / `plan` | balanced (+ design archi/domaine) | `github-copilot/claude-sonnet-5` | 3,00 $ / 15,00 $ |
+| `slow` | deep (verdicts sécurité) | `github-copilot/claude-opus-4.8` | 5,00 $ / 25,00 $ |
 
 ## MAI-Code-1-Flash (« MIA Coding »)
 

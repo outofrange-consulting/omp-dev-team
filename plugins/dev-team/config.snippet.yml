@@ -25,11 +25,14 @@ modelRoles:
   smol: claude-haiku-4-5
   # code tier (coding/tool-use) -> cheap coding model. copilot-preset -> mai-code-1-flash.
   task: claude-haiku-4-5
-  # everyday DEFAULT -> Sonnet runs the orchestrator (non-trivial -> research ->
-  # plan -> implement -> review).
-  default: claude-sonnet-4-6
-  plan: claude-sonnet-4-6
-  # deep reasoning / big-complex analysis.
+  # everyday DEFAULT -> Sonnet 5 runs the orchestrator (non-trivial -> research ->
+  # plan -> implement -> review). Sonnet 5 also now covers architecture/domain
+  # DESIGN synthesis (architect, arch-review, domain-review moved down from deep):
+  # near-Opus quality on cross-file design at ~40% lower cost, xhigh effort available.
+  default: claude-sonnet-5
+  plan: claude-sonnet-5
+  # deep reasoning -> reserved for high-stakes SECURITY verdicts (security-review,
+  # security-engineer) where Opus still leads Sonnet 5.
   slow: claude-opus-4-8
   # (With copilot-preset, the global installer wires these to github-copilot/* .)
 

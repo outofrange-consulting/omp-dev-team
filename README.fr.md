@@ -33,9 +33,10 @@ choisis à la dernière version** et met runtimes/OMP/outils **à jour par défa
 ensuite les défauts gérés model-roles + skills dans `~/.omp/agent/config.yml` et les
 serveurs MCP de l'équipe dans `~/.omp/agent/mcp.json` — **tout ce que vous avez déjà
 réglé est préservé** (aucun écrasement). Avec **copilot-preset**, ça câble via GitHub
-Copilot : `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 4.6** (qui pilote
-l'orchestrateur dev-team — une tâche non triviale passe par research → plan →
-implement → review), `slow` → **Opus** ; sans lui, les mêmes tiers en ids Anthropic.
+Copilot : `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 5** (qui pilote
+l'orchestrateur dev-team + le design archi/domaine — une tâche non triviale passe
+par research → plan → implement → review), `slow` → **Opus** (verdicts de sécurité
+à fort enjeu) ; sans lui, les mêmes tiers en ids Anthropic.
 ctx-wire + codebase-memory-mcp de token-diet et les skills sont aussi activés. `--no-config`
 laisse votre config + mcp.json intacts.
 

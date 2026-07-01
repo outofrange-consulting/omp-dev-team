@@ -270,8 +270,8 @@ write_config() {
 modelRoles:
   smol: github-copilot/gpt-5-mini
   task: github-copilot/mai-code-1-flash
-  default: github-copilot/claude-sonnet-4.6
-  plan: github-copilot/claude-sonnet-4.6
+  default: github-copilot/claude-sonnet-5
+  plan: github-copilot/claude-sonnet-5
   slow: github-copilot/claude-opus-4.8
 EOF
   elif [ "${SEL_DEVTEAM:-0}" = 1 ]; then
@@ -279,8 +279,8 @@ EOF
 modelRoles:
   smol: claude-haiku-4-5
   task: claude-haiku-4-5
-  default: claude-sonnet-4-6
-  plan: claude-sonnet-4-6
+  default: claude-sonnet-5
+  plan: claude-sonnet-5
   slow: claude-opus-4-8
 EOF
   fi

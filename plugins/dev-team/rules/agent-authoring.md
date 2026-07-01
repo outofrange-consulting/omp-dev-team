@@ -14,8 +14,12 @@ globs:
   - `pi/task` — **code**: cheap work needing code semantics or agentic tool-use
     (post-plan implementation, structural code-semantic review). Routed via
     `modelRoles.task` (default Haiku; copilot-preset → mai-code-1-flash).
-  - `claude-sonnet-4-6` — **balanced** semantic / cross-file analysis.
-  - `claude-opus-4-8` — **deep** high-stakes cross-file reasoning / synthesis.
+  - `pi/plan` — **balanced** semantic / cross-file analysis, incl. architecture &
+    domain design synthesis. Routed via `modelRoles.plan` (default
+    claude-sonnet-5; copilot-preset → github-copilot/claude-sonnet-5).
+  - `pi/slow` — **deep** high-stakes SECURITY reasoning where a wrong verdict is
+    costly. Routed via `modelRoles.slow` (default claude-opus-4-8;
+    copilot-preset → github-copilot/claude-opus-4.8).
 - Grant only the tools the agent needs (OMP names: `read, search, find, edit,
   write, bash, task, web_search, ask`). Review agents are typically
   `read, search, find` only.

@@ -2,7 +2,7 @@
 name: domain-review
 description: Domain boundaries, abstraction leaks, business logic placement
 tools: read, search, find
-model: pi/slow
+model: pi/plan
 thinking-level: high
 blocking: true
 ---
