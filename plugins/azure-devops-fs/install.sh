@@ -84,11 +84,18 @@ az_login() {  # az_login <org-name> <project> <pat>
 configure_ado() {
   local org proj pat secrets="$HOME/.omp/secrets.env" p
   local profiles=("$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc")
-  printf '    AZURE_DEVOPS_ORG (org NAME only, e.g. contoso — not the URL): '; read -r org </dev/tty || org=""
+  org="${AZURE_DEVOPS_ORG:-}"; proj="${AZURE_DEVOPS_PROJECT:-}"; pat="${AZURE_DEVOPS_PAT:-}"
+  if [ -z "$org" ]; then
+    printf '    AZURE_DEVOPS_ORG (org NAME only, e.g. contoso — not the URL): '; read -r org </dev/tty || org=""
+  fi
   [ -z "$org" ] && { warn "no org entered — skipping ADO credential write"; return; }
   org="${org#https://dev.azure.com/}"; org="${org%/}"   # tolerate a pasted URL
-  printf '    AZURE_DEVOPS_PROJECT (optional default): '; read -r proj </dev/tty || proj=""
-  printf '    AZURE_DEVOPS_PAT (hidden; Code R/W, PR R/W, Build R, Policy R): '; read -r -s pat </dev/tty || pat=""; echo
+  if [ -z "$proj" ]; then
+    printf '    AZURE_DEVOPS_PROJECT (optional default): '; read -r proj </dev/tty || proj=""
+  fi
+  if [ -z "$pat" ]; then
+    printf '    AZURE_DEVOPS_PAT (hidden; Code R/W, PR R/W, Build R, Policy R): '; read -r -s pat </dev/tty || pat=""; echo
+  fi
   [ -e "$HOME/.profile" ] || : > "$HOME/.profile"
   for p in "${profiles[@]}"; do [ -e "$p" ] || continue
     grep -qsF AZURE_DEVOPS_ORG "$p" || printf '\nexport AZURE_DEVOPS_ORG=%q\n' "$org" >> "$p"
@@ -104,15 +111,15 @@ configure_ado() {
   az_login "$org" "$proj" "$pat"
 }
 
-if [ -n "${AZURE_DEVOPS_ORG:-}" ] && [ -n "${AZURE_DEVOPS_PAT:-}" ]; then
+if [ -n "${AZURE_DEVOPS_ORG:-}" ] && [ -n "${AZURE_DEVOPS_PROJECT:-}" ] && [ -n "${AZURE_DEVOPS_PAT:-}" ]; then
   say "Azure DevOps already configured via environment — running az devops login"
   AZ_ORG="${AZURE_DEVOPS_ORG#https://dev.azure.com/}"; AZ_ORG="${AZ_ORG%/}"
-  az_login "$AZ_ORG" "${AZURE_DEVOPS_PROJECT:-}" "$AZURE_DEVOPS_PAT"
+  az_login "$AZ_ORG" "$AZURE_DEVOPS_PROJECT" "$AZURE_DEVOPS_PAT"
 elif [ "$CONFIG" = skip ] || { [ "$CONFIG" = auto ] && { [ "$YES" = 1 ] || [ ! -r /dev/tty ]; }; }; then
   say "Skipping ADO credential prompt (non-interactive)"
   echo "    Set later:  AZURE_DEVOPS_ORG (org name) / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT,  then: az devops login"
 else
-  say "Configure Azure DevOps credentials"
+  say "Configure Azure DevOps credentials (prompting for any not already set)"
   configure_ado
 fi
 

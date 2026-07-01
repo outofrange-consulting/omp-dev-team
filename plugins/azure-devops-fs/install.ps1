@@ -42,7 +42,7 @@ function Az-Login ($orgName, $proj, $pat) {
 
 # --- Configure org / project / PAT ------------------------------------------
 $interactive = (-not $Yes) -and (-not [Console]::IsInputRedirected)
-if ($env:AZURE_DEVOPS_ORG -and $env:AZURE_DEVOPS_PAT) {
+if ($env:AZURE_DEVOPS_ORG -and $env:AZURE_DEVOPS_PROJECT -and $env:AZURE_DEVOPS_PAT) {
   Say "Azure DevOps already configured via environment — running az devops login"
   $azOrg = ($env:AZURE_DEVOPS_ORG -replace '^https://dev\.azure\.com/', '').TrimEnd('/')
   Az-Login $azOrg $env:AZURE_DEVOPS_PROJECT $env:AZURE_DEVOPS_PAT
@@ -50,15 +50,21 @@ if ($env:AZURE_DEVOPS_ORG -and $env:AZURE_DEVOPS_PAT) {
   Say "Skipping ADO credential prompt (non-interactive)"
   Write-Host "    Set later (User env): AZURE_DEVOPS_ORG (org name) / AZURE_DEVOPS_PROJECT / AZURE_DEVOPS_PAT,  then: az devops login"
 } else {
-  Say "Configure Azure DevOps credentials"
-  $org  = Read-Host "    AZURE_DEVOPS_ORG (org NAME only, e.g. contoso — not the URL)"
+  Say "Configure Azure DevOps credentials (prompting for any not already set)"
+  $org = $env:AZURE_DEVOPS_ORG
+  if (-not $org) { $org = Read-Host "    AZURE_DEVOPS_ORG (org NAME only, e.g. contoso — not the URL)" }
   if ($org) {
     $org  = ($org -replace '^https://dev\.azure\.com/', '').TrimEnd('/')
-    $proj = Read-Host "    AZURE_DEVOPS_PROJECT (optional)"
-    $pat  = Read-Host "    AZURE_DEVOPS_PAT (Code R/W, PR R/W, Build R, Policy R)" -AsSecureString
+    $proj = $env:AZURE_DEVOPS_PROJECT
+    if (-not $proj) { $proj = Read-Host "    AZURE_DEVOPS_PROJECT (optional)" }
+    if ($env:AZURE_DEVOPS_PAT) {
+      $plain = $env:AZURE_DEVOPS_PAT
+    } else {
+      $pat   = Read-Host "    AZURE_DEVOPS_PAT (Code R/W, PR R/W, Build R, Policy R)" -AsSecureString
+      $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pat))
+    }
     [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_ORG', $org, 'User')
     if ($proj) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PROJECT', $proj, 'User') }
-    $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($pat))
     if ($plain) { [Environment]::SetEnvironmentVariable('AZURE_DEVOPS_PAT', $plain, 'User'); Write-Host "  PAT stored in User environment." }
     Az-Login $org $proj $plain
   } else { Warn "no org entered — skipping ADO credential write" }
