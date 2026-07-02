@@ -22,16 +22,19 @@
 #                  To install the CA into WSL's system store instead, run
 #                  scripts/wsl-trust-zscaler.ps1 from Windows PowerShell.
 #   --no-config    don't write/merge ~/.omp/agent config (keep your config as-is)
+#   --no-cleanup   don't remove obsolete leftovers from earlier versions
+#                  (codebase-memory-mcp, CodeGraph, RTK, renamed plugins)
 #   -h, --help     this help
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKET="omp-dev-team"
-YES=0; RUNTIMES=1; NO_UPDATE=0; INSECURE_TLS=0; CA_FROM_WIN=0; NO_CONFIG=0; CA_FILE="${OMP_CA_FILE:-}"
+YES=0; RUNTIMES=1; NO_UPDATE=0; INSECURE_TLS=0; CA_FROM_WIN=0; NO_CONFIG=0; NO_CLEANUP=0; CA_FILE="${OMP_CA_FILE:-}"
 for a in "$@"; do case "$a" in
   -y|--yes) YES=1 ;; --no-runtimes) RUNTIMES=0 ;; --no-update) NO_UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
   --ca-file=*) CA_FILE="${a#*=}" ;; --ca-from-windows) CA_FROM_WIN=1 ;; --no-config) NO_CONFIG=1 ;;
-  -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+  --no-cleanup) NO_CLEANUP=1 ;;
+  -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -237,6 +240,67 @@ plug() {  # plug <name> <dir>
   if [ -f "$dir/install.sh" ]; then run "bash \"$dir/install.sh\" $flags ${YES:+-y} || true"; fi
 }
 
+# Remove leftovers from earlier versions that an upgrade/uninstall does NOT clean:
+# dead MCP servers merged into ~/.omp/agent/mcp.json, obsolete tool binaries, and
+# renamed/removed plugins (their mirrored extension dirs + omp registration).
+# Idempotent, existence-guarded, fail-open; only touches these exact obsolete
+# names. Skip with --no-cleanup.
+#   MCP servers : codebase-memory, codebase-memory-mcp, codegraph, code-graph
+#   binaries    : codebase-memory-mcp, codegraph, rtk (ctx-wire's predecessor)
+#   plugins     : cliproxy, local-llm (both folded into openai-compatible)
+cleanup_obsolete() {
+  [ "${NO_CLEANUP:-0}" = 1 ] && return 0
+  bold "Cleanup (obsolete leftovers)"
+  local removed=0 mcp="$HOME/.omp/agent/mcp.json" b d n
+
+  # 1) Unregister obsolete MCP servers from OMP's mcp.json (others kept intact).
+  if [ -f "$mcp" ] && have python3; then
+    python3 - "$mcp" <<'PY' || true
+import json,sys
+p=sys.argv[1]
+try:
+    cfg=json.load(open(p))
+except Exception:
+    sys.exit(0)
+srv=cfg.get("mcpServers") or {}
+gone=[k for k in ("codebase-memory","codebase-memory-mcp","codegraph","code-graph") if k in srv]
+for k in gone: srv.pop(k,None)
+if gone:
+    cfg["mcpServers"]=srv
+    json.dump(cfg,open(p,"w"),indent=2); open(p,"a").write("\n")
+    print("  unregistered MCP server(s): "+", ".join(gone))
+PY
+  fi
+
+  # 2) Remove obsolete tool binaries (exact names only).
+  for b in codebase-memory-mcp codegraph rtk; do
+    for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do
+      if [ -e "$d/$b" ] || [ -L "$d/$b" ]; then rm -f "$d/$b" 2>/dev/null || true; ok "removed $d/$b"; removed=1; fi
+    done
+  done
+
+  # 3) Remove renamed/removed plugins (folded into openai-compatible): drop the
+  #    mirrored extension dir and best-effort unregister from omp.
+  for n in cliproxy local-llm; do
+    if [ -d "$HOME/.omp/agent/extensions/$n" ]; then rm -rf "$HOME/.omp/agent/extensions/$n" 2>/dev/null || true; ok "removed stale plugin extensions: $n"; removed=1; fi
+    if have omp; then omp plugin uninstall "$n" >/dev/null 2>&1 || omp plugin remove "$n" >/dev/null 2>&1 || true; fi
+  done
+
+  # 4) Remove obsolete tool data/cache dirs and the old cc-dev-team env file.
+  for d in "$HOME/.codegraph" "$HOME/.codebase-memory-mcp" \
+           "$HOME/.cache/codebase-memory-mcp" "$HOME/.local/share/codebase-memory-mcp"; do
+    if [ -d "$d" ]; then rm -rf "$d" 2>/dev/null || true; ok "removed $d"; removed=1; fi
+  done
+  if [ -f "$HOME/.claude/cc-dev-team.env" ]; then rm -f "$HOME/.claude/cc-dev-team.env" 2>/dev/null || true; ok "removed ~/.claude/cc-dev-team.env"; removed=1; fi
+  # Never auto-edit ~/.claude/settings.json or CLAUDE.md (your files) — only flag it.
+  if [ -f "$HOME/.claude/settings.json" ] && grep -qiE 'cc-dev-team|cde-dotnetcc' "$HOME/.claude/settings.json" 2>/dev/null; then
+    warn "~/.claude/settings.json references an old Claude Code dev-team install — review/remove those hook entries by hand (left untouched)."
+  fi
+
+  if [ "$removed" = 0 ]; then ok "nothing obsolete found (already clean)"; fi
+  return 0
+}
+
 # --- config merge helpers (preserve existing user values) -------------------
 # cfg_has detects a TRUE top-level YAML key only: anchored at column 0
 # (`^<key>:`), so an indented key or the key appearing inside a string/comment
@@ -375,6 +439,9 @@ EOF
   rm -f "$patch"
   ok "mcp.json merged ($([ -n "$gh" ] && echo 'github enabled' || echo 'github present (add a PAT to enable)'))"
 }
+
+# --- Cleanup obsolete leftovers before (re)installing plugins ---------------
+cleanup_obsolete
 
 # --- 3) Per-plugin prompts --------------------------------------------------
 bold "Plugins"

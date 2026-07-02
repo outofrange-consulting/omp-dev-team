@@ -43,7 +43,7 @@ function Cleanup-Obsolete {
       $cfg = Get-Content -Raw -Path $mcp | ConvertFrom-Json
       if ($cfg.mcpServers) {
         $gone = @()
-        foreach ($k in @('codebase-memory-mcp','codegraph','code-graph')) {
+        foreach ($k in @('codebase-memory','codebase-memory-mcp','codegraph','code-graph')) {
           if ($cfg.mcpServers.PSObject.Properties.Name -contains $k) {
             $cfg.mcpServers.PSObject.Properties.Remove($k); $gone += $k
           }

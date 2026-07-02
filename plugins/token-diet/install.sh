@@ -87,7 +87,7 @@ try:
 except Exception:
     sys.exit(0)
 srv=cfg.get("mcpServers") or {}
-gone=[k for k in ("codebase-memory-mcp","codegraph","code-graph") if k in srv]
+gone=[k for k in ("codebase-memory","codebase-memory-mcp","codegraph","code-graph") if k in srv]
 for k in gone: srv.pop(k,None)
 if gone:
     cfg["mcpServers"]=srv

@@ -12,13 +12,15 @@
     -NoUpdate     keep tools already installed (don't refresh bun/node/omp)
     -NoRuntimes   skip installing bun/node (assume they're present)
     -NoConfig     don't write/merge ~/.omp/agent config (keep yours as-is)
+    -NoCleanup    don't remove obsolete leftovers (codebase-memory-mcp, CodeGraph,
+                  RTK, renamed plugins) from earlier versions
 
   Corporate TLS (Zscaler/Trend) under WSL: install the CA into the WSL store with
   scripts/wsl-trust-zscaler.ps1 (run from this Windows PowerShell), then run the
   Linux installer inside WSL.
 #>
 [CmdletBinding()]
-param([switch]$Yes, [switch]$NoRuntimes, [switch]$NoUpdate, [switch]$NoConfig)
+param([switch]$Yes, [switch]$NoRuntimes, [switch]$NoUpdate, [switch]$NoConfig, [switch]$NoCleanup)
 $ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -145,6 +147,72 @@ function Plug ($name, $dir) {
   }
 }
 
+# Remove leftovers from earlier versions that an upgrade/uninstall does NOT clean:
+# dead MCP servers merged into ~/.omp/agent/mcp.json, obsolete tool binaries, and
+# renamed/removed plugins. Idempotent, existence-guarded; only touches these exact
+# obsolete names. Skip with -NoCleanup.
+function Cleanup-Obsolete {
+  if ($NoCleanup) { return }
+  Bold "Cleanup (obsolete leftovers)"
+  $removed = $false
+
+  # 1) Unregister obsolete MCP servers (others kept intact).
+  $mcp = Join-Path $HOME ".omp\agent\mcp.json"
+  if (Test-Path $mcp) {
+    try {
+      $cfg = Get-Content -Raw -Path $mcp | ConvertFrom-Json
+      if ($cfg.mcpServers) {
+        $gone = @()
+        foreach ($k in @('codebase-memory','codebase-memory-mcp','codegraph','code-graph')) {
+          if ($cfg.mcpServers.PSObject.Properties.Name -contains $k) {
+            $cfg.mcpServers.PSObject.Properties.Remove($k); $gone += $k
+          }
+        }
+        if ($gone.Count -gt 0) {
+          ($cfg | ConvertTo-Json -Depth 20) | Set-Content -Path $mcp -Encoding UTF8
+          Ok ("unregistered MCP server(s): " + ($gone -join ', ')); $removed = $true
+        }
+      }
+    } catch { Warn "could not edit $mcp ($_) — remove codebase-memory-mcp/codegraph entries by hand" }
+  }
+
+  # 2) Remove obsolete tool binaries (exact names only).
+  $binDirs = @((Join-Path $HOME '.local\bin'), (Join-Path $HOME '.cargo\bin'), (Join-Path $HOME '.bun\bin'))
+  foreach ($d in $binDirs) {
+    foreach ($n in @('codebase-memory-mcp','codegraph','rtk')) {
+      foreach ($ext in @('', '.exe', '.cmd')) {
+        $p = Join-Path $d ($n + $ext)
+        if (Test-Path $p) { Remove-Item -Force -ErrorAction SilentlyContinue $p; Ok "removed $p"; $removed = $true }
+      }
+    }
+  }
+
+  # 3) Remove renamed/removed plugins (folded into openai-compatible).
+  foreach ($n in @('cliproxy','local-llm')) {
+    $ed = Join-Path $HOME ".omp\agent\extensions\$n"
+    if (Test-Path $ed) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $ed; Ok "removed stale plugin extensions: $n"; $removed = $true }
+    if (Have omp) { try { Run "omp plugin uninstall $n" } catch { try { Run "omp plugin remove $n" } catch {} } }
+  }
+
+  # 4) Remove obsolete data/install dirs + the old cc-dev-team env file.
+  $dirs = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\codebase-memory-mcp'),
+    (Join-Path $env:LOCALAPPDATA 'codegraph'),
+    (Join-Path $env:LOCALAPPDATA 'codebase-memory-mcp'),
+    (Join-Path $HOME '.codegraph'),
+    (Join-Path $HOME '.codebase-memory-mcp')
+  )
+  foreach ($d in $dirs) { if ($d -and (Test-Path $d)) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $d; Ok "removed $d"; $removed = $true } }
+  $ccEnv = Join-Path $HOME '.claude\cc-dev-team.env'
+  if (Test-Path $ccEnv) { Remove-Item -Force -ErrorAction SilentlyContinue $ccEnv; Ok "removed ~/.claude/cc-dev-team.env"; $removed = $true }
+  $ccSet = Join-Path $HOME '.claude\settings.json'
+  if ((Test-Path $ccSet) -and (Select-String -Path $ccSet -Pattern 'cc-dev-team|cde-dotnetcc' -Quiet)) {
+    Warn "~/.claude/settings.json references an old Claude Code dev-team install — review/remove those hook entries by hand (left untouched)."
+  }
+
+  if (-not $removed) { Ok "nothing obsolete found (already clean)" }
+}
+
 # --- config merge helpers (preserve existing user values) -------------------
 function Cfg-Has ($key) {
   if (-not (Test-Path $Cfg)) { return $false }
@@ -251,6 +319,8 @@ function Write-Mcp {
 }
 
 # --- 3) Per-plugin prompts --------------------------------------------------
+Cleanup-Obsolete
+
 Bold "Plugins"
 $SEL_DEVTEAM = $false; $SEL_COPILOT = $false; $SEL_TOKENDIET = $false; $SEL_OAI_COMPAT = $false
 
