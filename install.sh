@@ -283,7 +283,8 @@ PY
   #    mirrored extension dir and best-effort unregister from omp.
   for n in cliproxy local-llm; do
     if [ -d "$HOME/.omp/agent/extensions/$n" ]; then rm -rf "$HOME/.omp/agent/extensions/$n" 2>/dev/null || true; ok "removed stale plugin extensions: $n"; removed=1; fi
-    if have omp; then omp plugin uninstall "$n" >/dev/null 2>&1 || omp plugin remove "$n" >/dev/null 2>&1 || true; fi
+    # `omp plugin uninstall <name>` is the verified subcommand (there is no `plugin remove`).
+    if have omp; then omp plugin uninstall "$n" >/dev/null 2>&1 || true; fi
   done
 
   # 4) Remove obsolete tool data/cache dirs and the old cc-dev-team env file.

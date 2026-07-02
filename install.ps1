@@ -191,7 +191,8 @@ function Cleanup-Obsolete {
   foreach ($n in @('cliproxy','local-llm')) {
     $ed = Join-Path $HOME ".omp\agent\extensions\$n"
     if (Test-Path $ed) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $ed; Ok "removed stale plugin extensions: $n"; $removed = $true }
-    if (Have omp) { try { Run "omp plugin uninstall $n" } catch { try { Run "omp plugin remove $n" } catch {} } }
+    # `omp plugin uninstall <name>` is the verified subcommand (there is no `plugin remove`).
+    if (Have omp) { try { Run "omp plugin uninstall $n" } catch {} }
   }
 
   # 4) Remove obsolete data/install dirs + the old cc-dev-team env file.
