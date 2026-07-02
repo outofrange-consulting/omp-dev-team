@@ -17,11 +17,15 @@
 // Opt-outs (env):
 //   SERENA_FORGE_BUILD=0   disable the whole safety net (build + test gate)
 //   SERENA_FORGE_TEST=0    build-gate only; do NOT run tests
-// Per-repo command/budget overrides live in .omp/dev-team.json -> implVerify
-// (shared with /impl-verify), e.g.:
-//   { "implVerify": { "maxFixes": 3,
-//       "stacks": { "dotnet": { "build": "dotnet build -warnaserror",
-//                               "test":  "dotnet test --nologo" } } } }
+// Per-repo overrides live in .omp/dev-team.json -> serenaBuildNet. This is kept
+// SEPARATE from implVerify on purpose: this automatic gate must NOT inherit
+// /impl-verify's strict `-warnaserror` default. Whether warnings are errors is
+// the PROJECT's decision (TreatWarningsAsErrors in the .csproj /
+// Directory.Build.props), so the default build here is a plain `dotnet build`
+// that honours those settings. Override only if a team wants something else:
+//   { "serenaBuildNet": { "maxFixes": 3,
+//                         "build": "dotnet build",
+//                         "test":  "dotnet test --nologo" } }
 //
 // FAIL-OPEN: a missing toolchain (no dotnet) or an internal error allows the
 // stop — the net never traps a turn because of its own bug.
@@ -30,7 +34,7 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
-import { DEFAULT_STACKS, tail } from "./lib/impl-verify-core.ts";
+import { tail } from "./lib/impl-verify-core.ts";
 import { readJSON, readState, writeState } from "./lib/shared.ts";
 
 // Serena's symbolic write tools. Matched by suffix so it works whether OMP
@@ -84,10 +88,11 @@ function nearestCsproj(absFile: string, cwd: string): string | null {
 }
 
 interface DevTeamConfig {
-	implVerify?: {
-		maxFixes?: number;
-		stacks?: { dotnet?: { build?: string; test?: string } };
-	};
+	// serena-build-net's own gate config — separate from implVerify so the
+	// automatic gate does NOT force -warnaserror; warnings-as-errors is left to
+	// the project's csproj / Directory.Build.props.
+	serenaBuildNet?: { build?: string; test?: string; maxFixes?: number };
+	implVerify?: { maxFixes?: number };
 }
 
 // Run a shell command; return {ok, output, timedOut, missing}. missing=true when
@@ -164,13 +169,16 @@ export default function serenaBuildNet(pi: ExtensionAPI) {
 		}
 
 		const cfg = readJSON<DevTeamConfig>(join(ctx.cwd, ".omp", "dev-team.json"), {});
-		const iv = cfg.implVerify ?? {};
-		const maxFixes = Math.max(1, iv.maxFixes ?? 3);
-		const buildCmd = iv.stacks?.dotnet?.build ?? DEFAULT_STACKS.dotnet.build; // strict: -warnaserror
-		const testCmd = iv.stacks?.dotnet?.test ?? DEFAULT_STACKS.dotnet.test;
+		const sbn = cfg.serenaBuildNet ?? {};
+		const maxFixes = Math.max(1, sbn.maxFixes ?? cfg.implVerify?.maxFixes ?? 3);
+		// Plain `dotnet build`: honour the project's own TreatWarningsAsErrors
+		// (csproj / Directory.Build.props). We deliberately do NOT force
+		// -warnaserror here — that belongs in the project, not in this gate.
+		const buildCmd = sbn.build ?? "dotnet build";
+		const testCmd = sbn.test ?? "dotnet test --nologo";
 		const runTests = process.env.SERENA_FORGE_TEST !== "0";
 
-		// --- strict build of each touched project (scoped, fast) ---
+		// --- build each touched project (scoped, fast; project decides warnings) ---
 		const failures: string[] = [];
 		for (const proj of projects) {
 			const r = run(`${buildCmd} "${proj}" --no-restore --nologo`, ctx.cwd);

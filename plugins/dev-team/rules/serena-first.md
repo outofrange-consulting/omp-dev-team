@@ -44,8 +44,9 @@ See the `serena-refactor` skill for recipes and the CRLF-diff pitfall.
 ## Build + test gate (blocking)
 
 After Serena C# edits, the `serena-build-net` extension gates the end of the
-session: it runs a strict `dotnet build -warnaserror` of the touched project(s)
-and then the stack's `dotnet test`. If the build or a test fails, the stop is
+session: it runs a scoped `dotnet build` of the touched project(s) (warnings-as-
+errors stays in your `.csproj` / `Directory.Build.props`) and then `dotnet test`.
+If the build or a test fails, the stop is
 **blocked** and the errors are handed back — a red build or failing test is
 **unfinished work**; fix it through Serena. A bounded fix counter (default 3)
 prevents trapping. Opt out only on request: `SERENA_FORGE_BUILD=0` (whole gate)

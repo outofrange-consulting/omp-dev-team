@@ -35,8 +35,9 @@ consistent.
 
 > **Build + test gate (automatic, blocking).** The `serena-build-net` extension
 > queues the touched `.csproj` on every Serena symbolic edit and, at
-> `session_stop` (when you're about to finish), runs a strict scoped
-> `dotnet build -warnaserror` of each touched project and then the stack's
+> `session_stop` (when you're about to finish), runs a scoped `dotnet build` of
+> each touched project (warnings-as-errors is left to your `.csproj` /
+> `Directory.Build.props` — the gate does **not** force `-warnaserror`) and then
 > `dotnet test`. If the build fails **or** a test fails, the stop is **BLOCKED**
 > (OMP `session_stop` hook) and the errors are handed back — **fix them through
 > Serena before finishing; a red build or failing test is unfinished work.**
