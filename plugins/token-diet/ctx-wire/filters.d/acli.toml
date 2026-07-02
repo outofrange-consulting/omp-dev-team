@@ -18,7 +18,12 @@ description = "Compact Atlassian CLI (acli) output; redact bare AT?TT tokens (AT
 match_command = "^acli\\b"
 strip_ansi = true
 replace = [
-  { pattern = "AT[A-Z]TT[A-Za-z0-9_=.\\-]{20,}", replacement = "ATATT***REDACTED***" },
+  # Match all three bare Atlassian token prefixes: ATATT (API), ATCTT
+  # (Confluence/Bitbucket scoped), ATOAT (OAuth). The old `AT[A-Z]TT` shape
+  # required a literal `TT` in positions 4-5, so it silently missed ATOAT
+  # (…OAT) and leaked OAuth tokens into context. Generic replacement label —
+  # don't leak which prefix (and thus token class) was present.
+  { pattern = "AT(?:ATT|CTT|OAT)[A-Za-z0-9_=.\\-]{20,}", replacement = "AT***REDACTED***" },
 ]
 strip_lines_matching = [
   "^\\s*$",
@@ -41,12 +46,17 @@ expected = "TYPE\tKEY\tSUMMARY\tSTATUS\nStory\tPROJ-123\tAdd login\tIn Progress\
 [[tests.acli]]
 name = "redacts bare ATATT Atlassian API token"
 input = "Authenticated. Your API token ATATT3xFfGF0abcDEF123ghiJKL456mnoPQR789stu=A1B2 is stored."
-expected = "Authenticated. Your API token ATATT***REDACTED*** is stored."
+expected = "Authenticated. Your API token AT***REDACTED*** is stored."
 
 [[tests.acli]]
 name = "redacts bare ATCTT scoped (Confluence/Bitbucket) token"
 input = "Authenticated. Your API token ATCTT3xFfGF0abcDEF123ghiJKL456mnoPQR789stu=A1B2 is stored."
-expected = "Authenticated. Your API token ATATT***REDACTED*** is stored."
+expected = "Authenticated. Your API token AT***REDACTED*** is stored."
+
+[[tests.acli]]
+name = "redacts bare ATOAT Atlassian OAuth token"
+input = "Authenticated. Your API token ATOAT3xFfGF0abcDEF123ghiJKL456mnoPQR789stu=A1B2 is stored."
+expected = "Authenticated. Your API token AT***REDACTED*** is stored."
 
 [[tests.acli]]
 name = "single workitem view preserved"

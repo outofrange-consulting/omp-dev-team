@@ -24,6 +24,10 @@ prose. That set is small:
 | **dotnet restore** | Yes (NuGet) | Yes (`All projects are up-to-date`, `Restored …`, `NU####`) | ✅ EN+FR |
 | **dotnet run** | Yes (build + app) | Strips build preamble; collapses all-passed MTP test runs | ✅ EN+FR |
 | **dotnet tool** | Yes (SDK) | Yes (`was successfully installed/updated`) | ✅ EN+FR |
+| **dotnet publish** | Yes (build + NuGet) | Strips restore/build preamble, keeps the `-> …/publish/` artifact + errors/warnings (no `Build succeeded` line in .NET 10) | ✅ EN+FR |
+| **dotnet pack** | Yes (NuGet) | Yes (`Successfully created package` / `Création réussie du package`) | ✅ EN+FR |
+| **dotnet format** | Yes | **No** — silent on success; its diagnostics (`error WHITESPACE:`, analyzer IDs) must reach context. Nothing to collapse | n/a |
+| **dotnet list package** | keys are English | **No** — `--outdated` / `--vulnerable` tables are the payload you *want* to keep; structural at most | n/a |
 | git log / diff / blame / list | Yes | **No** — purely structural (blank-strip, truncate, caps) | n/a |
 | grep / rg | Diagnostics only | **No** — `group_by` on `file:line:`, structural | n/a |
 | jira (CLI) | No (Go, English-only) | structural (strip blanks/`--`) | n/a |
@@ -32,6 +36,14 @@ prose. That set is small:
 So localizing "all tools" would be almost entirely dead regex: the long tail
 emits English in any locale, and the structural filters (grep, git-log, ls, …)
 are already locale-agnostic by construction.
+
+> **`dotnet build` vs `publish`/`pack` output in .NET 10** — verified against
+> SDK 10.0.301: `dotnet build` still prints the classic `Build succeeded.` /
+> `0 Error(s)` summary (piped, under a PTY, and with `--tl:off`), so the
+> `dotnet-build` filter keys on it safely. `publish` and `pack` do **not** print
+> that summary — their success markers are the `-> …/publish/` artifact line and
+> `Successfully created package` respectively, which is why they get their own
+> filters rather than reusing the build one.
 
 ## Why no Romanian
 
@@ -73,11 +85,15 @@ and secret-ish `key=value` / `--secret-flag value` pairs.
 
 So **GitHub tokens** and **Azure DevOps PATs / Atlassian tokens in the usual auth
 forms** (Basic header, `https://user:pat@…` URL, `token=…` assignment) are
-already scrubbed. The one shape it doesn't know is a **bare `ATATT…` Atlassian
-API token** (no matching prefix). Since the scrub rules aren't user-extensible,
-`acli.toml` adds a filter `replace` that redacts `ATATT…` from acli output. To
-scrub bare ATATT tokens everywhere (not just acli output), upstream an `ATATT`
-entry to ctx-wire's `internal/scrub/scrub.go` token alternation + literal anchors.
+already scrubbed. The shapes it doesn't know are the **bare `AT?…` Atlassian
+tokens** — `ATATT…` (API), `ATCTT…` (Confluence/Bitbucket scoped) and `ATOAT…`
+(OAuth) — none of which carry a prefix the built-in scrub matches. Since the
+scrub rules aren't user-extensible, `acli.toml` adds a filter `replace` that
+redacts all three (`AT(?:ATT|CTT|OAT)…`) from acli output to a single generic
+`AT***REDACTED***` marker (the label deliberately doesn't echo which prefix — and
+thus which token class — was present). To scrub these everywhere (not just acli
+output), upstream an `AT(?:ATT|CTT|OAT)` entry to ctx-wire's
+`internal/scrub/scrub.go` token alternation + literal anchors.
 
 ## Compressing MCP output
 

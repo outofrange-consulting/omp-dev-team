@@ -9,7 +9,9 @@
 #           "{0} - échec : {1}, réussite : {2}, ignorée(s) : {3}, total : {4}, durée : {5}"
 #           "Error Message:" -> "Message d'erreur :"
 #   MTP:    "Test run summary:" -> "Résumé de série de tests :"
-#           total/failed/passed/skipped/duration -> total/échec/réussite/ignoré/durée
+#           total/failed/succeeded/skipped/duration -> total/échec/réussie/ignoré/durée
+#           (EN field label is `succeeded:`, FR is `réussie :` — verified against
+#            .NET 10.0.301; NOT `passed:` / `réussite :`)
 #           "Zero tests ran" -> "Zéro tests exécutés"
 # .NET ships no Romanian satellite resources, so EN+FR covers every locale.
 schema_version = 1
@@ -71,13 +73,19 @@ Message d'erreur :
 expected = "Échec !  - échec : 1, réussite : 41, ignorée(s) : 0, total : 42, durée : 1 s\nMessage d'erreur :\n Attendu true mais a obtenu false"
 
 # --- English (MTP, Microsoft.Testing.Platform) ---
+# Field label is `succeeded:` (verified against .NET 10.0.301 `dotnet test`
+# with the MTP runner, global.json `test.runner = Microsoft.Testing.Platform`),
+# NOT `passed:`. The header is `Test run summary:` (with "run") in every path
+# checked — single project, solution, and multi-project solution roll-up — so
+# the trigger needs no `Test summary:` (no-"run") variant; that string does not
+# occur in the .NET 10 SDK or Microsoft.Testing.Platform assemblies.
 [[tests.dotnet-test]]
 name = "EN MTP: summary block collapses"
 input = """
 Test run summary: Passed!
   total: 42
   failed: 0
-  passed: 42
+  succeeded: 42
   skipped: 0
   duration: 1s
 """
@@ -91,20 +99,55 @@ failed MyNamespace.MyTests.Test1
 Test run summary: Failed!
   total: 42
   failed: 2
-  passed: 40
+  succeeded: 40
   skipped: 0
   duration: 1s
 """
-expected = "failed MyNamespace.MyTests.Test1\n  Assert.True failed\nTest run summary: Failed!\n  total: 42\n  failed: 2\n  passed: 40\n  skipped: 0\n  duration: 1s"
+expected = "failed MyNamespace.MyTests.Test1\n  Assert.True failed\nTest run summary: Failed!\n  total: 42\n  failed: 2\n  succeeded: 40\n  skipped: 0\n  duration: 1s"
+
+# --- English (MTP native `dotnet test` integration, .NET 10 SDK) ---
+# The SDK-integrated runner prints a per-app status line followed by the same
+# `Test run summary:` block. Verified verbatim against .NET 10.0.301.
+[[tests.dotnet-test]]
+name = "EN MTP native (dotnet test): per-app line + summary collapses"
+input = """
+App.Tests.dll (net10.0|x64) passed (269ms)
+Test run summary: Passed!
+  total: 42
+  failed: 0
+  succeeded: 42
+  skipped: 0
+  duration: 500ms
+"""
+expected = "dotnet test: ok"
+
+[[tests.dotnet-test]]
+name = "EN MTP native (dotnet test): failures preserved"
+input = """
+App.Tests.dll (net10.0|x64) failed with 1 error(s) (269ms)
+Test run summary: Failed!
+  total: 5
+  failed: 1
+  succeeded: 3
+  skipped: 1
+  duration: 471ms
+"""
+expected = "App.Tests.dll (net10.0|x64) failed with 1 error(s) (269ms)\nTest run summary: Failed!\n  total: 5\n  failed: 1\n  succeeded: 3\n  skipped: 1\n  duration: 471ms"
 
 # --- French (MTP) ---
+# The MTP block's success label is `réussie :` (past participle), NOT the VSTest
+# noun `réussite :`. Header renders as `Résumé de série de tests : Réussite!` /
+# `… : Échec!` (space before the colon, none before the bang). Verified verbatim
+# against .NET 10.0.301 with DOTNET_CLI_UI_LANGUAGE=fr. Collapse keys on the
+# `Résumé de série de tests` header, so the label discrepancy never broke the
+# match — but the fixtures now assert the real wording.
 [[tests.dotnet-test]]
 name = "FR MTP: summary block collapses"
 input = """
-Résumé de série de tests : Réussite !
+Résumé de série de tests : Réussite!
   total : 42
   échec : 0
-  réussite : 42
+  réussie : 42
   ignoré : 0
   durée : 1s
 """
@@ -115,14 +158,14 @@ name = "FR MTP: failures preserved"
 input = """
 échec MyNamespace.MyTests.Test1
   Échec de Assert.True
-Résumé de série de tests : Échec !
+Résumé de série de tests : Échec!
   total : 42
   échec : 2
-  réussite : 40
+  réussie : 40
   ignoré : 0
   durée : 1s
 """
-expected = "échec MyNamespace.MyTests.Test1\n  Échec de Assert.True\nRésumé de série de tests : Échec !\n  total : 42\n  échec : 2\n  réussite : 40\n  ignoré : 0\n  durée : 1s"
+expected = "échec MyNamespace.MyTests.Test1\n  Échec de Assert.True\nRésumé de série de tests : Échec!\n  total : 42\n  échec : 2\n  réussie : 40\n  ignoré : 0\n  durée : 1s"
 
 [[tests.dotnet-test]]
 name = "MTP: zero tests not collapsed to ok"
