@@ -73,11 +73,15 @@ and secret-ish `key=value` / `--secret-flag value` pairs.
 
 So **GitHub tokens** and **Azure DevOps PATs / Atlassian tokens in the usual auth
 forms** (Basic header, `https://user:pat@…` URL, `token=…` assignment) are
-already scrubbed. The one shape it doesn't know is a **bare `ATATT…` Atlassian
-API token** (no matching prefix). Since the scrub rules aren't user-extensible,
-`acli.toml` adds a filter `replace` that redacts `ATATT…` from acli output. To
-scrub bare ATATT tokens everywhere (not just acli output), upstream an `ATATT`
-entry to ctx-wire's `internal/scrub/scrub.go` token alternation + literal anchors.
+already scrubbed. The shapes it doesn't know are the **bare `AT?…` Atlassian
+tokens** — `ATATT…` (API), `ATCTT…` (Confluence/Bitbucket scoped) and `ATOAT…`
+(OAuth) — none of which carry a prefix the built-in scrub matches. Since the
+scrub rules aren't user-extensible, `acli.toml` adds a filter `replace` that
+redacts all three (`AT(?:ATT|CTT|OAT)…`) from acli output to a single generic
+`AT***REDACTED***` marker (the label deliberately doesn't echo which prefix — and
+thus which token class — was present). To scrub these everywhere (not just acli
+output), upstream an `AT(?:ATT|CTT|OAT)` entry to ctx-wire's
+`internal/scrub/scrub.go` token alternation + literal anchors.
 
 ## Compressing MCP output
 

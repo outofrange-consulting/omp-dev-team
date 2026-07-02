@@ -64,7 +64,7 @@ input = """
 Test run summary: Passed!
   total: 42
   failed: 0
-  passed: 42
+  succeeded: 42
   skipped: 0
   duration: 1s
 """
@@ -77,11 +77,11 @@ failed MyNamespace.MyTests.Test1
 Test run summary: Failed!
   total: 42
   failed: 2
-  passed: 40
+  succeeded: 40
   skipped: 0
   duration: 1s
 """
-expected = "failed MyNamespace.MyTests.Test1\nTest run summary: Failed!\n  total: 42\n  failed: 2\n  passed: 40\n  skipped: 0\n  duration: 1s"
+expected = "failed MyNamespace.MyTests.Test1\nTest run summary: Failed!\n  total: 42\n  failed: 2\n  succeeded: 40\n  skipped: 0\n  duration: 1s"
 
 # --- French (plain app) ---
 [[tests.dotnet-run]]
@@ -104,14 +104,16 @@ src/Program.cs(10,5): error CS1002: ; attendu
 expected = "src/Program.cs(10,5): error CS1002: ; attendu\nÉCHEC de la build."
 
 # --- French (MTP test project run via dotnet run) ---
+# FR MTP block label is `réussie :` (past participle), header `… : Réussite!`
+# — verified against .NET 10.0.301 (DOTNET_CLI_UI_LANGUAGE=fr).
 [[tests.dotnet-run]]
 name = "FR MTP: all-passed test run collapses"
 input = """
   MyTests -> /home/user/MyTests/bin/Debug/net8.0/MyTests.dll
-Résumé de série de tests : Réussite !
+Résumé de série de tests : Réussite!
   total : 42
   échec : 0
-  réussite : 42
+  réussie : 42
   ignoré : 0
   durée : 1s
 """
