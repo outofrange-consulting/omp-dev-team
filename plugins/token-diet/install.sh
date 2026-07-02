@@ -9,19 +9,22 @@
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --no-context-mode    don't install the context-mode OMP plugin
 #   --no-acli            don't install / authenticate the Atlassian CLI (acli)
+#   --no-cleanup         don't remove obsolete predecessors (codebase-memory-mcp,
+#                        CodeGraph, RTK) from this machine on install
 #   ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN (env)  non-interactive acli auth (auto-run
 #                        on install when acli isn't already authenticated)
 #   -y, --yes            non-interactive (don't prompt for auth)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YES=0; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0
+YES=0; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0; NO_CLEANUP=0
 for a in "$@"; do case "$a" in
   --no-update) NO_UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --no-config) NO_CONFIG=1 ;;
   --no-context-mode) NO_CTXMODE=1 ;;
   --no-acli) NO_ACLI=1 ;;
-  -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+  --no-cleanup) NO_CLEANUP=1 ;;
+  -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -57,6 +60,68 @@ if [ -n "$CA_FILE" ] && [ -f "$CA_FILE" ]; then
 fi
 
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+
+# --- Clean up obsolete predecessors on (re)install --------------------------
+# Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
+# then codebase-memory-mcp) and, before ctx-wire, RTK. Those are gone now — the
+# symbolic C# code intelligence moved to the dev-team plugin's serena-forge
+# integration, and ctx-wire replaced RTK. But an upgrade/uninstall does NOT remove
+# what a past install left on the machine (an OMP mcp.json entry + a leftover
+# binary that keeps a dead MCP server wired). This step reverses that: it
+# unregisters the obsolete MCP servers from OMP's mcp.json and removes the
+# leftover binaries/caches. Idempotent, existence-guarded, fail-open, and it only
+# ever touches these exact obsolete names. Skip with --no-cleanup.
+cleanup_obsolete() {
+  [ "${NO_CLEANUP:-0}" = 1 ] && return 0
+  say "Cleaning up obsolete tools (codebase-memory-mcp, CodeGraph, RTK)"
+  local removed=0 mcp="$HOME/.omp/agent/mcp.json" b d
+
+  # 1) Unregister the obsolete MCP servers from OMP's mcp.json.
+  if [ -f "$mcp" ]; then
+    if have python3; then
+      python3 - "$mcp" <<'PY' || true
+import json,sys
+p=sys.argv[1]
+try:
+    cfg=json.load(open(p))
+except Exception:
+    sys.exit(0)
+srv=cfg.get("mcpServers") or {}
+gone=[k for k in ("codebase-memory-mcp","codegraph","code-graph") if k in srv]
+for k in gone: srv.pop(k,None)
+if gone:
+    cfg["mcpServers"]=srv
+    json.dump(cfg,open(p,"w"),indent=2); open(p,"a").write("\n")
+    print("  unregistered MCP server(s): "+", ".join(gone))
+PY
+    else
+      warn "  python3 not found — remove any codebase-memory-mcp/codegraph entry from $mcp by hand"
+    fi
+  fi
+
+  # 2) Remove leftover binaries (exact names only, existence-guarded).
+  for b in codebase-memory-mcp codegraph rtk; do
+    for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do
+      if [ -e "$d/$b" ] || [ -L "$d/$b" ]; then
+        rm -f "$d/$b" 2>/dev/null || true
+        say "  removed $d/$b"; removed=1
+      fi
+    done
+  done
+
+  # 3) Remove obsolete global data/cache dirs (exact tool-named dirs only).
+  for d in "$HOME/.codegraph" "$HOME/.codebase-memory-mcp" \
+           "$HOME/.cache/codebase-memory-mcp" "$HOME/.local/share/codebase-memory-mcp"; do
+    if [ -d "$d" ]; then
+      rm -rf "$d" 2>/dev/null || true
+      say "  removed $d"; removed=1
+    fi
+  done
+
+  if [ "$removed" = 0 ]; then say "  nothing obsolete found (already clean)"; fi
+  return 0
+}
+cleanup_obsolete
 
 # --- ctx-wire (transparent command-output compression + secret scrubbing) ----
 if have ctx-wire && [ "$NO_UPDATE" = 1 ]; then

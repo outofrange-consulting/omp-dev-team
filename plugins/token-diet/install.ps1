@@ -5,12 +5,13 @@
   csharp-ls LSP, and the ctx7 docs CLI. Everything is refreshed to latest by default.
   (Symbolic C# navigation/edit is provided by the dev-team plugin's serena-forge
   integration, not token-diet.)
-  Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive), -NoConfig.
+  Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive), -NoConfig,
+         -NoCleanup (don't remove obsolete predecessors: codebase-memory-mcp, CodeGraph, RTK).
   Env (acli): ACLI_SITE / ACLI_EMAIL / ACLI_TOKEN — non-interactive acli auth,
          auto-run on install when acli isn't already authenticated.
 #>
 [CmdletBinding()]
-param([switch]$NoUpdate, [switch]$Yes, [switch]$NoConfig)
+param([switch]$NoUpdate, [switch]$Yes, [switch]$NoConfig, [switch]$NoCleanup)
 $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -21,6 +22,67 @@ function Run  ($cmd) { Invoke-Expression $cmd }
 
 $BinDir = Join-Path $HOME ".local\bin"
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+
+# --- Clean up obsolete predecessors on (re)install --------------------------
+# Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
+# then codebase-memory-mcp) and, before ctx-wire, RTK. Those are gone now (symbolic
+# C# code intel moved to the dev-team plugin's serena-forge integration; ctx-wire
+# replaced RTK), but an upgrade/uninstall does NOT remove what a past install left
+# on the machine. Unregister the dead MCP servers from OMP's mcp.json and remove the
+# leftover binaries/dirs. Idempotent, existence-guarded, only touches these exact
+# obsolete names. Skip with -NoCleanup.
+function Cleanup-Obsolete {
+  if ($NoCleanup) { return }
+  Say "Cleaning up obsolete tools (codebase-memory-mcp, CodeGraph, RTK)"
+  $removed = $false
+
+  # 1) Unregister the obsolete MCP servers from OMP's mcp.json.
+  $mcp = Join-Path $HOME ".omp\agent\mcp.json"
+  if (Test-Path $mcp) {
+    try {
+      $cfg = Get-Content -Raw -Path $mcp | ConvertFrom-Json
+      if ($cfg.mcpServers) {
+        $gone = @()
+        foreach ($k in @('codebase-memory-mcp','codegraph','code-graph')) {
+          if ($cfg.mcpServers.PSObject.Properties.Name -contains $k) {
+            $cfg.mcpServers.PSObject.Properties.Remove($k); $gone += $k
+          }
+        }
+        if ($gone.Count -gt 0) {
+          ($cfg | ConvertTo-Json -Depth 20) | Set-Content -Path $mcp -Encoding UTF8
+          Say ("  unregistered MCP server(s): " + ($gone -join ', ')); $removed = $true
+        }
+      }
+    } catch { Warn "  could not edit $mcp ($_) — remove any codebase-memory-mcp/codegraph entry by hand" }
+  }
+
+  # 2) Remove leftover binaries (exact names only, existence-guarded).
+  $binNames = @('codebase-memory-mcp','codegraph','rtk')
+  $binDirs  = @($BinDir, (Join-Path $HOME '.cargo\bin'), (Join-Path $HOME '.bun\bin'))
+  foreach ($d in $binDirs) {
+    foreach ($n in $binNames) {
+      foreach ($ext in @('', '.exe', '.cmd')) {
+        $p = Join-Path $d ($n + $ext)
+        if (Test-Path $p) { Remove-Item -Force -ErrorAction SilentlyContinue $p; Say "  removed $p"; $removed = $true }
+      }
+    }
+  }
+
+  # 3) Remove obsolete install/data dirs (exact tool-named dirs only).
+  $dirs = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\codebase-memory-mcp'),
+    (Join-Path $env:LOCALAPPDATA 'codegraph'),
+    (Join-Path $env:LOCALAPPDATA 'codebase-memory-mcp'),
+    (Join-Path $HOME '.codegraph'),
+    (Join-Path $HOME '.codebase-memory-mcp')
+  )
+  foreach ($d in $dirs) {
+    if ($d -and (Test-Path $d)) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $d; Say "  removed $d"; $removed = $true }
+  }
+
+  if (-not $removed) { Say "  nothing obsolete found (already clean)" }
+}
+Cleanup-Obsolete
 
 # --- ctx-wire (transparent command-output compression + secret scrubbing) ----
 if ((Have ctx-wire) -and $NoUpdate) {
