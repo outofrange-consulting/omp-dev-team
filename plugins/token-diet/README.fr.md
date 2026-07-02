@@ -11,7 +11,6 @@ prompts côté fournisseur), pas à la place.
 |---|---|---|---|
 | **ctx-wire** | proxy CLI transparent qui filtre la **sortie** des commandes + scrube les secrets (logs complets sur disque) ; surcharges de filtres **EN+FR** pour `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | grosses coupes sur le bruit `git`/build/test/lint | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **context-mode** | plugin OMP natif qui **met la sortie des outils en bac à sable** et l'indexe (FTS5/BM25, indépendant de la langue) — garde le brut hors contexte + survit à la compaction | ~98 % sur sortie géante/non structurée ; toute langue (y c. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
-| **codebase-memory-mcp** | graphe de connaissances symboles/appels via MCP (158 langages, Hybrid LSP embarqué) — requête au lieu de grep+read | ~99 % sur « qui appelle X / impact / architecture » | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) |
 | **context7** | docs de librairies via MCP — docs API à jour à la demande | élimine les hallucinations sur les APIs de librairies | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | **sortie** laconique en fragments (à la demande) | ~65 % de tokens de sortie | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | écrire **moins de code** — YAGNI / dev sénior le plus fainéant (à la demande) | ~80–94 % de code en moins ; moins de tokens maintenant **et** à chaque tour futur | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
@@ -21,20 +20,21 @@ prompts côté fournisseur), pas à la place.
 | **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques (`safe` actif par défaut ; `lite`/`full` opt-in) | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
 | **cache-meter** | les économies de prompt-cache que tu *crois* avoir sont non mesurées — et un transform qui modifie le préfixe peut les casser en silence | LECTURE SEULE, actif : une **statusline** live (`td $coût cache N% churn N%`, ⚠ si risque) + `/cache-health` pour le détail (taux de lecture cache + churn + coût + part de thinking + quota provider) ; **alerte** quand la compression `lite`/`full` coïncide avec un fort churn | `usage` par-tour d'OMP (`turn_end`) + en-têtes `after_provider_response` + `ui.setStatus` |
 | **Isolation providers** | exclut toutes les configs utilisateur d'autres outils du contexte OMP | élimine le bruit des agents Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode | settings OMP natifs |
-| **LSP C#** | `csharp-ls` câblé comme serveur de langage OMP natif — utilisé pour les sémantiques C# précises que le graphe ne peut pas fournir (rename, références exactes, diagnostics en direct, hover) | aller-à-la-définition, références, diagnostics sur `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
+| **LSP C#** | `csharp-ls` câblé comme serveur de langage OMP natif — utilisé pour les sémantiques C# précises (rename, références exactes, diagnostics en direct, hover) | aller-à-la-définition, références, diagnostics sur `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Installation
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installe ctx-wire + codebase-memory-mcp, indexe
-                                     # vos repos, et active tout. Redémarrez omp ensuite.
+bash plugins/token-diet/install.sh   # installe ctx-wire et active tout.
+                                     # Redémarrez omp ensuite.
 ```
 
 **Actif par défaut après `install.sh`** — aucun réglage manuel : les shims ctx-wire
-compressent la sortie des commandes, le serveur MCP codebase-memory-mcp est activé, et les
-skills sont activés. `install.sh` demande la **racine de vos sources** (un dossier
-de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `--depth=N`).
+compressent la sortie des commandes et les skills sont activés. token-diet ne livre
+aucun serveur MCP (son `.mcp.json` est vide). La navigation et l'édition symboliques
+C#/.NET vivent désormais dans le plugin **dev-team** en tant qu'intégration
+**serena-forge**.
 
 ## Comment c'est câblé dans OMP
 
@@ -64,8 +64,7 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   Voir `ctx-wire/README.md`.
 - **règle token-tools** → `rules/token-tools.md` (`alwaysApply: true`) est le
   guide de routage pour l'agent derrière tout ce qui précède : lancer les
-  commandes sans préfixe, préférer codebase-memory-mcp à grep/glob/Read pour
-  les questions structurelles, `csharp-ls` pour les sémantiques C# précises,
+  commandes sans préfixe, `csharp-ls` pour les sémantiques C# précises,
   `astEdit` plutôt que réécrire des fichiers entiers, et comment reconnaître
   une session avec shims obsolètes (pré-redémarrage). Le provider de règles
   d'OMP ne découvre automatiquement `rules/*.md` qu'à l'intérieur de racines
@@ -96,15 +95,12 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   jira`/`acli confluence` et se déclenche automatiquement sur « Jira », « Confluence »,
   une clé d'issue nue (`PROJ-123`), ou une URL `atlassian.net` — le même pattern de
   déclenchement automatique que le skill **context7** ci-dessous.
-- **codebase-memory-mcp** → un serveur MCP (`.mcp.json`, binaire lancé en mode MCP,
-  **activé par défaut**) exposant `search_graph`/`search_code`/`get_code_snippet`/
-  `trace_path`/`get_architecture`/`query_graph`/`detect_changes`/`get_graph_schema`/
-  `index_repository`/`index_status`/`list_projects`/`delete_project`/`manage_adr`/
-  `ingest_traces` (158 langages, Hybrid LSP embarqué). Voir `skill://codebase-memory`.
-  Se resynchronise aux changements de fichiers après le premier index. Pour les
-  sémantiques C# précises que le graphe ne peut pas fournir (rename, références
-  exactes, diagnostics en direct, hover), il s'appuie sur le LSP `csharp-ls` —
-  voir la ligne **LSP C#**.
+- **navigation symbolique C#/.NET** → ne fait plus partie de token-diet. token-diet
+  ne livre aucun serveur MCP (son `.mcp.json` est vide). La navigation et l'édition
+  symboliques C#/.NET basées sur Roslyn vivent désormais dans le plugin **dev-team**
+  en tant qu'intégration **serena-forge** (bâtie sur
+  [oraios/serena](https://github.com/oraios/serena)). Pour les sémantiques C# précises,
+  token-diet câble toujours le LSP `csharp-ls` — voir la ligne **LSP C#**.
 - **skills** → `install.sh` ajoute `config.snippet.yml` à `~/.omp/agent/config.yml`
   pour activer les skill commands et appliquer l'isolation des providers. `--no-config` pour sauter.
 - **context7** → mode CLI (`ctx7 library` / `ctx7 docs` via bash — pas de process MCP).
@@ -136,12 +132,11 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
   natif avec seulement les conventions qui s'appliquent réellement à OMP.
 - **LSP C#** → `install.sh` installe `csharp-ls` via `dotnet tool install -g csharp-ls`
   (si le SDK .NET est présent) et écrit `~/.omp/agent/lsp.json`. OMP l'active
-  automatiquement dès qu'un `.sln`/`.slnx`/`.csproj` est détecté. Il reste à côté de
-  codebase-memory-mcp à dessein : le graphe de connaissances répond aux questions
-  structurelles/inter-fichiers (y c. C#, via le Hybrid LSP embarqué), tandis que
-  `csharp-ls` est un serveur de langage complet réservé aux besoins propres à C# que
-  le graphe ne couvre pas — références exactes, rename, diagnostics/erreurs de type
-  en direct, hover/signature, complétion.
+  automatiquement dès qu'un `.sln`/`.slnx`/`.csproj` est détecté. C'est un serveur de
+  langage complet pour les sémantiques C# précises — références exactes, rename,
+  diagnostics/erreurs de type en direct, hover/signature, complétion. (La navigation
+  et l'édition symboliques C#/.NET plus larges basées sur Roslyn vivent dans
+  l'intégration serena-forge du plugin dev-team.)
 - **caveman** → un skill OMP natif (`/caveman`, niveaux lite/full/ultra) plutôt que
   l'installeur amont, pour être de première classe dans OMP. Voir `skill://caveman`.
 - **yagni** → un skill OMP natif (`/yagni`, niveaux lite/full/ultra/off) qui porte
@@ -192,15 +187,13 @@ de plusieurs repos) et indexe chaque repo git trouvé (`--sources-root=PATH`, `-
 
 Compaction/handoffs (résumé de l'historique), outils AST natifs (`astGrep`,
 `astEdit`, `summarizeCode`, `blockRangeAt`), et mise en cache prompts/contexte côté
-fournisseur. Ce plugin comble les trous restants : sortie brute des commandes,
-graphe de symboles persistant inter-fichiers, et sortie verbeuse du modèle. Voir
-`skill://token-diet` pour le guide de décision complet.
+fournisseur. Ce plugin comble les trous restants : sortie brute des commandes et
+sortie verbeuse du modèle. Voir `skill://token-diet` pour le guide de décision complet.
 
 ## Notes
 
 - Se marie naturellement avec **copilot-preset** (modèles peu chers au token) —
   moins de tokens × tokens moins chers.
-- Le serveur MCP de graphe de code (anciennement CodeGraph) est centralisé ici en
-  tant que codebase-memory-mcp ; `dev-team/.mcp.json` ne porte aucune entrée de
-  graphe de code.
+- La navigation et l'édition symboliques C#/.NET vivent dans l'intégration
+  serena-forge du plugin **dev-team**, pas dans token-diet.
 - Indépendant des autres plugins ; n'installez que ce que vous voulez.

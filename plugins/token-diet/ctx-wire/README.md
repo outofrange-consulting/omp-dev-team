@@ -94,8 +94,8 @@ mechanisms here:
   in a project `.mcp.json`): `ctx-wire mcp-wrap install --compress -- <server cmd>`
   rewrites that entry to relay through ctx-wire (measures per-tool token cost and,
   with `--compress`, trims verbose snapshots). Revert with `mcp-wrap uninstall`.
-  We deliberately do **not** route codebase-memory-mcp through it by default — that
-  would couple codebase-memory-mcp to a ctx-wire install (which may be unavailable);
+  We deliberately do **not** wrap any project-defined MCP server by default — that
+  would couple that server to a ctx-wire install (which may be unavailable);
   opt in manually if wanted.
 
 ## Escape hatch: pin the locale

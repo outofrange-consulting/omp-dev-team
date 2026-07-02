@@ -106,7 +106,7 @@ Prémisse correcte (même Pi), mais frères ≠ parent/enfant :
 | **Multilingue FR/RO** | ❌ RTK anglais-only | ✅ filtres EN+FR + language-agnostic |
 | Relecture/contexte dédupliqués | ✅ read-dedup | ✅ **read-dedup + context-dedup** (porté) |
 | Compression d'entrée (prompt/contexte) | LLMLingua/Provence (lossy, sans garde-fou) | ✅ **context-compress** protect-maskée (`safe` par défaut) |
-| codebase-memory-mcp / context7 / yagni / lean-tools / isolation | ❌ | ✅ |
+| context7 / yagni / lean-tools / isolation | ❌ | ✅ |
 
 token-diet a **déjà parcouru et dépassé** le chemin de caveman-code (RTK retiré
 car non localisable), et lui ajoute beaucoup. Conclusion inchangée : **on garde

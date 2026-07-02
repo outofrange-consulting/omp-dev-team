@@ -1,34 +1,27 @@
 #!/usr/bin/env bash
-# token-diet installer (Linux/macOS) — installs the LATEST ctx-wire +
-# codebase-memory-mcp and indexes every git repo under a sources root. caveman/yagni
+# token-diet installer (Linux/macOS) — installs the LATEST ctx-wire. caveman/yagni
 # ship as OMP skills. Also sets up the acli (Atlassian CLI), ast-grep, the .NET SDK +
 # csharp-ls LSP, and the ctx7 docs CLI. Everything is refreshed to latest by default.
+# (Symbolic C# navigation/edit is provided by the dev-team plugin's serena-forge
+# integration, not token-diet.)
 # Flags:
-#   --sources-root=PATH  parent dir of your repos; every git repo under it is
-#                        indexed (default: cwd; asked if interactive). --project= is an alias.
-#   --depth=N            how deep to look for repos under the root (default 3)
 #   --no-update          keep tools already installed (don't refresh them)
-#   --reindex            force a FULL codebase-memory reindex of every repo
-#                        (default: repos already indexed are left to auto-sync,
-#                        only not-yet-indexed repos get a full initial index)
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --no-context-mode    don't install the context-mode OMP plugin
 #   --no-acli            don't install / authenticate the Atlassian CLI (acli)
 #   ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN (env)  non-interactive acli auth (auto-run
 #                        on install when acli isn't already authenticated)
-#   -y, --yes            non-interactive (don't prompt for the sources root / auth)
+#   -y, --yes            non-interactive (don't prompt for auth)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YES=0; SROOT=""; DEPTH=3; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0; REINDEX=0
+YES=0; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0
 for a in "$@"; do case "$a" in
-  --no-update) NO_UPDATE=1 ;; --reindex) REINDEX=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
-  --sources-root=*|--project=*) SROOT="${a#*=}" ;;
-  --depth=*) DEPTH="${a#*=}" ;;
+  --no-update) NO_UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --no-config) NO_CONFIG=1 ;;
   --no-context-mode) NO_CTXMODE=1 ;;
   --no-acli) NO_ACLI=1 ;;
-  -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -257,95 +250,6 @@ if [ "$NO_ACLI" = 0 ]; then
   fi
 fi
 
-# --- codebase-memory-mcp (MCP) ----------------------------------------------
-CBM_BIN="codebase-memory-mcp"
-if have "$CBM_BIN" && [ "$NO_UPDATE" = 1 ]; then
-  say "codebase-memory-mcp present"
-else
-  say "Installing latest codebase-memory-mcp"
-  if have curl; then run "curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash || true"
-  else warn "need curl to install codebase-memory-mcp — see https://github.com/DeusData/codebase-memory-mcp"; fi
-fi
-ensure_path "$HOME/.local/bin"; hash -r 2>/dev/null || true
-
-# --- Register codebase-memory-mcp MCP server in OMP (absolute path avoids PATH dependency) ---
-# OMP spawns Claude without sourcing shell profiles, so the binary must be resolved
-# to its absolute path now and written into mcp.json — never rely on PATH at runtime.
-if have "$CBM_BIN" || [ -x "$HOME/.local/bin/$CBM_BIN" ]; then
-  CBMBIN="$(command -v "$CBM_BIN" 2>/dev/null || echo "$HOME/.local/bin/$CBM_BIN")"
-  OMP_MCP="$HOME/.omp/agent/mcp.json"
-  mkdir -p "$(dirname "$OMP_MCP")"
-  [ -f "$OMP_MCP" ] || printf '{"mcpServers":{}}\n' > "$OMP_MCP"
-  say "Registering codebase-memory-mcp MCP server in OMP: $CBMBIN"
-  if have python3; then
-    python3 - "$OMP_MCP" "$CBMBIN" <<'PYEOF'
-import json, sys
-mcp_path, cbm_bin = sys.argv[1], sys.argv[2]
-with open(mcp_path) as f: cfg = json.load(f)
-cfg.setdefault("mcpServers", {})["codebase-memory-mcp"] = {
-    "type": "stdio", "command": cbm_bin, "args": []
-}
-with open(mcp_path, "w") as f: json.dump(cfg, f, indent=2); f.write("\n")
-PYEOF
-  elif have node; then
-    node -e "
-const fs=require('fs'),p=process.argv[1],b=process.argv[2];
-const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
-(cfg.mcpServers||(cfg.mcpServers={}))[\"codebase-memory-mcp\"]={type:\"stdio\",command:b,args:[]};
-fs.writeFileSync(p,JSON.stringify(cfg,null,2)+'\n');
-" "$OMP_MCP" "$CBMBIN" || true
-  elif have bun; then
-    bun -e "
-const fs=require('fs'),p=process.argv[1],b=process.argv[2];
-const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
-(cfg.mcpServers||(cfg.mcpServers={}))[\"codebase-memory-mcp\"]={type:\"stdio\",command:b,args:[]};
-fs.writeFileSync(p,JSON.stringify(cfg,null,2)+'\n');
-" "$OMP_MCP" "$CBMBIN" || true
-  else
-    warn "python3/node/bun not available — add codebase-memory-mcp to OMP mcp.json manually"
-  fi
-fi
-
-# --- Scan/index source repos with codebase-memory-mcp -----------------------
-if [ -z "$SROOT" ]; then
-  if [ "$YES" = 0 ] && [ -r /dev/tty ]; then
-    printf 'Sources ROOT to scan (every git repo under it is indexed)? [default: %s] ' "$PWD"
-    read -r SROOT </dev/tty || SROOT=""
-  fi
-  SROOT="${SROOT:-$PWD}"
-fi
-# codebase-memory-mcp indexes a repo by absolute path; auto-sync keeps it fresh after.
-# True if this repo path is already in codebase-memory-mcp's project list.
-already_indexed() {  # already_indexed <abs_repo_path>
-  "$CBM_BIN" cli list_projects '{}' 2>/dev/null | grep -qF "$1"
-}
-# Index a repo, but only do the expensive FULL index the first time. If the repo
-# is already indexed, skip the rebuild — codebase-memory-mcp auto-syncs the graph
-# on file changes, so an existing index just needs keeping, not rebuilding.
-# `--reindex` forces a full rebuild regardless.
-index_one() {
-  if [ "$REINDEX" = 0 ] && already_indexed "$1"; then
-    say "  codebase-memory-mcp: $1 (already indexed — auto-sync keeps it fresh; --reindex to force)"
-    run "$CBM_BIN cli index_status '{\"repo_path\": \"$1\"}'" >/dev/null 2>&1 || true
-  else
-    say "  codebase-memory-mcp: $1 (full index)"
-    run "$CBM_BIN cli index_repository '{\"repo_path\": \"$1\"}'" || true
-  fi
-}
-if have "$CBM_BIN"; then
-  run "$CBM_BIN config set auto_index true" || true
-  if [ -d "$SROOT/.git" ]; then say "Scanning single repo: $SROOT"; index_one "$SROOT"
-  else
-    say "Scanning every git repo under: $SROOT (depth $DEPTH)"
-    found=0
-    while IFS= read -r gitdir; do [ -n "$gitdir" ] || continue; found=$((found + 1)); index_one "$(dirname "$gitdir")"; done <<EOF
-$(find "$SROOT" -maxdepth "$DEPTH" -type d -name .git 2>/dev/null)
-EOF
-    if [ "$found" = 0 ]; then warn "no git repos under $SROOT — indexing it as a single project"; index_one "$SROOT"
-    else say "Indexed $found repo(s) under $SROOT."; fi
-  fi
-fi
-
 # --- ast-grep (structural search/rewrite) -----------------------------------
 if have ast-grep && [ "$NO_UPDATE" = 1 ]; then
   say "ast-grep present"
@@ -420,7 +324,7 @@ if [ -d "$HERE/extensions" ]; then
   say "read-dedup + context-dedup + context-compress (safe) loaded"
 fi
 
-# --- Load the always-on OMP-native rule (ctx-wire/codebase-memory-mcp routing) ---
+# --- Load the always-on OMP-native rule (ctx-wire token-tool routing) ---
 # NOTE: OMP's omp-plugins rule provider only discovers rules/*.md inside
 # *configured* extension package roots (extensions:/-e/npm-linked) — a bare
 # marketplace install of this plugin is NOT one, so rules/token-tools.md would
@@ -458,10 +362,10 @@ patch_omp_status_line
 # same invocation OMP's bash tool uses — rather than trusting this script's
 # own already-exported PATH.
 STALE_TOOLS=""
-for t in ctx-wire acli ast-grep csharp-ls dotnet ctx7 codebase-memory-mcp; do
+for t in ctx-wire acli ast-grep csharp-ls dotnet ctx7; do
   have "$t" && ! bash -lc "command -v $t" >/dev/null 2>&1 && STALE_TOOLS="$STALE_TOOLS $t"
 done
 if [ -n "$STALE_TOOLS" ]; then
   warn "installed but NOT visible in a fresh shell yet:$STALE_TOOLS. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
 fi
-say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."
+say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."

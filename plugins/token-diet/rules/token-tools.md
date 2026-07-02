@@ -1,6 +1,6 @@
 ---
 alwaysApply: true
-description: Token-saving tool routing (ctx-wire + codebase-memory-mcp)
+description: Token-saving tool routing (ctx-wire)
 ---
 
 # Token discipline
@@ -26,22 +26,15 @@ description: Token-saving tool routing (ctx-wire + codebase-memory-mcp)
   OMP session started — PATH updates from `~/.local/bin` never reach an
   already-running process. Say so and ask for an OMP restart; don't fall back
   to a manual `rtk`/`ctx-wire` prefix, and don't conclude the tool is missing.
-- **Code structure via codebase-memory-mcp.** When the codebase-memory-mcp tools
-  are available, prefer them over `grep`/`glob`/`Read` for "who calls X", "what
-  does X call", "where is symbol Y", "what's the impact of changing Z", and
-  architecture questions. A `get_architecture`/`trace_path` call usually replaces
-  dozens of grep+read round-trips; `detect_changes` gives the blast radius of a
-  diff; `search_graph`/`get_code_snippet` locate and fetch a symbol.
-- **Precise C# semantics → csharp-ls LSP, not the graph.** For editor-grade C#
-  operations the knowledge graph can't answer — exact find-all-references,
-  rename, live diagnostics/type errors, hover/signature help, completion — use
-  the `csharp-ls` LSP (wired via OMP's native LSP integration, auto-activated on
-  `.sln`/`.slnx`/`.csproj`). codebase-memory-mcp's embedded Hybrid LSP only
-  resolves types well enough to build the graph; it is not a full language
-  server. Structural/whole-repo questions → codebase-memory-mcp; point-precise C#
-  semantics → csharp-ls.
-- Reserve full-file `Read` for when you actually need to edit or read prose; for
-  structure, query the graph first.
+- **C# semantics → csharp-ls LSP.** For editor-grade C# operations — exact
+  find-all-references, rename, live diagnostics/type errors, hover/signature
+  help, completion — use the `csharp-ls` LSP (wired via OMP's native LSP
+  integration, auto-activated on `.sln`/`.slnx`/`.csproj`). (Enforced *symbolic*
+  C# navigation and editing — the Serena/Roslyn layer that blocks freehand `.cs`
+  writes — is provided separately by the **dev-team** plugin's serena-forge
+  integration, not token-diet.)
+- Reserve full-file `Read` for when you actually need to edit or read prose;
+  for structure, prefer symbol-scoped tools over dumping whole files.
 - **Edit symbols structurally, not whole files.** To change a known function /
   class / block, prefer the native AST editor (`astEdit`, and `blockRangeAt` /
   `summarizeCode` to locate it) over `Read` the whole file → `write` it back. A
@@ -49,9 +42,8 @@ description: Token-saving tool routing (ctx-wire + codebase-memory-mcp)
   re-emitting the entire file (the dominant token cost on large files) and is
   less merge-error-prone. Full-file `write` is for new files or genuine
   whole-file rewrites; `edit` (anchored) for small textual changes; `astEdit`
-  for structural changes to existing code. (We do **not** route edits through a
-  symbol-server MCP — codebase-memory-mcp is read-only and OMP's native AST tools
-  cover the edit side.)
+  for structural changes to existing code. (OMP's native AST tools cover the
+  edit side.)
 - **Re-reads are deduped.** Reading the same unchanged file again returns a short
   stub, not the bytes — the earlier read is still in context, so reuse it instead
   of re-reading to "refresh". (Editing the file, or compaction, lets a real

@@ -136,82 +136,65 @@ If missing, install:
 If either installation fails, stop and tell the user: "Could not install
 `<tool>`. Please install it manually and re-run `/init-dev-team`."
 
-## Step 2.5 — Offer codebase-memory-mcp
+## Step 2.5 — Offer Serena onboarding (symbolic C# navigation + enforced edits)
 
-codebase-memory-mcp (<https://github.com/DeusData/codebase-memory-mcp>) is a
-third-party, single-binary code intelligence MCP server: a persistent knowledge
-graph of every symbol, edge, route, and file in the workspace (158 languages,
-embedded Hybrid LSP). When present, prefer its tools (`get_architecture` /
-`trace_path` / `search_graph` / `detect_changes`) over multi-file
-Read/Grep/Glob exploration. This step detects current state and offers the right
-next action.
+dev-team bundles **Serena** (<https://github.com/oraios/serena>) as an MCP server
+(see `plugins/dev-team/.mcp.json`): a Roslyn-backed symbolic code layer for C#.
+The `serena-enforce` extension **blocks direct `write`/`edit`/`astEdit` on `.cs`
+files** and redirects them to Serena's symbol tools (`replace_symbol_body`,
+`rename_symbol`, `find_symbol`, …), so a C# repo must be onboarded with Serena
+before you can edit its `.cs` files. This step checks prerequisites and offers to
+onboard the current repo.
 
-> **C# note:** keep `csharp-ls` (the C# LSP, installed by token-diet) for the
-> precise C#-only operations the knowledge graph can't answer — exact
-> find-all-references, rename, live diagnostics, hover. The graph handles
-> structural/whole-repo questions; the LSP handles point-precise C# semantics.
-> The two are complementary, not a replacement.
+> **Nothing to install into PATH.** Serena launches on demand via `uvx` straight
+> from git — there is no binary to install. The only prerequisites are `uvx`
+> (from [uv](https://github.com/astral-sh/uv)) and, for the C# backend,
+> **.NET 10+** (Serena's Roslyn language server is .NET 10-only).
 
-**Classify state** (run both, record results as `installed` and `initialized`):
+**Check prerequisites** (run both, record results):
 
 ```bash
-command -v codebase-memory-mcp > /dev/null 2>&1 && echo "installed" || echo "not-installed"
-codebase-memory-mcp cli list_projects 2>/dev/null | grep -qF "$PWD" && echo "initialized" || echo "not-initialized"
+command -v uvx > /dev/null 2>&1 && echo "uvx: present" || echo "uvx: MISSING"
+# Serena's Roslyn backend is .NET 10-only. Any .cs project targeting net9.0 or
+# lower cannot be onboarded (see the serena-setup skill for the full rule).
+grep -rEn '<TargetFrameworks?>' --include='*.csproj' . 2>/dev/null | head
 ```
 
-(codebase-memory-mcp indexes into a global cache, not a project-local dir — a
-project is "initialized" once it has been indexed and shows in `list_projects`.)
-
-Read `.claude/init-state.json` if it exists (top-level `codebase-memory` key
-holds the four state booleans: `install_accepted`, `install_declined`,
-`init_accepted`, `init_declined`).
-
-**Branch on (installed, initialized):**
-
-| installed | initialized | Action |
-|-----------|-------------|--------|
-| any       | true        | Print "codebase-memory-mcp: indexed ✓" and continue to Step 3. State file untouched. |
-| true      | false       | **Index prompt branch** (below). |
-| false     | false       | **Install prompt branch** (below). |
-
-**Stale-state override.** Before consulting the recorded state, apply these
-rules: `install_declined` is ignored when `installed=true` (the user has since
-installed codebase-memory-mcp); `init_declined` is ignored when
-`initialized=true` (the project got indexed by other means). The live
-filesystem/PATH check supersedes the recorded preference.
-
-### Install prompt branch (installed=false, initialized=false)
-
-- If `.codebase-memory.install_declined == true`: print
-  `codebase-memory-mcp: previously declined install (remove the codebase-memory key from .claude/init-state.json to re-prompt)`
+- If `uvx` is **MISSING**: print
+  `Serena needs uvx (from https://github.com/astral-sh/uv). Install uv, then run /skill:serena-setup.`
+  and continue to Step 3. (Do not attempt to install uv here.)
+- If any `.cs` project you'd edit targets `net9.0` or lower: print
+  `Serena is .NET 10-only — this repo targets net9.0 or lower and cannot be onboarded. Skipping Serena.`
   and continue to Step 3.
-- Otherwise prompt: `Install codebase-memory-mcp for code intelligence? (y/N)`
-  - On `y` or `Y`: print `codebase-memory-mcp install: curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash  (or: bash plugins/token-diet/install.sh)`.
-    Merge `{"codebase-memory": {"install_accepted": true}}` into `.claude/init-state.json`.
-  - On any other response (including empty): merge
-    `{"codebase-memory": {"install_declined": true}}` and continue silently.
 
-### Index prompt branch (installed=true, initialized=false)
+Read `.claude/init-state.json` if it exists (top-level `serena` key holds
+`onboard_accepted` / `onboard_declined`).
 
-- If `.codebase-memory.init_declined == true`: print
-  `codebase-memory-mcp: previously declined index (remove the codebase-memory key from .claude/init-state.json to re-prompt)`
-  and continue.
-- Otherwise prompt: `codebase-memory-mcp is installed but this project isn't indexed. Index now? (y/N)`
-  - On `y` or `Y`:
-    1. Print: `Indexing this project with codebase-memory-mcp...`
-    2. Execute `codebase-memory-mcp cli index_repository "{\"repo_path\": \"$PWD\"}"`
-       with the current working directory as cwd. Surface its stdout/stderr to the user.
-    3. On exit 0: print `codebase-memory-mcp: indexed ✓` and merge
-       `{"codebase-memory": {"init_accepted": true}}` into `.claude/init-state.json`.
-    4. On non-zero exit N: print
-       `codebase-memory-mcp index failed (exit code N). See output above. Continuing without it.`
-       Do NOT modify `.claude/init-state.json`.
-  - On any other response: merge `{"codebase-memory": {"init_declined": true}}`
-    and continue silently.
+**Branch on `.serena/` presence:**
 
-`.claude/init-state.json` uses a top-level `codebase-memory` key so future
-plugins can claim sibling keys without collision. Always merge into existing
-JSON rather than overwriting it.
+| `.serena/` present | Recorded state | Action |
+|---|---|---|
+| yes | any | Print `Serena: repo already onboarded ✓` and continue to Step 3. State file untouched. |
+| no  | `onboard_declined == true` | Print `Serena: previously declined onboarding (remove the serena key from .claude/init-state.json to re-prompt)` and continue. |
+| no  | otherwise | **Onboard prompt** (below). |
+
+### Onboard prompt (`.serena/` absent, not previously declined)
+
+Prompt: `Onboard this repo with Serena for symbolic C# navigation/edits? (y/N)`
+
+- On `y` or `Y`: invoke the `/skill:serena-setup` skill — it activates the
+  project (`activate_project`), runs Serena `onboarding`, waits for the first
+  Roslyn index (~30s), and smoke-tests the C# LSP with `get_symbols_overview`.
+  - On success (`.serena/` now present, LSP up): merge
+    `{"serena": {"onboard_accepted": true}}` into `.claude/init-state.json`.
+  - If serena-setup reports the repo can't be onboarded (.NET 9, LSP never comes
+    up, download error): print its message and do **not** modify the state file.
+- On any other response (including empty): merge
+  `{"serena": {"onboard_declined": true}}` and continue silently.
+
+`.claude/init-state.json` uses a top-level `serena` key so other plugins can
+claim sibling keys without collision. Always merge into existing JSON rather than
+overwriting it.
 
 ## Step 3 — Select languages
 

@@ -1,17 +1,16 @@
 #requires -Version 5.1
 <#
-  token-diet installer (Windows) — installs the LATEST ctx-wire + codebase-memory-mcp
-  and indexes every git repo under a sources root. caveman/yagni ship as OMP skills.
-  Also sets up acli (Atlassian CLI), ast-grep, the .NET SDK + csharp-ls LSP, and
-  the ctx7 docs CLI. Everything is refreshed to latest by default.
-  Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive),
-         -SourcesRoot <path> (parent of your repos; default cwd), -Depth N (default 3),
-         -NoConfig.
+  token-diet installer (Windows) — installs the LATEST ctx-wire. caveman/yagni ship
+  as OMP skills. Also sets up acli (Atlassian CLI), ast-grep, the .NET SDK +
+  csharp-ls LSP, and the ctx7 docs CLI. Everything is refreshed to latest by default.
+  (Symbolic C# navigation/edit is provided by the dev-team plugin's serena-forge
+  integration, not token-diet.)
+  Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive), -NoConfig.
   Env (acli): ACLI_SITE / ACLI_EMAIL / ACLI_TOKEN — non-interactive acli auth,
          auto-run on install when acli isn't already authenticated.
 #>
 [CmdletBinding()]
-param([switch]$NoUpdate, [switch]$Yes, [string]$SourcesRoot, [int]$Depth = 3, [switch]$NoConfig)
+param([switch]$NoUpdate, [switch]$Yes, [switch]$NoConfig)
 $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
@@ -33,33 +32,12 @@ if ((Have ctx-wire) -and $NoUpdate) {
 }
 if (Have ctx-wire) { Say "Installing ctx-wire PATH shims"; Run "ctx-wire shims install" }
 
-# --- codebase-memory-mcp (MCP) ----------------------------------------------
-if ((Have codebase-memory-mcp) -and $NoUpdate) { Say "codebase-memory-mcp present" }
-else {
-  Say "Installing latest codebase-memory-mcp"
-  try {
-    $cbmInstaller = Join-Path $env:TEMP 'codebase-memory-mcp-install.ps1'
-    Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.ps1' -OutFile $cbmInstaller
-    & $cbmInstaller
-  } catch { Warn "codebase-memory-mcp install failed: $_ — see https://github.com/DeusData/codebase-memory-mcp" }
-}
-
 # Ensure ~/.local/bin is on PATH (user scope)
 if (";$env:Path;" -notlike "*;$BinDir;*") {
   Say "Adding $BinDir to your user PATH"
   $userPath = [Environment]::GetEnvironmentVariable('Path','User')
   [Environment]::SetEnvironmentVariable('Path', "$userPath;$BinDir", 'User')
   $env:Path = "$env:Path;$BinDir"
-}
-# Ensure codebase-memory-mcp bin is on PATH (Windows: %LOCALAPPDATA%\Programs\codebase-memory-mcp)
-if ($env:OS -eq 'Windows_NT' -or $IsWindows) {
-  $cbmBin = Join-Path $env:LOCALAPPDATA 'Programs\codebase-memory-mcp'
-  if ((Test-Path $cbmBin) -and (";$env:Path;" -notlike "*;$cbmBin;*")) {
-    Say "Adding codebase-memory-mcp bin to user PATH"
-    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    [Environment]::SetEnvironmentVariable('Path', "$userPath;$cbmBin", 'User')
-    $env:Path = "$env:Path;$cbmBin"
-  }
 }
 
 # --- acli (official Atlassian CLI — our go-to for Atlassian) -----------------
@@ -124,35 +102,7 @@ if (Have npm) {
   else { Say "Installing ctx7 CLI"; Run "npm install -g ctx7" }
 } else { Warn "npm not found — ctx7 unavailable (install Node.js)" }
 
-# --- Scan/index source repos with codebase-memory-mcp -----------------------
-if (-not $SourcesRoot) {
-  if (-not $Yes -and -not [Console]::IsInputRedirected) {
-    $ans = Read-Host "Sources ROOT to scan (every git repo under it is indexed)? [default: $(Get-Location)]"
-    if (-not [string]::IsNullOrWhiteSpace($ans)) { $SourcesRoot = $ans }
-  }
-  if (-not $SourcesRoot) { $SourcesRoot = (Get-Location).Path }
-}
-function Index-One ($repo) {
-  Say "  codebase-memory-mcp: $repo"
-  # Build the JSON with ConvertTo-Json so Windows backslash paths are escaped
-  # correctly, and pass it as a single argument via the call operator (avoids
-  # Invoke-Expression quoting pitfalls).
-  $payload = @{ repo_path = $repo } | ConvertTo-Json -Compress
-  & codebase-memory-mcp cli index_repository $payload
-}
-if (Have codebase-memory-mcp) {
-  & codebase-memory-mcp config set auto_index true
-  if (Test-Path (Join-Path $SourcesRoot '.git')) {
-    Say "Scanning single repo: $SourcesRoot"; Index-One $SourcesRoot
-  } else {
-    Say "Scanning every git repo under: $SourcesRoot (depth $Depth)"
-    $repos = Get-ChildItem -Path $SourcesRoot -Recurse -Depth $Depth -Directory -Filter '.git' -ErrorAction SilentlyContinue | ForEach-Object { $_.Parent.FullName }
-    if ($repos.Count -gt 0) { foreach ($r in $repos) { Index-One $r }; Say "Indexed $($repos.Count) repo(s) under $SourcesRoot." }
-    else { Warn "no git repos under $SourcesRoot — indexing it as a single project"; Index-One $SourcesRoot }
-  }
-}
-
-# --- Enable the bundled skills (caveman, yagni, codebase-memory, token-diet) -
+# --- Enable the bundled skills (caveman, yagni, token-diet) -
 if (-not $NoConfig) {
   $cfg = Join-Path $HOME ".omp\agent\config.yml"
   New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
@@ -171,7 +121,7 @@ if (Test-Path $src) {
   Say "read-dedup + context-dedup + context-compress (safe) loaded into $dest"
 }
 
-# --- Load the always-on OMP-native rule (ctx-wire/codebase-memory-mcp routing) ---
+# --- Load the always-on OMP-native rule (ctx-wire token-tool routing) ---
 # NOTE: OMP's omp-plugins rule provider only discovers rules/*.md inside
 # *configured* extension package roots (extensions:/-e/npm-linked) — a bare
 # marketplace install of this plugin is NOT one, so rules/token-tools.md would
@@ -207,4 +157,4 @@ if (-not $NoConfig -and (Test-Path $claudeMd) -and -not (Test-Path $agentsMd)) {
 # equivalent) — so this warning is unconditional rather than detected.
 Warn "ctx-wire shims, acli, ast-grep, ctx7, and .NET/csharp-ls tools write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
 
-Say "token-diet active: ctx-wire shims, codebase-memory-mcp (MCP), ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."
+Say "token-diet active: ctx-wire shims, ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."

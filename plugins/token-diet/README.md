@@ -11,7 +11,6 @@ in place of it.
 |---|---|---|---|
 | **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk); **EN+FR** filter overrides for `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
 | **context-mode** | native OMP plugin that **sandboxes tool output** and indexes it (FTS5/BM25, language-agnostic) — keeps raw payloads out of context + survives compaction | ~98% on giant/unstructured output; any locale (incl. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
-| **codebase-memory-mcp** | MCP symbol/call knowledge graph (158 langs, embedded Hybrid LSP) — query instead of grep+read | ~99% on "who calls X / impact / architecture" | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) |
 | **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
 | **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
 | **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
@@ -22,20 +21,20 @@ in place of it.
 | **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: a live **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) + `/cache-health` for the full read-rate / churn / cost / thinking-share / provider-quota breakdown; **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers + `ui.setStatus` |
 | **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
 | **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
-| **C# LSP** | `csharp-ls` wired as OMP-native language server — used for precise C# semantics that the knowledge graph can't give (rename, exact references, live diagnostics, hover) | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
+| **C# LSP** | `csharp-ls` wired as OMP-native language server — used for precise C# semantics (rename, exact references, live diagnostics, hover) | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Install
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installs ctx-wire + codebase-memory-mcp, indexes
-                                     # your repos, and turns everything on. Restart omp.
+bash plugins/token-diet/install.sh   # installs ctx-wire and turns everything on.
+                                     # Restart omp.
 ```
 
 **Active by default after `install.sh`** — no manual flags: ctx-wire shims compress
-command output, the codebase-memory-mcp MCP server is enabled, and the skills are turned on.
-`install.sh` prompts for the **root of your sources** (a directory of many repos)
-and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
+command output and the skills are turned on. token-diet ships no MCP server (its
+`.mcp.json` is empty). Symbolic C#/.NET navigation and editing now live in the
+**dev-team** plugin as its **serena-forge** integration.
 
 ## How it's wired into OMP
 
@@ -64,8 +63,7 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   See `ctx-wire/README.md`.
 - **token-tools rule** → `rules/token-tools.md` (`alwaysApply: true`) is the
   agent-facing routing guidance for everything on this page: run commands with
-  no prefix, prefer codebase-memory-mcp over grep/glob/Read for structural
-  questions, `csharp-ls` for precise C# semantics, `astEdit` over whole-file
+  no prefix, `csharp-ls` for precise C# semantics, `astEdit` over whole-file
   rewrites, and how to recognize a stale/pre-restart shim session. OMP's rule
   provider only auto-discovers `rules/*.md` inside *configured* extension
   package roots, and a bare marketplace install of this plugin isn't one — so
@@ -94,14 +92,11 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
   subcommand surface and triggers automatically on "Jira", "Confluence", a bare
   issue key (`PROJ-123`), or an `atlassian.net` URL — the same always-on trigger
   pattern as the **context7** skill below.
-- **codebase-memory-mcp** → an MCP server (`.mcp.json`, binary launched in MCP mode,
-  **enabled by default**) exposing `search_graph`/`search_code`/`get_code_snippet`/
-  `trace_path`/`get_architecture`/`query_graph`/`detect_changes`/`get_graph_schema`/
-  `index_repository`/`index_status`/`list_projects`/`delete_project`/`manage_adr`/
-  `ingest_traces` (158 languages, embedded Hybrid LSP). See `skill://codebase-memory`.
-  Auto-syncs on file changes after the first index. For precise C# semantics the graph
-  can't answer (rename, exact references, live diagnostics, hover) it defers to the
-  `csharp-ls` LSP — see the **C# LSP** row.
+- **symbolic C#/.NET navigation** → no longer part of token-diet. token-diet ships
+  no MCP server (`.mcp.json` is empty). Roslyn-based symbolic navigation and editing
+  for C#/.NET now live in the **dev-team** plugin as its **serena-forge** integration
+  (built on [oraios/serena](https://github.com/oraios/serena)). For precise C#
+  semantics token-diet still wires the `csharp-ls` LSP — see the **C# LSP** row.
 - **skills** → `install.sh` appends `config.snippet.yml` to `~/.omp/agent/config.yml`
   enabling skill commands and applying provider isolation. `--no-config` to skip.
 - **context7** → CLI mode (`ctx7 library` / `ctx7 docs` via bash — no MCP process).
@@ -141,11 +136,10 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
 - **C# LSP** → `install.sh` installs `csharp-ls` via `dotnet tool install -g csharp-ls`
   (if .NET SDK present) and writes `~/.omp/agent/lsp.json` to register it for `.cs`/
   `.csx` files. OMP auto-activates it when a `.sln`/`.slnx`/`.csproj` is detected. It
-  stays alongside codebase-memory-mcp on purpose: the knowledge graph answers
-  structural/whole-repo questions (incl. C#, via the embedded Hybrid LSP), while
-  `csharp-ls` is a full language server reserved for the C#-only needs the graph can't
-  cover — exact find-all-references, rename, live diagnostics/type errors,
-  hover/signature help, completion.
+  is a full language server for precise C# semantics — exact find-all-references,
+  rename, live diagnostics/type errors, hover/signature help, completion. (Broader
+  Roslyn-based symbolic navigation/editing for C#/.NET lives in the dev-team plugin's
+  serena-forge integration.)
 - **caveman** → a native OMP skill (`/caveman`, levels lite/full/ultra) rather
   than the upstream installer, so it's first-class in OMP. See `skill://caveman`.
 - **yagni** → a native OMP skill (`/yagni`, levels lite/full/ultra/off) porting
@@ -195,14 +189,13 @@ and indexes each git repo it finds (`--sources-root=PATH`, `--depth=N`).
 
 Compaction/handoffs (history summarization), native AST tools (`astGrep`,
 `astEdit`, `summarizeCode`, `blockRangeAt`), and provider prompt/context caching.
-This plugin fills the remaining gaps: raw command output, persistent cross-file
-symbol graph, and verbose model output. See `skill://token-diet` for the full
-decision guide.
+This plugin fills the remaining gaps: raw command output and verbose model output.
+See `skill://token-diet` for the full decision guide.
 
 ## Notes
 
 - Pairs naturally with **copilot-preset** (cheap per-token models) — fewer tokens
   × cheaper tokens.
-- The code-graph MCP server (formerly CodeGraph) is centralized here as
-  codebase-memory-mcp; `dev-team/.mcp.json` carries no code-graph entry.
+- Symbolic C#/.NET navigation and editing live in the **dev-team** plugin's
+  serena-forge integration, not in token-diet.
 - Independent of the other plugins; install only what you want.

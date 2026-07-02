@@ -388,7 +388,7 @@ if ask "Install copilot-preset (route models through GitHub Copilot)?"; then
   plug copilot-preset "$ROOT/plugins/copilot-preset"; SEL_COPILOT=1
 fi
 
-if ask "Install token-diet (ctx-wire + codebase-memory-mcp + caveman + yagni + acli + LSP)?"; then
+if ask "Install token-diet (ctx-wire + caveman + yagni + acli + LSP)?"; then
   plug token-diet "$ROOT/plugins/token-diet"; SEL_TOKENDIET=1
 fi
 
@@ -425,7 +425,7 @@ check git      required    "git --version"
 check bun      required    "bun --version"
 check node     recommended "node --version"
 check omp      required    "omp --version"
-check codebase-memory-mcp optional "codebase-memory-mcp --version"
+check uvx      optional    "uvx --version"   # dev-team launches Serena (serena-forge) via uvx
 
 bold "OMP launch check"
 if have omp && omp --version >/dev/null 2>&1; then

@@ -8,9 +8,9 @@ you through them.
 
 | Plugin | What it does |
 |---|---|
-| **[`dev-team`](plugins/dev-team/)** | **Agentic dev team** — orchestrator + 32 specialist/critic agents, the `/specs` → `/plan` → `/build` → `/pr` workflow, a **forced plan gate** (test-after, tests required) and human gates, ~78 skills, and blocking guard extensions. Port of [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). All-cloud tiers; keep the high-volume small tier cheap. |
+| **[`dev-team`](plugins/dev-team/)** | **Agentic dev team** — orchestrator + 32 specialist/critic agents, the `/specs` → `/plan` → `/build` → `/pr` workflow, a **forced plan gate** (test-after, tests required) and human gates, ~78 skills, blocking guard extensions, and a **serena-forge** integration wiring [Serena](https://github.com/oraios/serena)'s Roslyn-based C#/.NET symbolic navigation + editing MCP (launched via `uvx --context ide-assistant`) — it redirects freehand `.cs` writes to Serena's symbolic edit tools, nudges whole-file `.cs` reads toward symbolic reads, and runs a scoped `dotnet build` safety net after edits. Port of [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (Bryan Finster). All-cloud tiers; keep the high-volume small tier cheap. |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **GitHub Copilot model preset** — route OMP (and the dev-team tiers) through `github-copilot` to run on a Copilot license. Config-only: tier→model mapping, post-June-2026 AI-credit pricing comparison, and MAI-Code-1-Flash wired in. |
-| **[`token-diet`](plugins/token-diet/)** | **Aggressive token reduction** — ctx-wire (transparent command-output compression + secret scrub), codebase-memory-mcp (MCP symbol/call-graph queries instead of grep+read; csharp-ls LSP kept for precise C# semantics), an `atlassian` skill driving the `acli` CLI for Jira/Confluence reads and writes, a read-only cache-meter (live cost/prompt-cache statusline + `/cache-health`), a caveman terse-output skill, a yagni minimal-code skill, and an `mcp-as-cli-skill-creator` skill that turns an MCP/OpenAPI/GraphQL into a schema-free runtime CLI — layered on OMP's native compaction/`astGrep`. |
+| **[`token-diet`](plugins/token-diet/)** | **Aggressive token reduction** — ctx-wire (transparent command-output compression + secret scrub), the `csharp-ls` LSP kept for precise C# semantics, an `atlassian` skill driving the `acli` CLI for Jira/Confluence reads and writes, a read-only cache-meter (live cost/prompt-cache statusline + `/cache-health`), a caveman terse-output skill, a yagni minimal-code skill, and an `mcp-as-cli-skill-creator` skill that turns an MCP/OpenAPI/GraphQL into a schema-free runtime CLI — layered on OMP's native compaction/`astGrep`. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem** — read repos/files/PRs/diffs via `ado://` URIs (paginated), PR **gates/policies** + CI (builds/logs/run), create/checkout/push/complete PRs, comment/vote. Backed by the **Azure CLI** (`az` + the azure-devops extension), PAT auth, SQLite read cache; works behind corporate TLS proxies. |
 | **[`openai-compatible`](plugins/openai-compatible/)** | **Any OpenAI-compatible provider** — point it at a LiteLLM, Ollama, vLLM, or LocalAI endpoint (name + URL + API key); the installer lists the models and writes the provider into `~/.omp/agent/models.yml` with runtime discovery, usable as `<name>/<model-id>`. API key stored chmod 600, never in env. |
 | **[`datadog`](plugins/datadog/)** | **Datadog observability from the terminal** — via the Datadog [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, RUM, security/audit, CI test visibility, LLM observability). One broad `datadog` skill drives pup; installer sets up pup + auth. |
@@ -37,7 +37,7 @@ via GitHub Copilot: `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 5
 the dev-team orchestrator + architecture/domain design — non-trivial work goes
 research → plan → implement → review), `slow` → **Opus** (high-stakes security
 verdicts); without it, the same tiers on Anthropic ids. token-diet's
-ctx-wire + codebase-memory-mcp and the skills are enabled too. **`--no-config`** leaves your
+ctx-wire and the skills are enabled too. **`--no-config`** leaves your
 config + mcp.json untouched.
 
 The only MCP server configured in `~/.omp/agent/mcp.json` is **`github`** (enabled when
@@ -116,7 +116,7 @@ tools at their latest versions) — see its README:
 
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (prereq check + config). All-cloud; no local backend.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, then `omp` → `/login` → GitHub Copilot.
-- **token-diet** → `bash plugins/token-diet/install.sh` (installs ctx-wire + codebase-memory-mcp, indexes your repos), then enable the `codebase-memory-mcp` MCP server.
+- **token-diet** → `bash plugins/token-diet/install.sh` (installs ctx-wire + the `csharp-ls` LSP).
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installs the Azure CLI + azure-devops extension, prompts for org/project/PAT, runs `az devops login`), then restart `omp` so the `ado` tool loads.
 - **openai-compatible** → `bash plugins/openai-compatible/install.sh --name=litellm --url=http://localhost:4000 --api-key=…` (lists the endpoint's models, writes the provider to `~/.omp/agent/models.yml`), then restart `omp`.
 - **datadog** → `bash plugins/datadog/install.sh` (installs the Datadog `pup` CLI + sets up auth; `--with-skills` to also add pup's domain skills).
@@ -173,13 +173,13 @@ Verified end-to-end and in CI (Linux/macOS/Windows — see
 [`.github/workflows/installers.yml`](.github/workflows/installers.yml)): all
 `install.sh` pass `bash -n`; all `install.ps1` parse under PowerShell 7; all
 manifests are valid JSON; the 8 dev-team extensions (plus the token-diet,
-azure-devops-fs, openai-compatible, and datadog extension modules) compile under `bun`; ctx-wire,
-codebase-memory-mcp, and OMP install via the exact commands the scripts use; and all six
+azure-devops-fs, openai-compatible, and datadog extension modules) compile under `bun`; ctx-wire
+and OMP install via the exact commands the scripts use; and all six
 plugins install through real OMP on each OS (`omp plugin marketplace add ./` →
 `omp plugin install <name>@omp-dev-team`).
 
 ## Credits
 
-- `dev-team` ports [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (MIT, Bryan Finster).
-- `token-diet` bundles [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire), [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp), [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman), and [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (yagni).
+- `dev-team` ports [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (MIT, Bryan Finster); its serena-forge integration wires [oraios/serena](https://github.com/oraios/serena) (MIT).
+- `token-diet` bundles [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire), [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman), and [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (yagni).
 - `azure-devops-fs` mirrors the "GitHub as a filesystem" idea from [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

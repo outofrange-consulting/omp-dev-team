@@ -1,7 +1,7 @@
 {
   "name": "token-diet",
-  "version": "1.9.0",
-  "description": "Aggressive token reduction for OMP dev teams: ctx-wire for transparently compressed + secret-scrubbed shell output (with EN+FR multilingual filters for git/dotnet), context-mode for language-agnostic output sandboxing, codebase-memory-mcp for symbol/call-graph queries instead of grep+read (with csharp-ls LSP retained for precise C# semantics), an `atlassian` skill that drives the acli CLI for Jira/Confluence reads and writes, a caveman terse-output skill, a yagni minimal-code skill (ponytail-style), plus context-transform extensions: lossless read-dedup + context-dedup (on by default) and a protect-masked context compressor (safe-level on by default, lite/full opt-in — the quality-preserving take on caveman-code's LLMLingua/Provence). Layers on top of OMP's native compaction + astGrep/summarizeCode.",
+  "version": "1.10.0",
+  "description": "Aggressive token reduction for OMP dev teams: ctx-wire for transparently compressed + secret-scrubbed shell output (with EN+FR multilingual filters for git/dotnet), context-mode for language-agnostic output sandboxing, a csharp-ls LSP for precise C# semantics, an `atlassian` skill that drives the acli CLI for Jira/Confluence reads and writes, a caveman terse-output skill, a yagni minimal-code skill (ponytail-style), plus context-transform extensions: lossless read-dedup + context-dedup (on by default) and a protect-masked context compressor (safe-level on by default, lite/full opt-in — the quality-preserving take on caveman-code's LLMLingua/Provence). Layers on top of OMP's native compaction + astGrep/summarizeCode. (Symbolic C# navigation/editing moved to the dev-team plugin's serena-forge integration.)",
   "author": { "name": "outofrange-consulting" },
   "license": "MIT",
   "homepage": "https://github.com/outofrange-consulting/omp-dev-team"
