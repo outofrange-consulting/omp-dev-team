@@ -10,7 +10,7 @@
     {
       "name": "dev-team",
       "source": "./dev-team",
-      "description": "Agentic dev team (port of bdfinst/agentic-dev-team): orchestrator + 32 specialist/critic agents, the specs->plan->build->pr workflow, a forced plan gate (scope->plan->build->review) with tests required, human gates, ~80 skills, and blocking guard extensions — including the serena-forge integration that forces symbolic C# navigation/editing through Serena (Roslyn MCP), blocks freehand .cs writes, nudges whole-file .cs reads, and compiles touched projects after edits. All-cloud tiers.",
+      "description": "Agentic dev team (port of bdfinst/agentic-dev-team): orchestrator + 32 specialist/critic agents, the specs->plan->build->pr workflow, a forced plan gate (scope->plan->build->review) with tests required, human gates, ~80 skills, and blocking guard extensions — including the serena-forge integration that forces symbolic C# navigation/editing through Serena (Roslyn MCP), blocks freehand .cs writes, nudges whole-file .cs reads, and gates the session on a strict build + tests of touched projects after edits. All-cloud tiers.",
       "category": "development",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

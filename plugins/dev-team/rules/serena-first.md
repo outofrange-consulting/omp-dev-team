@@ -41,12 +41,15 @@ Editing `.cs` via `write` / `edit` / `astEdit` is **BLOCKED globally** by the
 
 See the `serena-refactor` skill for recipes and the CRLF-diff pitfall.
 
-## Build safety net
+## Build + test gate (blocking)
 
-After Serena C# edits, the `serena-build-net` extension compiles the touched
-project(s) with a scoped `dotnet build --no-restore` at end of turn and surfaces
-any compiler errors. Treat a red build as **unfinished work** — fix it through
-Serena. (Opt out with `SERENA_FORGE_BUILD=0`.)
+After Serena C# edits, the `serena-build-net` extension gates the end of the
+session: it runs a strict `dotnet build -warnaserror` of the touched project(s)
+and then the stack's `dotnet test`. If the build or a test fails, the stop is
+**blocked** and the errors are handed back — a red build or failing test is
+**unfinished work**; fix it through Serena. A bounded fix counter (default 3)
+prevents trapping. Opt out only on request: `SERENA_FORGE_BUILD=0` (whole gate)
+or `SERENA_FORGE_TEST=0` (build only).
 
 ## No bypass
 

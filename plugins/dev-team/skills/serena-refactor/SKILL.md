@@ -33,15 +33,18 @@ consistent.
    to confirm the edit compiles with no new errors — then **check the git diff**
    (see the CRLF pitfall — not optional when `.editorconfig` enforces CRLF).
 
-> **Build safety net (automatic).** The `serena-build-net` extension queues the
-> touched `.csproj` on every Serena symbolic edit and runs one scoped
-> `dotnet build --no-restore` at `turn_end`. If it fails, the compiler errors are
-> surfaced as a warning — **fix them through Serena before finishing; a red build
-> is unfinished work.** `get_diagnostics_*` is your fast in-loop check; the
-> end-of-turn build is the real signal. (OMP's `turn_end` can't re-open the turn,
-> so this reports rather than hard-blocks like the upstream Stop hook — for a hard
-> gate use `/impl-verify`.) Opt out with `SERENA_FORGE_BUILD=0` only if the user
-> asks.
+> **Build + test gate (automatic, blocking).** The `serena-build-net` extension
+> queues the touched `.csproj` on every Serena symbolic edit and, at
+> `session_stop` (when you're about to finish), runs a strict scoped
+> `dotnet build -warnaserror` of each touched project and then the stack's
+> `dotnet test`. If the build fails **or** a test fails, the stop is **BLOCKED**
+> (OMP `session_stop` hook) and the errors are handed back — **fix them through
+> Serena before finishing; a red build or failing test is unfinished work.**
+> `get_diagnostics_*` is your fast in-loop check; the stop-time build+test is the
+> real gate. A bounded fix counter (`maxFixes`, default 3, from
+> `.omp/dev-team.json → implVerify`) degrades to a warning once spent, so you're
+> never trapped. Opt out only if the user asks: `SERENA_FORGE_BUILD=0` (whole
+> gate) or `SERENA_FORGE_TEST=0` (build-only, skip tests).
 
 ## Verified Serena write tools
 

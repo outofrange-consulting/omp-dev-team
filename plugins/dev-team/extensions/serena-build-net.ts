@@ -1,30 +1,37 @@
-// serena-build-net.ts — dotnet build safety net after Serena edits.
+// serena-build-net.ts — build + test safety net after Serena C# edits.
 //
 // Port of the serena-forge Claude Code hooks `queue-build.sh` (PostToolUse on
-// Serena's symbolic write tools) + `flush-build-queue.sh` (Stop hook). During a
-// turn we note the `.csproj` that owns each Serena-edited `.cs` file; at
-// `turn_end` we compile the touched project(s) once with a scoped
-// `dotnet build --no-restore` and surface any compiler errors.
+// Serena's symbolic write tools) + `flush-build-queue.sh` (blocking Stop hook).
+// During a turn we note the `.csproj` that owns each Serena-edited `.cs` file; at
+// `session_stop` (the agent is about to finish) we compile the touched
+// project(s) and, unless disabled, run the stack's tests. If either fails we
+// BLOCK the stop and hand the errors back so the agent fixes them before the
+// turn can end — a red build (or a failing test) is unfinished work.
 //
-// This is the compilation check the graph/symbol tools can't give you: after
-// Serena mutates a symbol, the touched project is actually compiled by Roslyn's
-// real build. Debounced to one build per turn (a full build after every symbolic
-// edit is prohibitively slow on large solutions).
+// This is a HARD gate: OMP's `session_stop` hook may return
+// `{ decision: "block", reason }` to prevent the agent stopping (the same
+// mechanism Claude Code's Stop hook uses). To guarantee we never trap the user,
+// a bounded fix counter (maxFixes, default 3) degrades to report-only once the
+// budget is spent — and OMP itself caps consecutive continuations at 8.
 //
-// FIDELITY NOTE: serena-forge's Stop hook can *block the stop* and force a fix
-// loop. OMP's `turn_end` fires after the turn and cannot re-open it, so this port
-// is REPORT-ONLY — it emits the compiler errors as a warning. Treat a red build
-// as unfinished work and fix it (through Serena) on the next turn. For a hard
-// gate, use /impl-verify.
+// Opt-outs (env):
+//   SERENA_FORGE_BUILD=0   disable the whole safety net (build + test gate)
+//   SERENA_FORGE_TEST=0    build-gate only; do NOT run tests
+// Per-repo command/budget overrides live in .omp/dev-team.json -> implVerify
+// (shared with /impl-verify), e.g.:
+//   { "implVerify": { "maxFixes": 3,
+//       "stacks": { "dotnet": { "build": "dotnet build -warnaserror",
+//                               "test":  "dotnet test --nologo" } } } }
 //
-// Opt-out: SERENA_FORGE_BUILD=0 disables the whole safety net.
-// FAIL-OPEN: any internal error (no dotnet, no csproj, spawn failure) is a
-// silent no-op — the safety net never breaks a turn because of its own bug.
+// FAIL-OPEN: a missing toolchain (no dotnet) or an internal error allows the
+// stop — the net never traps a turn because of its own bug.
 
 import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
+import { DEFAULT_STACKS, tail } from "./lib/impl-verify-core.ts";
+import { readJSON, readState, writeState } from "./lib/shared.ts";
 
 // Serena's symbolic write tools. Matched by suffix so it works whether OMP
 // exposes them bare (`replace_symbol_body`) or namespaced (`serena__…`,
@@ -61,13 +68,11 @@ function isCSharpFile(p: string): boolean {
 // we never escape the repo. Returns an absolute .csproj path or null.
 function nearestCsproj(absFile: string, cwd: string): string | null {
 	let dir = dirname(absFile);
-	// Guard against an unbounded loop; a repo tree is never this deep.
 	for (let i = 0; i < 64 && dir && dir !== "/"; i++) {
 		try {
 			const proj = readdirSync(dir).find((f) => f.toLowerCase().endsWith(".csproj"));
 			if (proj) return join(dir, proj);
 		} catch {
-			/* unreadable dir — stop walking */
 			break;
 		}
 		if (dir === cwd) break;
@@ -78,14 +83,59 @@ function nearestCsproj(absFile: string, cwd: string): string | null {
 	return null;
 }
 
+interface DevTeamConfig {
+	implVerify?: {
+		maxFixes?: number;
+		stacks?: { dotnet?: { build?: string; test?: string } };
+	};
+}
+
+// Run a shell command; return {ok, output, timedOut, missing}. missing=true when
+// the toolchain isn't installed (ENOENT) — we fail open on that.
+function run(cmd: string, cwd: string): {
+	ok: boolean;
+	output: string;
+	timedOut: boolean;
+	missing: boolean;
+} {
+	try {
+		const output = execSync(cmd, {
+			cwd,
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "pipe"],
+			env: process.env,
+			timeout: 15 * 60 * 1000, // 15 min hard cap so a hang can't wedge the stop
+			maxBuffer: 32 * 1024 * 1024,
+		});
+		return { ok: true, output, timedOut: false, missing: false };
+	} catch (err) {
+		const e = err as {
+			code?: string | number;
+			signal?: string;
+			stdout?: string;
+			stderr?: string;
+			message?: string;
+		};
+		const missing = e.code === "ENOENT";
+		const timedOut = e.signal === "SIGTERM" || e.code === "ETIMEDOUT";
+		const output = `${e.stdout ?? ""}${e.stderr ?? ""}` || e.message || "";
+		return { ok: false, output, timedOut, missing };
+	}
+}
+
 export default function serenaBuildNet(pi: ExtensionAPI) {
 	pi.setLabel("serena-build-net");
 
-	// Absolute .csproj paths touched by Serena edits during the current turn.
+	// Absolute .csproj paths touched by Serena edits during the session.
 	let queue = new Set<string>();
 
-	pi.on("session_start", async () => {
+	pi.on("session_start", async (_event, ctx) => {
 		queue = new Set<string>();
+		try {
+			writeState(ctx.cwd, "serena-build.json", { attempts: 0 });
+		} catch {
+			/* best-effort */
+		}
 	});
 
 	// Enqueue on the way in (pre-run): we build the project targeted this turn.
@@ -100,44 +150,106 @@ export default function serenaBuildNet(pi: ExtensionAPI) {
 		if (proj) queue.add(proj);
 	});
 
-	pi.on("turn_end", async (_event, ctx) => {
+	// HARD gate: block the stop until the touched project(s) build and tests pass.
+	pi.on("session_stop", async (_event, ctx) => {
 		if (process.env.SERENA_FORGE_BUILD === "0") {
 			queue = new Set<string>();
 			return;
 		}
-		if (queue.size === 0) return;
-		const projects = [...queue];
-		queue = new Set<string>();
-		if (!ctx.hasUI) return; // nothing to surface without a UI
+		if (queue.size === 0) return; // no C# edits this session → nothing to gate
+		const projects = [...queue].filter((p) => existsSync(p));
+		if (projects.length === 0) {
+			queue = new Set<string>();
+			return;
+		}
 
+		const cfg = readJSON<DevTeamConfig>(join(ctx.cwd, ".omp", "dev-team.json"), {});
+		const iv = cfg.implVerify ?? {};
+		const maxFixes = Math.max(1, iv.maxFixes ?? 3);
+		const buildCmd = iv.stacks?.dotnet?.build ?? DEFAULT_STACKS.dotnet.build; // strict: -warnaserror
+		const testCmd = iv.stacks?.dotnet?.test ?? DEFAULT_STACKS.dotnet.test;
+		const runTests = process.env.SERENA_FORGE_TEST !== "0";
+
+		// --- strict build of each touched project (scoped, fast) ---
 		const failures: string[] = [];
 		for (const proj of projects) {
-			if (!existsSync(proj)) continue;
-			try {
-				execFileSync(
-					"dotnet",
-					["build", proj, "--no-restore", "--nologo", "-clp:NoSummary"],
-					{ cwd: ctx.cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
-				);
-				// exit 0 → compiled cleanly.
-			} catch (e) {
-				const err = e as { code?: string; stdout?: string; stderr?: string };
-				if (err.code === "ENOENT") return; // dotnet not installed → fail-open, stop
-				const out = `${err.stdout ?? ""}\n${err.stderr ?? ""}`;
-				const errs = out
-					.split("\n")
-					.filter((l) => /error/i.test(l))
-					.slice(0, 20)
-					.join("\n");
-				failures.push(`Project: ${proj}\n${errs || out.split("\n").slice(-20).join("\n")}`);
+			const r = run(`${buildCmd} "${proj}" --no-restore --nologo`, ctx.cwd);
+			if (r.missing) {
+				queue = new Set<string>();
+				return; // no dotnet → fail-open, allow stop
+			}
+			if (r.timedOut) {
+				if (ctx.hasUI)
+					ctx.ui.notify(`serena-forge: build of ${proj} timed out — skipping gate`, "warn");
+				queue = new Set<string>();
+				return; // don't wedge the stop on a slow/hung build
+			}
+			if (!r.ok) failures.push(`BUILD ${proj}\n${tail(r.output)}`);
+		}
+
+		// --- tests (whole configured suite), only if the build is clean ---
+		let testFailure = "";
+		if (failures.length === 0 && runTests) {
+			const r = run(testCmd, ctx.cwd);
+			if (r.missing) {
+				queue = new Set<string>();
+				return;
+			}
+			if (r.timedOut) {
+				if (ctx.hasUI)
+					ctx.ui.notify("serena-forge: tests timed out — skipping test gate", "warn");
+			} else if (!r.ok) {
+				testFailure = `TESTS ($ ${testCmd})\n${tail(r.output)}`;
 			}
 		}
-		if (failures.length === 0) return;
-		ctx.ui.notify(
-			`serena-forge build check FAILED after your C# edits — the touched project(s) do not compile. ` +
-				`Fix these through Serena before finishing (a red build is unfinished work):\n\n` +
-				`${failures.join("\n\n")}`,
-			"warn",
-		);
+
+		// --- verdict ---
+		if (failures.length === 0 && !testFailure) {
+			// Green: reset the counter, clear the queue, allow the stop.
+			try {
+				writeState(ctx.cwd, "serena-build.json", { attempts: 0 });
+			} catch {
+				/* best-effort */
+			}
+			queue = new Set<string>();
+			if (ctx.hasUI)
+				ctx.ui.notify(
+					`serena-forge: ${projects.length} touched project(s) build${runTests ? " + tests" : ""} green ✓`,
+					"info",
+				);
+			return; // allow stop
+		}
+
+		const detail = [...failures, testFailure].filter(Boolean).join("\n\n");
+		const prev = readState<{ attempts: number }>(ctx.cwd, "serena-build.json", {
+			attempts: 0,
+		});
+		const attempts = prev.attempts + 1;
+
+		if (attempts >= maxFixes) {
+			// Budget spent — report but DON'T trap the user. Reset and allow stop.
+			try {
+				writeState(ctx.cwd, "serena-build.json", { attempts: 0 });
+			} catch {
+				/* best-effort */
+			}
+			queue = new Set<string>();
+			if (ctx.hasUI)
+				ctx.ui.notify(
+					`serena-forge: build/tests still failing after ${attempts}/${maxFixes} attempts — stopping anyway. Escalate:\n\n${detail}`,
+					"warn",
+				);
+			return; // allow stop (HALT)
+		}
+
+		// Block the stop and feed the failure back so the agent fixes it.
+		writeState(ctx.cwd, "serena-build.json", { attempts });
+		return {
+			decision: "block",
+			reason:
+				`serena-forge build/test gate FAILED after your C# edits (fix attempt ${attempts}/${maxFixes}). ` +
+				`Do not finish with a red build or failing tests — fix the cause through Serena's symbolic tools, ` +
+				`then let the turn end. Opt out only if the user asks (SERENA_FORGE_BUILD=0, or SERENA_FORGE_TEST=0 for build-only).\n\n${detail}`,
+		};
 	});
 }
