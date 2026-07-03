@@ -334,10 +334,20 @@ write_config() {
 # Models via GitHub Copilot. Run 'omp' -> /login -> GitHub Copilot first.
 modelRoles:
   smol: github-copilot/gpt-5-mini
-  task: github-copilot/mai-code-1-flash
+  task: github-copilot/mai-code-1-flash-picker
   default: github-copilot/claude-sonnet-5
   plan: github-copilot/claude-sonnet-5
   slow: github-copilot/claude-opus-4.8
+EOF
+    # MAI-Code-1-Flash rollout can lag on non-VS-Code OAuth clients (CLI/API):
+    # GitHub returns 400 unsupported_api_for_model until your tenant's access
+    # lands (GA dates per pricing.md may run ahead of actual per-tenant
+    # rollout). This fallback keeps `task` productive meanwhile and reverts
+    # to MAI automatically once it responds (retry.fallbackRevertPolicy).
+    cfg_add retry <<'EOF'
+retry:
+  fallbackChains:
+    task: [github-copilot/gpt-5.4-mini, github-copilot/claude-haiku-4.5]
 EOF
   elif [ "${SEL_DEVTEAM:-0}" = 1 ]; then
     cfg_add modelRoles <<'EOF'

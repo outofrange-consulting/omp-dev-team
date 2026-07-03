@@ -42,7 +42,7 @@ complète et comparatif du moins cher au plus cher : **[`pricing.md`](pricing.md
 | Rôle | Tier | Modèle | entrée / sortie (par 1M) |
 |---|---|---|---|
 | `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | 0,25 $ / 2,00 $ |
-| `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash` | 0,75 $ / 4,50 $ |
+| `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash-picker` | 0,75 $ / 4,50 $ |
 | `default` / `plan` | balanced (+ design archi/domaine) | `github-copilot/claude-sonnet-5` | 3,00 $ / 15,00 $ |
 | `slow` | deep (verdicts sécurité) | `github-copilot/claude-opus-4.8` | 5,00 $ / 25,00 $ |
 
@@ -54,10 +54,18 @@ les surfaces au 2026-06-26). Il bat Claude Haiku 4.5 sur tous les benchs coding
 testés par Microsoft (SWE-Bench Verified 71,6 vs 66,6, SWE-Bench Pro 51,2 vs 35,2,
 Terminal Bench 2 54,8 vs 41,6) avec jusqu'à 60 % de tokens en moins — et il est
 moins cher que Haiku (1 $/5 $). L'extrait route le **tier `task` (code) sur
-`github-copilot/mai-code-1-flash`** (implémentation post-plan + revue structurelle),
+`github-copilot/mai-code-1-flash-picker`** (implémentation post-plan + revue structurelle),
 tandis que `smol` (nano, lexical) descend sur `gpt-5-mini` encore moins cher. Il
 reste sous Sonnet pour l'orchestration `default`/`plan` ; un bloc commenté permet
 de l'y basculer aussi pour un profil ultra-bon-marché.
+
+**Problème connu (2026-07) :** GitHub peut encore restreindre MAI-Code-1-Flash
+aux clients OAuth VS Code sur certains tenants, même après ses dates GA
+publiées — les appels CLI/API échouent en 400 `unsupported_api_for_model`
+jusqu'à ce que l'accès de votre tenant arrive. `config.snippet.yml` fournit une
+entrée `retry.fallbackChains.task` (`gpt-5.4-mini` → `claude-haiku-4.5`) pour
+que le tier `task` reste productif entre-temps ; il revient à MAI
+automatiquement dès que GitHub répond.
 
 ## Notes
 

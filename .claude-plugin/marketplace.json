@@ -26,7 +26,7 @@
     {
       "name": "copilot-preset",
       "source": "./copilot-preset",
-      "description": "Ready, solid-but-cheap model configuration that routes OMP (and the dev-team) through GitHub Copilot, so teams run on their Copilot license. Config-only: paste the snippet; tier -> Copilot model mapping, post-2026-06-01 AI-credit/token pricing comparison, and MAI-Code-1-Flash ('MIA Coding') wired in for when it lands.",
+      "description": "Ready, solid-but-cheap model configuration that routes OMP (and the dev-team) through GitHub Copilot, so teams run on their Copilot license. Config-only: paste the snippet; tier -> Copilot model mapping, post-2026-06-01 AI-credit/token pricing comparison, and MAI-Code-1-Flash ('MIA Coding') wired in.",
       "category": "configuration",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

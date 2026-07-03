@@ -61,22 +61,29 @@ a strict Pareto improvement over Haiku for the high-volume cheap tiers — this
 preset now routes `smol`/`task` to it. It still sits below Sonnet (71.6
 SWE-bench), so it is *not* the default orchestration model.
 
+**Known issue (2026-07):** despite the GA dates above, GitHub can still gate
+MAI-Code-1-Flash to VS-Code-only OAuth clients on some tenants — CLI/API calls
+400 with `unsupported_api_for_model` until your tenant's access lands.
+copilot-preset's `config.snippet.yml` ships a `retry.fallbackChains.task`
+entry (`gpt-5.4-mini` → `claude-haiku-4.5`) so `task` stays productive
+meanwhile, reverting to MAI automatically once it responds.
+
 ## Cheapest-first guidance (limit token spend)
 
 - **High-volume cheap end, split by workload shape** (dev-team's `nano` + `code`):
   - `smol` → **nano** ($0.25/$2.00 `gpt-5-mini`): pure lexical/checklist reviewers
     (naming, complexity, token-efficiency, a11y, progress-guardian) and
     input-bound scan — no code semantics or tool-use, so the cheapest model wins.
-  - `task` → **code** ($0.75/$4.50 `mai-code-1-flash`): work that edits code or
+  - `task` → **code** ($0.75/$4.50 `mai-code-1-flash-picker`): work that edits code or
     drives tools (post-plan implementation, js-fp/svelte structural review) —
     best coding quality per dollar, beats Haiku 4.5 on every bench at lower cost.
   - Don't put coding/tool-use work on `gpt-5-mini` (weaker at code) or lexical
-    checklists on `mai-code-1-flash` (over-pays ~2×) — match the model to the shape.
+    checklists on `mai-code-1-flash-picker` (over-pays ~2×) — match the model to the shape.
 - **Balanced everyday** (`default`/`plan`): `claude-sonnet-5` ($3/$15) — same
   price as Sonnet 4.6 but near-Opus quality on coding/agentic work and `xhigh`
   effort, so it now also carries architecture/domain design synthesis
   (architect, arch-review, domain-review, moved down from the deep tier). Or
-  `mai-code-1-flash` / `gpt-5.4-mini` for an ultra-cheap profile.
+  `mai-code-1-flash-picker` / `gpt-5.4-mini` for an ultra-cheap profile.
 - **Deep reasoning** (`slow`): `claude-opus-4.8` ($5/$25), reserved for
   high-stakes SECURITY verdicts (security-review, security-engineer) where Opus
   still leads Sonnet 5 — routing those to Sonnet 5 would save 40% in/40% out but

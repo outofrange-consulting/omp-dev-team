@@ -19,11 +19,11 @@
 # review and input-bound scan (no code semantics, no tool-use); code is cheap
 # coding & agentic tool-use. Keep both on the cheapest capable model for the
 # shape. On base Anthropic both resolve to Haiku; copilot-preset splits them
-# (smol -> gpt-5-mini, task -> mai-code-1-flash).
+# (smol -> gpt-5-mini, task -> mai-code-1-flash-picker).
 modelRoles:
   # nano tier (lexical/scan) -> cheapest capable. copilot-preset -> gpt-5-mini.
   smol: claude-haiku-4-5
-  # code tier (coding/tool-use) -> cheap coding model. copilot-preset -> mai-code-1-flash.
+  # code tier (coding/tool-use) -> cheap coding model. copilot-preset -> mai-code-1-flash-picker.
   task: claude-haiku-4-5
   # everyday DEFAULT -> Sonnet 5 runs the orchestrator (non-trivial -> research ->
   # plan -> implement -> review). Sonnet 5 also now covers architecture/domain

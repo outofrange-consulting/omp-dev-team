@@ -41,7 +41,7 @@ cheapest-first comparison: **[`pricing.md`](pricing.md)**.
 | Role | Tier | Model | in / out (per 1M) |
 |---|---|---|---|
 | `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
-| `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash` | $0.75 / $4.50 |
+| `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash-picker` | $0.75 / $4.50 |
 | `default` / `plan` | balanced (+ archi/domain design) | `github-copilot/claude-sonnet-5` | $3.00 / $15.00 |
 | `slow` | deep (security verdicts) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
 
@@ -52,10 +52,17 @@ Microsoft's cheap, coding-tuned model ($0.75 / $4.50), **GA on Copilot since
 Haiku 4.5 on every coding bench Microsoft tested (SWE-Bench Verified 71.6 vs 66.6,
 SWE-Bench Pro 51.2 vs 35.2, Terminal Bench 2 54.8 vs 41.6) with up to 60% fewer
 tokens — and it's cheaper than Haiku ($1/$5). The snippet runs the **`task`/code
-tier on `github-copilot/mai-code-1-flash`** (post-plan implementation + structural
+tier on `github-copilot/mai-code-1-flash-picker`** (post-plan implementation + structural
 code review), while the lower `smol`/nano tier drops to even-cheaper `gpt-5-mini`
 for pure-lexical work. It's left below Sonnet for `default`/`plan` orchestration;
 a commented block lets you move that to it too for an ultra-cheap profile.
+
+**Known issue (2026-07):** GitHub may still gate MAI-Code-1-Flash to
+VS-Code-only OAuth clients on some tenants even after its published GA dates —
+CLI/API calls 400 with `unsupported_api_for_model` until your tenant's access
+lands. `config.snippet.yml` ships a `retry.fallbackChains.task` entry
+(`gpt-5.4-mini` → `claude-haiku-4.5`) so `task`-tier work stays productive
+meanwhile; it reverts to MAI automatically once GitHub responds.
 
 ## Notes
 

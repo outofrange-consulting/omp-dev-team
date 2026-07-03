@@ -13,7 +13,7 @@ globs:
     `modelRoles.smol` (default Haiku; copilot-preset → gpt-5-mini).
   - `pi/task` — **code**: cheap work needing code semantics or agentic tool-use
     (post-plan implementation, structural code-semantic review). Routed via
-    `modelRoles.task` (default Haiku; copilot-preset → mai-code-1-flash).
+    `modelRoles.task` (default Haiku; copilot-preset → mai-code-1-flash-picker).
   - `pi/plan` — **balanced** semantic / cross-file analysis, incl. architecture &
     domain design synthesis. Routed via `modelRoles.plan` (default
     claude-sonnet-5; copilot-preset → github-copilot/claude-sonnet-5).

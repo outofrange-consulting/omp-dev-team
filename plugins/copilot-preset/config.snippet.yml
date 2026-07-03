@@ -37,7 +37,7 @@ modelRoles:
   # beats Haiku 4.5 on every coding bench tested (SWE-Bench Verified 71.6 vs 66.6,
   # SWE-Bench Pro 51.2 vs 35.2, Terminal Bench 2 54.8 vs 41.6) with up to 60%
   # fewer tokens — and it's cheaper than Haiku.
-  task: github-copilot/mai-code-1-flash    # code  $0.75 / $4.50
+  task: github-copilot/mai-code-1-flash-picker    # code  $0.75 / $4.50
   # everyday DEFAULT — Sonnet 5 runs the dev-team orchestrator (non-trivial work ->
   # research -> plan -> implement -> review). Sonnet 5 lands near-Opus quality on
   # coding & agentic work at the same $3/$15 Sonnet price, so it now also carries
@@ -50,6 +50,15 @@ modelRoles:
   # security-engineer) where Opus still leads Sonnet 5.
   slow: github-copilot/claude-opus-4.8     # $5.00 / $25.00
 
+# MAI-Code-1-Flash rollout can lag on non-VS-Code OAuth clients (CLI/API):
+# GitHub returns 400 unsupported_api_for_model until your tenant's access
+# lands (GA dates below may run ahead of actual per-tenant rollout). This
+# fallback keeps `task` productive meanwhile and reverts to MAI automatically
+# once it responds (retry.fallbackRevertPolicy, default cooldown-expiry).
+retry:
+  fallbackChains:
+    task: [github-copilot/gpt-5.4-mini, github-copilot/claude-haiku-4.5]
+
 skills:
   enableSkillCommands: true
 
@@ -59,8 +68,8 @@ skills:
 # uncomment — trades some orchestration quality for ~4x cheaper output vs Sonnet:
 #
 # modelRoles:
-#   default: github-copilot/mai-code-1-flash   # ultra-cheap everyday profile
-#   plan:    github-copilot/mai-code-1-flash
+#   default: github-copilot/mai-code-1-flash-picker   # ultra-cheap everyday profile
+#   plan:    github-copilot/mai-code-1-flash-picker
 # ---------------------------------------------------------------------------
 
 # NOTE — running the dev-team fully on Copilot:

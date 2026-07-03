@@ -62,14 +62,14 @@ qu'aucune moitié ne surpaie le modèle de l'autre :
 | Tier | Frontmatter | Pour |
 |---|---|---|
 | nano | `pi/smol` (cloud le moins cher ; Haiku, ou gpt-5-mini sur Copilot) | revue purement lexicale/checklist + scan input-bound — pas de sémantique code ni de tool-use ; plus gros volume |
-| code | `pi/task` (cloud coding bon marché ; Haiku, ou mai-code-1-flash sur Copilot) | travail cheap nécessitant sémantique code ou tool-use agentique : implémentation post-plan (software-engineer, qa-engineer), revue structurelle (js-fp, svelte), codebase-recon (proportionnel à la taille via l'effort-band) |
+| code | `pi/task` (cloud coding bon marché ; Haiku, ou mai-code-1-flash-picker sur Copilot) | travail cheap nécessitant sémantique code ou tool-use agentique : implémentation post-plan (software-engineer, qa-engineer), revue structurelle (js-fp, svelte), codebase-recon (proportionnel à la taille via l'effort-band) |
 | balanced | `pi/plan` → `claude-sonnet-5` | la plupart des agents de revue + l'orchestrateur + les agents d'équipe hors-build + la synthèse de design archi/domaine (architect, arch-review, domain-review) |
 | deep | `pi/slow` → `claude-opus-4-8` | verdicts de sécurité à fort enjeu (security-review, security-engineer) où Opus devance encore Sonnet 5 |
 
 Les tiers **nano + code** à gros volume sont là où la dépense de tokens se
 concentre — gardez-les bon marché. Sur Anthropic de base, les deux résolvent vers
 Haiku ; le plugin **copilot-preset** les scinde (`smol` → `github-copilot/gpt-5-mini`,
-`task` → `github-copilot/mai-code-1-flash`). Combinez avec **token-diet** pour
+`task` → `github-copilot/mai-code-1-flash-picker`). Combinez avec **token-diet** pour
 réduire encore les tokens. Source de vérité :
 `skills/dev-team-knowledge/model-routing.json` ; diagnostic via `/routing`.
 
