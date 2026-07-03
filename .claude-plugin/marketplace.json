@@ -34,7 +34,7 @@
     {
       "name": "token-diet",
       "source": "./token-diet",
-      "description": "Aggressive token reduction: ctx-wire for transparently compressed + secret-scrubbed shell output, context-mode output sandboxing, a csharp-ls LSP for precise C# semantics, an atlassian skill driving the acli CLI for Jira/Confluence reads and writes, caveman terse-output + yagni minimal-code skills, plus context-transform extensions (lossless read-dedup + context-dedup on by default; protect-masked context-compress at safe by default, the quality-preserving take on caveman-code's LLMLingua/Provence). Layers on OMP's native compaction + astGrep; ships an always-on routing rule, skills, extensions, and a setup script. (Symbolic C# code intelligence moved to the dev-team plugin's serena-forge integration.)",
+      "description": "Aggressive token reduction: ctx-wire for transparently compressed + secret-scrubbed shell output, context-mode output sandboxing, an atlassian skill driving the acli CLI for Jira/Confluence reads and writes, caveman terse-output + yagni minimal-code skills, plus context-transform extensions (lossless read-dedup + context-dedup on by default; protect-masked context-compress at safe by default, the quality-preserving take on caveman-code's LLMLingua/Provence). Layers on OMP's native compaction + astGrep; ships an always-on routing rule, skills, extensions, and a setup script. (Symbolic C# code intelligence AND precise C# semantics moved to the dev-team plugin's serena-forge integration.)",
       "category": "productivity",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # dev-team installer (Linux/macOS) — prerequisite checker + optional config apply.
 # The agentic dev team is all-cloud: no local model backend to install. It needs
-# OMP + git; a few skills optionally use gh / semgrep / docker / python3.
+# OMP + git; a few skills optionally use gh / semgrep / docker / python3. The
+# bundled serena-forge integration additionally needs .NET 10+ (installed below
+# if missing) and uvx (checked only, never auto-installed) for its C# backend.
 # Flags: --apply-config (append config.snippet.yml), --no-update (no-op), -y.
 set -euo pipefail
 
@@ -9,7 +11,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APPLY=0; INSECURE_TLS=0
 for a in "$@"; do case "$a" in
   --apply-config) APPLY=1 ;; --no-update) ;; -y|--yes) ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
-  -h|--help) sed -n '2,6p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,7p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -51,6 +53,42 @@ if have git; then ok "git ($(git --version | awk '{print $3}'))"; else warn "git
 for t in gh semgrep docker python3; do
   if have "$t"; then ok "$t (optional)"; else warn "$t not found (optional — used by some skills)"; fi
 done
+
+# --- .NET SDK (bundled serena-forge integration's C# backend needs .NET 10+) -
+# serena-forge (Serena's Roslyn-based Microsoft.CodeAnalysis.LanguageServer)
+# requires .NET 10+ on the host; Serena itself launches via uvx (checked below,
+# never auto-installed here) and downloads the Roslyn LS from NuGet on first
+# C# use. Skip harmlessly if you never touch .cs files.
+dotnet_major() {
+  if have dotnet; then dotnet --version 2>/dev/null | cut -d. -f1; else echo 0; fi
+}
+if [ "$(dotnet_major)" -lt 10 ]; then
+  if have brew; then
+    say "Installing .NET SDK (serena-forge's C# backend needs .NET 10+)"
+    run "brew install --cask dotnet-sdk || brew install dotnet || true"
+  elif have curl; then
+    say "Installing .NET SDK (LTS) via the official Microsoft script (serena-forge needs .NET 10+)"
+    run "curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && bash /tmp/dotnet-install.sh --channel LTS --install-dir \"$HOME/.dotnet\" || true"
+    rm -f /tmp/dotnet-install.sh 2>/dev/null || true
+  else
+    warn "need curl or brew to install the .NET SDK — see https://dot.net (needed for serena-forge's C# backend; harmless to skip if you never work in C#)"
+  fi
+  export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"
+  for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
+    [ -e "$p" ] || continue
+    grep -qsF 'DOTNET_ROOT' "$p" || printf '\n# omp-dev-team .NET (serena-forge)\nexport DOTNET_ROOT="$HOME/.dotnet"\nexport PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"\n' >> "$p"
+  done
+  hash -r 2>/dev/null || true
+fi
+if [ "$(dotnet_major)" -ge 10 ]; then ok "dotnet $(dotnet --version) (serena-forge C# backend)"
+elif have dotnet; then warn "dotnet $(dotnet --version) found but serena-forge's C# backend needs .NET 10+ (see https://dot.net)"
+else warn "dotnet not found — serena-forge's C# backend needs .NET 10+ (see https://dot.net; harmless to skip if you never work in C#)"; fi
+
+# --- uvx (from uv) — launches the bundled Serena MCP server -----------------
+# Never auto-installed here (a package manager should own it, and Serena's
+# setup skills explicitly tell users to install uv themselves, not the agent).
+if have uvx; then ok "uvx ($(uvx --version 2>/dev/null))"
+else warn "uvx not found — serena-forge's Serena MCP server can't launch (install uv: https://github.com/astral-sh/uv)"; fi
 
 # --- Optionally apply the config snippet ------------------------------------
 CFG="$HOME/.omp/agent/config.yml"

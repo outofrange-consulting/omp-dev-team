@@ -26,7 +26,7 @@ Then paste `config.snippet.yml` into `~/.omp/agent/config.yml` (model routing +
 `skills.enableSkillCommands` + the task graph). The plugin's prerequisite checker:
 
 ```sh
-bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, can apply config
+bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, installs .NET 10+ for serena-forge, can apply config
 ```
 
 ## The workflow

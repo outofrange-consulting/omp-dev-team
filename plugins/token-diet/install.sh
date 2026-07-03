@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # token-diet installer (Linux/macOS) — installs the LATEST ctx-wire. caveman/yagni
-# ship as OMP skills. Also sets up the acli (Atlassian CLI), ast-grep, the .NET SDK +
-# csharp-ls LSP, and the ctx7 docs CLI. Everything is refreshed to latest by default.
-# (Symbolic C# navigation/edit is provided by the dev-team plugin's serena-forge
-# integration, not token-diet.)
+# ship as OMP skills. Also sets up the acli (Atlassian CLI), ast-grep, and the
+# ctx7 docs CLI. Everything is refreshed to latest by default.
+# (Symbolic C# navigation/edit AND precise C# semantics — rename, exact
+# references, diagnostics, hover — are provided by the dev-team plugin's
+# Serena-backed serena-forge integration, not token-diet.)
 # Flags:
 #   --no-update          keep tools already installed (don't refresh them)
 #   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
 #   --no-context-mode    don't install the context-mode OMP plugin
 #   --no-acli            don't install / authenticate the Atlassian CLI (acli)
 #   --no-cleanup         don't remove obsolete predecessors (codebase-memory-mcp,
-#                        CodeGraph, RTK) from this machine on install
+#                        CodeGraph, RTK, csharp-ls) from this machine on install
 #   ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN (env)  non-interactive acli auth (auto-run
 #                        on install when acli isn't already authenticated)
 #   -y, --yes            non-interactive (don't prompt for auth)
@@ -24,7 +25,7 @@ for a in "$@"; do case "$a" in
   --no-context-mode) NO_CTXMODE=1 ;;
   --no-acli) NO_ACLI=1 ;;
   --no-cleanup) NO_CLEANUP=1 ;;
-  -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -63,18 +64,22 @@ case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$P
 
 # --- Clean up obsolete predecessors on (re)install --------------------------
 # Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
-# then codebase-memory-mcp) and, before ctx-wire, RTK. Those are gone now — the
-# symbolic C# code intelligence moved to the dev-team plugin's serena-forge
-# integration, and ctx-wire replaced RTK. But an upgrade/uninstall does NOT remove
-# what a past install left on the machine (an OMP mcp.json entry + a leftover
-# binary that keeps a dead MCP server wired). This step reverses that: it
-# unregisters the obsolete MCP servers from OMP's mcp.json and removes the
-# leftover binaries/caches. Idempotent, existence-guarded, fail-open, and it only
-# ever touches these exact obsolete names. Skip with --no-cleanup.
+# then codebase-memory-mcp), before ctx-wire, RTK, and a csharp-ls LSP for C#
+# semantics. Those are gone now — the symbolic C# code intelligence AND precise
+# C# semantics (rename, exact references, diagnostics, hover) moved to the
+# dev-team plugin's Serena-backed serena-forge integration, and ctx-wire
+# replaced RTK. But an upgrade/uninstall does NOT remove what a past install
+# left on the machine (an OMP mcp.json entry + a leftover binary that keeps a
+# dead MCP server wired, or a global csharp-ls dotnet tool + lsp.json entry).
+# This step reverses that: it unregisters the obsolete MCP servers from OMP's
+# mcp.json, uninstalls the obsolete csharp-ls dotnet tool + its lsp.json entry,
+# and removes the leftover binaries/caches. Idempotent, existence-guarded,
+# fail-open, and it only ever touches these exact obsolete names. Skip with
+# --no-cleanup.
 cleanup_obsolete() {
   [ "${NO_CLEANUP:-0}" = 1 ] && return 0
-  say "Cleaning up obsolete tools (codebase-memory-mcp, CodeGraph, RTK)"
-  local removed=0 mcp="$HOME/.omp/agent/mcp.json" b d
+  say "Cleaning up obsolete tools (codebase-memory-mcp, CodeGraph, RTK, csharp-ls)"
+  local removed=0 mcp="$HOME/.omp/agent/mcp.json" lsp b d
 
   # 1) Unregister the obsolete MCP servers from OMP's mcp.json.
   if [ -f "$mcp" ]; then
@@ -117,6 +122,38 @@ PY
       say "  removed $d"; removed=1
     fi
   done
+
+  # 4) Uninstall the obsolete csharp-ls dotnet tool + its lsp.json entry —
+  # precise C# semantics now live in the dev-team plugin's serena-forge
+  # integration (Serena's Roslyn backend), not token-diet.
+  if have dotnet && dotnet tool list -g 2>/dev/null | grep -qi '^csharp-ls\b'; then
+    run "dotnet tool uninstall -g csharp-ls || true"
+    say "  uninstalled csharp-ls (dotnet tool)"; removed=1
+  fi
+  lsp="$HOME/.omp/agent/lsp.json"
+  if [ -f "$lsp" ]; then
+    if have python3; then
+      python3 - "$lsp" <<'PY' || true
+import json,os,sys
+p=sys.argv[1]
+try:
+    cfg=json.load(open(p))
+except Exception:
+    sys.exit(0)
+srv=cfg.get("servers") or {}
+if "csharp-ls" in srv:
+    srv.pop("csharp-ls",None)
+    if srv:
+        cfg["servers"]=srv
+        json.dump(cfg,open(p,"w"),indent=2); open(p,"a").write("\n")
+    else:
+        os.remove(p)
+    print("  removed csharp-ls from lsp.json")
+PY
+    else
+      warn "  python3 not found — remove any csharp-ls entry from $lsp by hand"
+    fi
+  fi
 
   if [ "$removed" = 0 ]; then say "  nothing obsolete found (already clean)"; fi
   return 0
@@ -326,32 +363,6 @@ else
   warn "need npm or brew to install ast-grep — see https://ast-grep.github.io"
 fi
 
-# --- .NET SDK (official MS script) + csharp-ls (C# LSP) ----------------------
-# Install the .NET SDK with Microsoft's official no-sudo script so the C# LSP
-# works out of the box, then install csharp-ls as a global tool.
-if ! have dotnet; then
-  if have brew; then say "Installing .NET SDK (brew)"; run "brew install --cask dotnet-sdk || brew install dotnet || true"
-  elif have curl; then
-    say "Installing .NET SDK (LTS) via the official Microsoft script"
-    run "curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && bash /tmp/dotnet-install.sh --channel LTS --install-dir \"$HOME/.dotnet\" || true"
-    rm -f /tmp/dotnet-install.sh 2>/dev/null || true
-  else warn "need curl or brew to install the .NET SDK — see https://dot.net"; fi
-  export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"
-  for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
-    [ -e "$p" ] || continue
-    grep -qsF 'DOTNET_ROOT' "$p" || printf '\n# omp-dev-team .NET\nexport DOTNET_ROOT="$HOME/.dotnet"\nexport PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"\n' >> "$p"
-  done
-  hash -r 2>/dev/null || true
-fi
-if have dotnet; then
-  if have csharp-ls && [ "$NO_UPDATE" = 1 ]; then say "csharp-ls present"
-  elif have csharp-ls; then say "Updating csharp-ls"; run "dotnet tool update -g csharp-ls || true"
-  else say "Installing csharp-ls (.NET C# language server)"; run "dotnet tool install -g csharp-ls || true"; fi
-  ensure_path "$HOME/.dotnet/tools"; hash -r 2>/dev/null || true
-else
-  warn "dotnet not found — skipping csharp-ls (C# LSP)"
-fi
-
 # --- ctx7 CLI (context7 library documentation) ------------------------------
 if have npm; then
   if have ctx7 && [ "$NO_UPDATE" = 1 ]; then say "ctx7 CLI present"
@@ -360,7 +371,7 @@ else
   warn "npm not found — ctx7 unavailable (install Node.js to enable library docs)"
 fi
 
-# --- OMP config: skills, provider isolation, csharp-ls LSP ------------------
+# --- OMP config: skills, provider isolation ---------------------------------
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$NO_CONFIG" = 0 ]; then
   mkdir -p "$(dirname "$CFG")"; touch "$CFG"
@@ -371,14 +382,6 @@ if [ "$NO_CONFIG" = 0 ]; then
     # omitted) so the global and standalone install paths never disagree.
     printf '\ndisabledProviders:\n  - claude-plugins\n  - codex\n  - gemini\n  - cursor\n  - windsurf\n  - opencode\n  - cline\n' >> "$CFG"
   fi
-fi
-
-# --- csharp-ls LSP config ---------------------------------------------------
-LSP="$HOME/.omp/agent/lsp.json"
-if have csharp-ls && [ "$NO_CONFIG" = 0 ] && [ ! -f "$LSP" ]; then
-  say "Writing csharp-ls LSP config to $LSP"
-  mkdir -p "$(dirname "$LSP")"
-  printf '{\n  "servers": {\n    "csharp-ls": {\n      "command": "csharp-ls",\n      "fileTypes": [".cs", ".csx"],\n      "rootMarkers": ["*.sln", "*.slnx", "*.csproj", ".git"]\n    }\n  }\n}\n' > "$LSP"
 fi
 
 # --- Load the context-transform extensions ----------------------------------
@@ -421,16 +424,16 @@ fi
 patch_omp_status_line
 # OMP's bash tool caches a shell session's PATH for the life of the OMP
 # process (the failure mode that broke the old RTK integration): a
-# ~/.local/bin / ~/.dotnet/tools binary is only as good as the PATH the
+# ~/.local/bin binary is only as good as the PATH the
 # consuming process was started with. Detect staleness now, for every tool
 # this installer can newly land, from a FRESH login shell (bash -l) — the
 # same invocation OMP's bash tool uses — rather than trusting this script's
 # own already-exported PATH.
 STALE_TOOLS=""
-for t in ctx-wire acli ast-grep csharp-ls dotnet ctx7; do
+for t in ctx-wire acli ast-grep ctx7; do
   have "$t" && ! bash -lc "command -v $t" >/dev/null 2>&1 && STALE_TOOLS="$STALE_TOOLS $t"
 done
 if [ -n "$STALE_TOOLS" ]; then
   warn "installed but NOT visible in a fresh shell yet:$STALE_TOOLS. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
 fi
-say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, ast-grep, .NET/csharp-ls LSP, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."
+say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, ast-grep, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."

@@ -28,7 +28,7 @@ modèles + `skills.enableSkillCommands` + le graphe de tâches). Le vérificateu
 prérequis du plugin :
 
 ```sh
-bash plugins/dev-team/install.sh        # vérifie OMP/git/outils optionnels, peut appliquer la config
+bash plugins/dev-team/install.sh        # vérifie OMP/git/outils optionnels, installe .NET 10+ pour serena-forge, peut appliquer la config
 ```
 
 ## Le workflow

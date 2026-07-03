@@ -1,12 +1,13 @@
 #requires -Version 5.1
 <#
   token-diet installer (Windows) — installs the LATEST ctx-wire. caveman/yagni ship
-  as OMP skills. Also sets up acli (Atlassian CLI), ast-grep, the .NET SDK +
-  csharp-ls LSP, and the ctx7 docs CLI. Everything is refreshed to latest by default.
-  (Symbolic C# navigation/edit is provided by the dev-team plugin's serena-forge
-  integration, not token-diet.)
+  as OMP skills. Also sets up acli (Atlassian CLI), ast-grep, and the ctx7 docs
+  CLI. Everything is refreshed to latest by default.
+  (Symbolic C# navigation/edit AND precise C# semantics — rename, exact
+  references, diagnostics, hover — are provided by the dev-team plugin's
+  Serena-backed serena-forge integration, not token-diet.)
   Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive), -NoConfig,
-         -NoCleanup (don't remove obsolete predecessors: codebase-memory-mcp, CodeGraph, RTK).
+         -NoCleanup (don't remove obsolete predecessors: codebase-memory-mcp, CodeGraph, RTK, csharp-ls).
   Env (acli): ACLI_SITE / ACLI_EMAIL / ACLI_TOKEN — non-interactive acli auth,
          auto-run on install when acli isn't already authenticated.
 #>
@@ -25,15 +26,17 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
 # --- Clean up obsolete predecessors on (re)install --------------------------
 # Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
-# then codebase-memory-mcp) and, before ctx-wire, RTK. Those are gone now (symbolic
-# C# code intel moved to the dev-team plugin's serena-forge integration; ctx-wire
-# replaced RTK), but an upgrade/uninstall does NOT remove what a past install left
-# on the machine. Unregister the dead MCP servers from OMP's mcp.json and remove the
-# leftover binaries/dirs. Idempotent, existence-guarded, only touches these exact
-# obsolete names. Skip with -NoCleanup.
+# then codebase-memory-mcp), before ctx-wire, RTK, and a csharp-ls LSP for C#
+# semantics. Those are gone now (symbolic C# code intel AND precise C#
+# semantics moved to the dev-team plugin's Serena-backed serena-forge
+# integration; ctx-wire replaced RTK), but an upgrade/uninstall does NOT remove
+# what a past install left on the machine. Unregister the dead MCP servers
+# from OMP's mcp.json, uninstall the obsolete csharp-ls dotnet tool + its
+# lsp.json entry, and remove the leftover binaries/dirs. Idempotent,
+# existence-guarded, only touches these exact obsolete names. Skip with -NoCleanup.
 function Cleanup-Obsolete {
   if ($NoCleanup) { return }
-  Say "Cleaning up obsolete tools (codebase-memory-mcp, CodeGraph, RTK)"
+  Say "Cleaning up obsolete tools (codebase-memory-mcp, CodeGraph, RTK, csharp-ls)"
   $removed = $false
 
   # 1) Unregister the obsolete MCP servers from OMP's mcp.json.
@@ -78,6 +81,29 @@ function Cleanup-Obsolete {
   )
   foreach ($d in $dirs) {
     if ($d -and (Test-Path $d)) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $d; Say "  removed $d"; $removed = $true }
+  }
+
+  # 4) Uninstall the obsolete csharp-ls dotnet tool + its lsp.json entry —
+  # precise C# semantics now live in the dev-team plugin's serena-forge
+  # integration (Serena's Roslyn backend), not token-diet.
+  if ((Have dotnet) -and ((dotnet tool list -g 2>$null) -match '^csharp-ls\s')) {
+    Run "dotnet tool uninstall -g csharp-ls"
+    Say "  uninstalled csharp-ls (dotnet tool)"; $removed = $true
+  }
+  $lspPath = Join-Path $HOME ".omp\agent\lsp.json"
+  if (Test-Path $lspPath) {
+    try {
+      $lspCfg = Get-Content -Raw -Path $lspPath | ConvertFrom-Json
+      if ($lspCfg.servers -and ($lspCfg.servers.PSObject.Properties.Name -contains 'csharp-ls')) {
+        $lspCfg.servers.PSObject.Properties.Remove('csharp-ls')
+        if ($lspCfg.servers.PSObject.Properties.Count -gt 0) {
+          ($lspCfg | ConvertTo-Json -Depth 20) | Set-Content -Path $lspPath -Encoding UTF8
+        } else {
+          Remove-Item -Force $lspPath
+        }
+        Say "  removed csharp-ls from lsp.json"; $removed = $true
+      }
+    } catch { Warn "  could not edit $lspPath ($_) — remove any csharp-ls entry by hand" }
   }
 
   if (-not $removed) { Say "  nothing obsolete found (already clean)" }
@@ -140,24 +166,6 @@ elseif (Have winget) { Say "Installing ast-grep (winget)"; Run "winget install -
 elseif (Have npm) { Say "Installing ast-grep (npm)"; Run "npm install -g @ast-grep/cli" }
 else { Warn "need npm or winget to install ast-grep — see https://ast-grep.github.io" }
 
-# --- .NET SDK (official MS script) + csharp-ls (C# LSP) ----------------------
-if (-not (Have dotnet)) {
-  Say "Installing .NET SDK (LTS) via the official Microsoft script"
-  try {
-    $dis = Join-Path $env:TEMP 'dotnet-install.ps1'
-    Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile $dis
-    & $dis -Channel LTS -InstallDir (Join-Path $HOME '.dotnet')
-    $env:DOTNET_ROOT = Join-Path $HOME '.dotnet'
-    $env:Path = "$($env:DOTNET_ROOT);$($env:DOTNET_ROOT)\tools;$env:Path"
-    [Environment]::SetEnvironmentVariable('DOTNET_ROOT', $env:DOTNET_ROOT, 'User')
-  } catch { Warn ".NET SDK install failed: $_" }
-}
-if (Have dotnet) {
-  if ((Have csharp-ls) -and $NoUpdate) { Say "csharp-ls present" }
-  elseif (Have csharp-ls) { Say "Updating csharp-ls"; Run "dotnet tool update -g csharp-ls" }
-  else { Say "Installing csharp-ls (.NET C# language server)"; Run "dotnet tool install -g csharp-ls" }
-} else { Warn "dotnet not found — skipping csharp-ls (C# LSP)" }
-
 # --- ctx7 CLI (context7 library documentation) ------------------------------
 if (Have npm) {
   if ((Have ctx7) -and $NoUpdate) { Say "ctx7 CLI present" }
@@ -217,6 +225,6 @@ if (-not $NoConfig -and (Test-Path $claudeMd) -and -not (Test-Path $agentsMd)) {
 # NOTE: unlike install.sh, we can't reliably probe an already-running OMP
 # process's inherited environment from here (no non-interactive-login-shell
 # equivalent) — so this warning is unconditional rather than detected.
-Warn "ctx-wire shims, acli, ast-grep, ctx7, and .NET/csharp-ls tools write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
+Warn "ctx-wire shims, acli, ast-grep, and ctx7 write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
 
-Say "token-diet active: ctx-wire shims, ast-grep, .NET/csharp-ls LSP, ctx7, acli, /caveman + /yagni. Restart omp."
+Say "token-diet active: ctx-wire shims, ast-grep, ctx7, acli, /caveman + /yagni. Restart omp."

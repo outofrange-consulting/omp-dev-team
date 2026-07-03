@@ -34,8 +34,6 @@ Three external layers on top of what OMP already does natively. Run
 
 - Running shell commands? → output is transparently compressed + secret-scrubbed
   by `ctx-wire` (no prefix; `ctx-wire gain` shows savings).
-- Precise C# semantics (rename, exact references, diagnostics, hover) → the
-  `csharp-ls` LSP (auto-active on `.sln`/`.csproj`).
 - Editing one known file / reading docs/prose → plain `Read` + `astEdit`.
 - Want terse, fragment-style replies to save output tokens → `/caveman`
   (`skill://caveman`).

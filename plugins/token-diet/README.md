@@ -21,7 +21,6 @@ in place of it.
 | **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: a live **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) + `/cache-health` for the full read-rate / churn / cost / thinking-share / provider-quota breakdown; **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers + `ui.setStatus` |
 | **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
 | **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
-| **C# LSP** | `csharp-ls` wired as OMP-native language server — used for precise C# semantics (rename, exact references, live diagnostics, hover) | go-to-definition, references, diagnostics on `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Install
 
@@ -62,8 +61,8 @@ command output and the skills are turned on. token-diet ships no MCP server (its
   in a `ro_RO` locale; Romanian only appears in *data*, handled by context-mode.
   See `ctx-wire/README.md`.
 - **token-tools rule** → `rules/token-tools.md` (`alwaysApply: true`) is the
-  agent-facing routing guidance for everything on this page: run commands with
-  no prefix, `csharp-ls` for precise C# semantics, `astEdit` over whole-file
+  agent-facing routing guidance for everything on this page: run commands
+  with no prefix, `astEdit` over whole-file
   rewrites, and how to recognize a stale/pre-restart shim session. OMP's rule
   provider only auto-discovers `rules/*.md` inside *configured* extension
   package roots, and a bare marketplace install of this plugin isn't one — so
@@ -92,11 +91,12 @@ command output and the skills are turned on. token-diet ships no MCP server (its
   subcommand surface and triggers automatically on "Jira", "Confluence", a bare
   issue key (`PROJ-123`), or an `atlassian.net` URL — the same always-on trigger
   pattern as the **context7** skill below.
-- **symbolic C#/.NET navigation** → no longer part of token-diet. token-diet ships
-  no MCP server (`.mcp.json` is empty). Roslyn-based symbolic navigation and editing
-  for C#/.NET now live in the **dev-team** plugin as its **serena-forge** integration
-  (built on [oraios/serena](https://github.com/oraios/serena)). For precise C#
-  semantics token-diet still wires the `csharp-ls` LSP — see the **C# LSP** row.
+- **symbolic C#/.NET navigation + C# semantics** → no longer part of token-diet.
+  token-diet ships no MCP server (`.mcp.json` is empty) and no LSP. Roslyn-based
+  symbolic navigation/editing *and* precise C# semantics (exact
+  find-all-references, rename, live diagnostics, hover) for C#/.NET now live in
+  the **dev-team** plugin as its **serena-forge** integration (built on
+  [oraios/serena](https://github.com/oraios/serena)).
 - **skills** → `install.sh` appends `config.snippet.yml` to `~/.omp/agent/config.yml`
   enabling skill commands and applying provider isolation. `--no-config` to skip.
 - **context7** → CLI mode (`ctx7 library` / `ctx7 docs` via bash — no MCP process).
@@ -133,13 +133,6 @@ command output and the skills are turned on. token-diet ships no MCP server (its
   Claude Code, wrong for OMP). `install.sh`/`install.ps1` print a one-time
   warning when this applies; consider a native `AGENTS.md` with just the
   conventions that actually apply to OMP.
-- **C# LSP** → `install.sh` installs `csharp-ls` via `dotnet tool install -g csharp-ls`
-  (if .NET SDK present) and writes `~/.omp/agent/lsp.json` to register it for `.cs`/
-  `.csx` files. OMP auto-activates it when a `.sln`/`.slnx`/`.csproj` is detected. It
-  is a full language server for precise C# semantics — exact find-all-references,
-  rename, live diagnostics/type errors, hover/signature help, completion. (Broader
-  Roslyn-based symbolic navigation/editing for C#/.NET lives in the dev-team plugin's
-  serena-forge integration.)
 - **caveman** → a native OMP skill (`/caveman`, levels lite/full/ultra) rather
   than the upstream installer, so it's first-class in OMP. See `skill://caveman`.
 - **yagni** → a native OMP skill (`/yagni`, levels lite/full/ultra/off) porting
@@ -196,6 +189,6 @@ See `skill://token-diet` for the full decision guide.
 
 - Pairs naturally with **copilot-preset** (cheap per-token models) — fewer tokens
   × cheaper tokens.
-- Symbolic C#/.NET navigation and editing live in the **dev-team** plugin's
-  serena-forge integration, not in token-diet.
+- Symbolic C#/.NET navigation, editing, and precise C# semantics live in the
+  **dev-team** plugin's serena-forge integration, not in token-diet.
 - Independent of the other plugins; install only what you want.

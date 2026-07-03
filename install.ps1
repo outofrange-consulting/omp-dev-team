@@ -365,6 +365,7 @@ Check bun  $(if ($OnWindows) { 'optional' } else { 'required' }) 'bun --version'
 Check node 'recommended' 'node --version'
 Check omp  'required'    'omp --version'
 Check uvx  'optional'    'uvx --version'   # dev-team launches Serena (serena-forge) via uvx
+Check dotnet 'optional'  'dotnet --version' # dev-team's serena-forge C# backend needs .NET 10+
 
 Bold "OMP launch check"
 if ((Have omp) -and (omp --version 2>$null)) {

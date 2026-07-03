@@ -20,7 +20,6 @@ prompts côté fournisseur), pas à la place.
 | **context-compress** | le **contexte prose** ancien reste verbeux à chaque tour | compression prose protect-maskée des vieux messages — code/chemins/nombres byte-identiques (`safe` actif par défaut ; `lite`/`full` opt-in) | version qualité-préservée du transform LLMLingua/Provence de [caveman-code](https://github.com/JuliusBrussee/caveman-code) |
 | **cache-meter** | les économies de prompt-cache que tu *crois* avoir sont non mesurées — et un transform qui modifie le préfixe peut les casser en silence | LECTURE SEULE, actif : une **statusline** live (`td $coût cache N% churn N%`, ⚠ si risque) + `/cache-health` pour le détail (taux de lecture cache + churn + coût + part de thinking + quota provider) ; **alerte** quand la compression `lite`/`full` coïncide avec un fort churn | `usage` par-tour d'OMP (`turn_end`) + en-têtes `after_provider_response` + `ui.setStatus` |
 | **Isolation providers** | exclut toutes les configs utilisateur d'autres outils du contexte OMP | élimine le bruit des agents Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode | settings OMP natifs |
-| **LSP C#** | `csharp-ls` câblé comme serveur de langage OMP natif — utilisé pour les sémantiques C# précises (rename, références exactes, diagnostics en direct, hover) | aller-à-la-définition, références, diagnostics sur `.cs`/`.csx` | [razzmatazz/csharp-language-server](https://github.com/razzmatazz/csharp-language-server) |
 
 ## Installation
 
@@ -64,7 +63,7 @@ C#/.NET vivent désormais dans le plugin **dev-team** en tant qu'intégration
   Voir `ctx-wire/README.md`.
 - **règle token-tools** → `rules/token-tools.md` (`alwaysApply: true`) est le
   guide de routage pour l'agent derrière tout ce qui précède : lancer les
-  commandes sans préfixe, `csharp-ls` pour les sémantiques C# précises,
+  commandes sans préfixe,
   `astEdit` plutôt que réécrire des fichiers entiers, et comment reconnaître
   une session avec shims obsolètes (pré-redémarrage). Le provider de règles
   d'OMP ne découvre automatiquement `rules/*.md` qu'à l'intérieur de racines
@@ -95,12 +94,13 @@ C#/.NET vivent désormais dans le plugin **dev-team** en tant qu'intégration
   jira`/`acli confluence` et se déclenche automatiquement sur « Jira », « Confluence »,
   une clé d'issue nue (`PROJ-123`), ou une URL `atlassian.net` — le même pattern de
   déclenchement automatique que le skill **context7** ci-dessous.
-- **navigation symbolique C#/.NET** → ne fait plus partie de token-diet. token-diet
-  ne livre aucun serveur MCP (son `.mcp.json` est vide). La navigation et l'édition
-  symboliques C#/.NET basées sur Roslyn vivent désormais dans le plugin **dev-team**
-  en tant qu'intégration **serena-forge** (bâtie sur
-  [oraios/serena](https://github.com/oraios/serena)). Pour les sémantiques C# précises,
-  token-diet câble toujours le LSP `csharp-ls` — voir la ligne **LSP C#**.
+- **navigation symbolique C#/.NET + sémantiques C#** → ne fait plus partie de
+  token-diet. token-diet ne livre aucun serveur MCP (son `.mcp.json` est vide)
+  et aucun LSP. La navigation/édition symboliques basées sur Roslyn *et* les
+  sémantiques C# précises (find-all-references exact, rename, diagnostics en
+  direct, hover) pour C#/.NET vivent désormais dans le plugin **dev-team** en
+  tant qu'intégration **serena-forge** (bâtie sur
+  [oraios/serena](https://github.com/oraios/serena)).
 - **skills** → `install.sh` ajoute `config.snippet.yml` à `~/.omp/agent/config.yml`
   pour activer les skill commands et appliquer l'isolation des providers. `--no-config` pour sauter.
 - **context7** → mode CLI (`ctx7 library` / `ctx7 docs` via bash — pas de process MCP).
@@ -130,13 +130,6 @@ C#/.NET vivent désormais dans le plugin **dev-team** en tant qu'intégration
   natifs — correct pour Claude Code, faux pour OMP). `install.sh`/`install.ps1`
   affichent un avertissement ponctuel dans ce cas ; envisagez un `AGENTS.md`
   natif avec seulement les conventions qui s'appliquent réellement à OMP.
-- **LSP C#** → `install.sh` installe `csharp-ls` via `dotnet tool install -g csharp-ls`
-  (si le SDK .NET est présent) et écrit `~/.omp/agent/lsp.json`. OMP l'active
-  automatiquement dès qu'un `.sln`/`.slnx`/`.csproj` est détecté. C'est un serveur de
-  langage complet pour les sémantiques C# précises — références exactes, rename,
-  diagnostics/erreurs de type en direct, hover/signature, complétion. (La navigation
-  et l'édition symboliques C#/.NET plus larges basées sur Roslyn vivent dans
-  l'intégration serena-forge du plugin dev-team.)
 - **caveman** → un skill OMP natif (`/caveman`, niveaux lite/full/ultra) plutôt que
   l'installeur amont, pour être de première classe dans OMP. Voir `skill://caveman`.
 - **yagni** → un skill OMP natif (`/yagni`, niveaux lite/full/ultra/off) qui porte
@@ -194,6 +187,6 @@ sortie verbeuse du modèle. Voir `skill://token-diet` pour le guide de décision
 
 - Se marie naturellement avec **copilot-preset** (modèles peu chers au token) —
   moins de tokens × tokens moins chers.
-- La navigation et l'édition symboliques C#/.NET vivent dans l'intégration
-  serena-forge du plugin **dev-team**, pas dans token-diet.
+- La navigation, l'édition symboliques et les sémantiques C#/.NET précises
+  vivent dans l'intégration serena-forge du plugin **dev-team**, pas dans token-diet.
 - Indépendant des autres plugins ; n'installez que ce que vous voulez.

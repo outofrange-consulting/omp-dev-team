@@ -494,6 +494,7 @@ check bun      required    "bun --version"
 check node     recommended "node --version"
 check omp      required    "omp --version"
 check uvx      optional    "uvx --version"   # dev-team launches Serena (serena-forge) via uvx
+check dotnet   optional    "dotnet --version" # dev-team's serena-forge C# backend needs .NET 10+
 
 bold "OMP launch check"
 if have omp && omp --version >/dev/null 2>&1; then

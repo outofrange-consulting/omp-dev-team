@@ -26,13 +26,6 @@ description: Token-saving tool routing (ctx-wire)
   OMP session started — PATH updates from `~/.local/bin` never reach an
   already-running process. Say so and ask for an OMP restart; don't fall back
   to a manual `rtk`/`ctx-wire` prefix, and don't conclude the tool is missing.
-- **C# semantics → csharp-ls LSP.** For editor-grade C# operations — exact
-  find-all-references, rename, live diagnostics/type errors, hover/signature
-  help, completion — use the `csharp-ls` LSP (wired via OMP's native LSP
-  integration, auto-activated on `.sln`/`.slnx`/`.csproj`). (Enforced *symbolic*
-  C# navigation and editing — the Serena/Roslyn layer that blocks freehand `.cs`
-  writes — is provided separately by the **dev-team** plugin's serena-forge
-  integration, not token-diet.)
 - Reserve full-file `Read` for when you actually need to edit or read prose;
   for structure, prefer symbol-scoped tools over dumping whole files.
 - **Edit symbols structurally, not whole files.** To change a known function /
