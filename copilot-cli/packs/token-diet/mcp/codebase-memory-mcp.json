@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "codebase-memory-mcp": {
+      "type": "local",
+      "command": "codebase-memory-mcp",
+      "args": [],
+      "tools": ["*"]
+    }
+  }
+}

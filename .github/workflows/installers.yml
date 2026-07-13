@@ -24,8 +24,18 @@ jobs:
         shell: bash
         run: |
           rc=0
-          for f in install.sh plugins/*/install.sh; do
+          for f in install.sh plugins/*/install.sh copilot-cli/install.sh copilot-cli/packs/*/install.sh; do
             if bash -n "$f"; then echo "ok $f"; else echo "FAIL $f"; rc=1; fi
+          done
+          exit $rc
+      - name: Copilot CLI hook/CLI scripts (node --check)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          rc=0
+          for f in copilot-cli/lib/*.mjs copilot-cli/packs/*/*.mjs copilot-cli/packs/*/hooks/scripts/*.mjs; do
+            [ -e "$f" ] || continue
+            if node --check "$f"; then echo "ok $f"; else echo "FAIL $f"; rc=1; fi
           done
           exit $rc
       - name: PowerShell parse

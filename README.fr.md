@@ -15,6 +15,13 @@ met en place OMP et vous guide à travers chacun d'eux.
 | **[`openai-compatible`](plugins/openai-compatible/)** | **N'importe quel fournisseur compatible OpenAI** — pointez-le vers un endpoint LiteLLM, Ollama, vLLM ou LocalAI (nom + URL + clé API) ; l'installeur liste les modèles et écrit le fournisseur dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `<nom>/<id-modèle>`. Clé API en chmod 600, jamais dans l'env. |
 | **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
 
+> **Vous utilisez le CLI GitHub Copilot plutôt qu'Oh-My-Pi ?** Voir
+> [`copilot-cli/`](copilot-cli/) — la même expérience dev-team / token-diet /
+> Datadog reconstruite autour des idiomes du CLI Copilot (agents custom, hooks
+> `preToolUse`/`postToolUse`, `copilot-instructions.md`, MCP), avec son propre
+> installeur à cocher ([`copilot-cli/install.sh`](copilot-cli/install.sh) /
+> [`install.ps1`](copilot-cli/install.ps1)).
+
 ## Démarrage rapide (recommandé)
 
 L'installeur global installe OMP, enregistre cette marketplace, propose chaque
