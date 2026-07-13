@@ -1,0 +1,54 @@
+# acli (Atlassian CLI: Jira / Confluence / Bitbucket) — token-diet ctx-wire filter.
+# Output is English tables / key:value / JSON with language-neutral keys, so this
+# is a STRUCTURAL filter — no fr/ro localization needed (same call as grep/jira:
+# the tool is English-only regardless of locale). Prefer the Atlassian MCP for
+# structured reads; use acli for bulk/scripted writes and what MCP doesn't expose.
+#
+# Defense-in-depth secret scrubbing: ctx-wire's built-in scrub already redacts
+# GitHub tokens, Authorization headers, scheme://user:pass@host URLs and
+# secret-ish key=value pairs — so Atlassian tokens in those forms are covered.
+# It does NOT know the bare `AT?TT…` Atlassian token shapes (ATATT API tokens,
+# ATCTT Confluence/Bitbucket scoped tokens, ATOAT OAuth — no matching prefix and
+# the scrub rules aren't user-extensible), so the `replace` stage below redacts
+# them from acli output (e.g. `acli ... auth status` echoes).
+schema_version = 1
+
+[filters.acli]
+description = "Compact Atlassian CLI (acli) output; redact bare AT?TT tokens (ATATT/ATCTT/ATOAT); structural, EN-only"
+match_command = "^acli\\b"
+strip_ansi = true
+replace = [
+  { pattern = "AT[A-Z]TT[A-Za-z0-9_=.\\-]{20,}", replacement = "ATATT***REDACTED***" },
+]
+strip_lines_matching = [
+  "^\\s*$",
+  "^\\s*--+\\s*$",
+]
+truncate_lines_at = 200
+max_lines = 60
+
+[[tests.acli]]
+name = "workitem table: blank lines stripped"
+input = """
+TYPE\tKEY\tSUMMARY\tSTATUS
+
+Story\tPROJ-123\tAdd login\tIn Progress
+
+Bug\tPROJ-456\tFix crash\tOpen
+"""
+expected = "TYPE\tKEY\tSUMMARY\tSTATUS\nStory\tPROJ-123\tAdd login\tIn Progress\nBug\tPROJ-456\tFix crash\tOpen"
+
+[[tests.acli]]
+name = "redacts bare ATATT Atlassian API token"
+input = "Authenticated. Your API token ATATT3xFfGF0abcDEF123ghiJKL456mnoPQR789stu=A1B2 is stored."
+expected = "Authenticated. Your API token ATATT***REDACTED*** is stored."
+
+[[tests.acli]]
+name = "redacts bare ATCTT scoped (Confluence/Bitbucket) token"
+input = "Authenticated. Your API token ATCTT3xFfGF0abcDEF123ghiJKL456mnoPQR789stu=A1B2 is stored."
+expected = "Authenticated. Your API token ATATT***REDACTED*** is stored."
+
+[[tests.acli]]
+name = "single workitem view preserved"
+input = "Key: PROJ-123\nSummary: Add login\nStatus: In Progress\nAssignee: jane@example.com"
+expected = "Key: PROJ-123\nSummary: Add login\nStatus: In Progress\nAssignee: jane@example.com"

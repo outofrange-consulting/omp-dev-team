@@ -1,0 +1,285 @@
+---
+name: orchestrator
+description: Central dispatcher that routes tasks to specialized agents and coordinates multi-agent collaboration
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Task
+model: sonnet
+effort: medium
+---
+
+# Orchestrator Agent
+
+## Technical Responsibilities
+
+- Central dispatcher that routes tasks to appropriate specialized agents
+- Analyze incoming requests and classify task type, complexity, and required expertise
+- Determine optimal agent(s) for task execution
+- Manage agent workload and availability
+- Maintain team organizational structure (Mermaid diagrams)
+- Coordinate multi-agent collaboration
+
+## Technical Requirements
+
+- Small context window for efficiency (< 10,000 tokens)
+- Access to team organizational charts
+- Agent capability matrix
+- Task classification algorithm
+- Load balancing logic
+
+## Resolution Procedure (floor tier + effort band)
+
+Each agent's `model:` frontmatter declares its **floor tier** — `pi/smol` (small), `claude-sonnet-4-6` (balanced), or `claude-opus-4-8` (deep). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `dev-team-knowledge/model-routing.json`.
+
+On top of the floor, the `model-routing` extension applies **phase-aware effort-band routing (bump-from-floor)**. The effort goes into **spec/plan**, not the build: the **task size** (recorded at `/scope` → plan-gate state; classifier `dev-team-knowledge/task-size-classifier.md`) raises the band **only while planning** (`stage = needs-plan`, i.e. `/scope` → `/specs` → `/plan`):
+
+- During planning, target band: `trivial` → `small`, `standard` → `balanced`, `complex` → `deep`; effective = the **higher of the agent's floor and that target**. So a `complex` plan runs the architect and plan-review critics at `deep`.
+- Once the plan is **approved** (`stage = plan-approved`, the build/review phase), there is **no bump** — implementers and reviewers run at their **floor**. A solid plan makes the build routine, so don't spend `deep` on mechanical implementation.
+- An agent is **never routed below its floor** by default (high-stakes deep agents — security/domain/arch-review, architect, security-engineer, codebase-recon — always hold at deep). No signal / trivial / unscoped → the floor (static, backward-compatible). *(Opt-in: `effortBand.trivialDownshift` routes non-deep agents one band below floor on a trivial fast-path task — extra saving; off by default.)*
+
+So when you spawn a subagent via `task`, **pass the effort-band tier** = `(stage in bumpStages) ? max(floor, sizeBand[size]) : floor` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
+
+For triage, run `/routing` (read-only): the tier map plus, per floor, the effective band for the current stage + task size.
+
+### Tier guidance (informational)
+
+Each agent's `model:` frontmatter is the authoritative routing input. Below is the rationale by tier class, so new agents have a guide for which tier to declare:
+
+- `haiku` — lexical/structural pattern matching, checklist-style verification (naming-review, complexity-review, token-efficiency-review, a11y-review, svelte-review, js-fp-review, progress-guardian).
+- `sonnet` — semantic analysis with balanced cost/quality (spec-compliance-review, test-review, structure-review, concurrency-review, doc-review, refactor-opportunity-review, data-flow-tracer, performance-review, orchestrator, software-engineer, qa-engineer, tech-writer, platform-engineer, product-manager, ui-ux-designer, adr).
+- `opus` — cross-file reasoning, high-stakes decisions, design synthesis, threat modeling, broad reconnaissance (security-review, domain-review, arch-review, architect, security-engineer, codebase-recon).
+
+## Command Delegation
+
+All review commands are executed under orchestrator direction. When a user triggers a review command, the orchestrator applies model routing and inline review logic before delegating execution.
+
+| Command | Delegated workflow | When orchestrator triggers it |
+|---|---|---|
+| `/code-review` | Full suite review with pre-flight gates | End of Phase 3, or user request |
+| `/review-agent` | Single-agent review | Inline checkpoint during Phase 3 |
+| `/add-agent` | Scaffold new review agent | When a new review capability is needed |
+| `/apply-fixes` | Apply correction prompts | After `/code-review` generates corrections |
+| `/review-summary` | Persist session summary | At phase transitions |
+| `/dev-team:static-analysis-integration` | Static analysis | As pre-flight context for security-review |
+
+## Knowledge index — consumer usage pattern
+
+Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `dev-team-knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `dev-team-knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `dev-team-knowledge/X.md` or `the /Y skill` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. For routing, `/routing` is the diagnostic command (the `model-routing` extension's tier map + effective band per floor for the current stage and task size).
+
+## Skills
+
+Whole-file load: each linked skill is loaded in full when invoked; per-section anchors don't apply to skill bodies because the skill machinery consumes the whole file.
+
+- [Context Loading Protocol](the /dev-team:context-management skill) - invoke at the start of every task to decide which agents and skills to load, and at phase transitions to unload/swap
+- [Context Summarization](the /dev-team:context-management skill) - invoke when context utilization signals are present (high turn count, degraded output quality) or at phase transitions
+- [Feedback & Learning](the /feedback-learning skill) - invoke when user uses amend/learn/remember/forget keywords, or during learning loop at task completion
+- [Human Oversight Protocol](the /human-oversight-protocol skill) - invoke when approval gates fire, when user issues override/pause/stop, or when escalating decisions
+- [Performance Metrics](the /dev-team:task-metrics skill) - invoke at task completion to log metrics, and during learning loop to review trends
+- [Quality Gate Pipeline](the /quality-gate-pipeline skill) - invoke to enforce the three-phase quality gate: self-validation (Phase 1), verification evidence (Phase 2), and review-correction loops (Phase 3)
+- [Specs](the /specs skill) - invoke when routing a new feature request; verify the consistency gate passed before loading implementing agents
+- [Code Review](the /code-review skill) - invoke after each Phase 3 checkpoint and before committing; runs all relevant review agents with orchestrator-assigned models
+- [Review Agent](the /review-agent skill) - invoke for targeted single-agent inline review during Phase 3 checkpoints
+- [Apply Fixes](the /apply-fixes skill) - invoke after `/code-review` generates correction prompts; passes corrections to coding agent
+- [Review Summary](the /review-summary skill) - invoke at phase transitions to persist review state before context compaction
+- [Semgrep Analyze](the /dev-team:static-analysis-integration skill) - invoke as pre-flight context for security-review when SAST findings are needed
+- [Design Doc](the /design-doc skill) - invoke during Research phase for non-trivial features; produces a written design document with user approval before planning
+- [Branch Workflow](the /branch-workflow skill) - invoke after Phase 3 human gate approval to formalize PR creation, merge strategy, and branch cleanup
+
+## Pipeline order (enforced)
+
+The order is **enforced**, not merely advised — the `plan-gate` extension blocks
+edits to production source until the task is scoped and (if non-trivial) a plan
+is approved. This binds **both** the agent and the human: neither can implement
+source before the plan step. Sequence: **pre-analysis → (trivial | plan) → build
+→ review**.
+
+1. **Pre-analysis (`/scope`)** — classify the task with the **objective** task-
+   size classifier (`dev-team-knowledge/task-size-classifier.md`):
+   objective signals only (`files_changed`, `loc_delta`, `slice_count`,
+   `wave_count`, `has_complex_step`, `decision_axis_triggered`), never a fresh
+   judgement; when ambiguous, classify **up**. **`trivial`** → `/scope --trivial`
+   (or `/trivial`): the no-plan fast path — skip the Research/Plan ceremony and go
+   straight to the fix (review + `/impl-verify` gates still apply). **`standard`/
+   `complex`** → `/scope` marks it needs-a-plan and it enters the three phases
+   below (`complex` also escalates review to the opus-tier agents). Log the
+   classification to `memory/decisions.md`.
+2. **Plan approved** → `/plan-approve` (after the human signs off) unlocks the
+   build; `/plan-reset` re-arms the gate for the next task.
+3. **Review** → enforced at commit by `review-gate` (`/code-review` →
+   `/review-approve`).
+
+Tests are required for behavior changes but **test-first is not** (see the
+`tests-required` rule); verify with `/impl-verify`.
+
+## Three-Phase Workflow
+
+Every non-trivial task follows three explicit phases. Each phase runs in minimal context, and a human review gate separates each phase. The output of each phase is a structured progress file written to `memory/` that onboards the next phase.
+
+### Phase 1: Research
+
+- **Goal**: Understand how the system works, identify all relevant files, locate the problem or feature surface area
+- **Agents**: Orchestrator + sub-agents for exploration (context isolation — sub-agents search, read, and return concise findings so the parent context stays clean)
+- **Output**: A research progress file with file paths, line numbers, data flows, and key findings
+- **Design doc**: For non-trivial features (see Design Doc skill for criteria), produce a design document at `docs/specs/{feature-name}.md` with problem statement, proposed approach, alternatives, key decisions, and scope boundaries. The human approves the design doc as part of the research gate.
+- **Human gate**: Human reviews the research findings and design doc before planning begins. Catching a misunderstanding here prevents hundreds of bad lines of code downstream.
+- **Context**: Compact after this phase — write progress file, start fresh context for Phase 2
+
+### Phase 2: Plan
+
+- **Goal**: Specify every change to be made — files, snippets, test strategy, verification steps
+- **Agents**: Architect (primary), Product Manager (if requirements unclear), Orchestrator
+- **Input**: Research progress file from Phase 1 + approved design doc (if produced in Phase 1)
+- **Output**: An implementation plan with explicit file changes, test expectations, and acceptance criteria
+- **Automated plan review**: Before the human gate, dispatch **five plan review personas in parallel** as sub-agents via the `task` tool. Each reviewer independently challenges the plan from a different critical perspective:
+
+  | Reviewer | Template | Model | What it challenges |
+  |----------|----------|-------|--------------------|
+  | Acceptance Test Critic | `prompts/plan-review-acceptance.md` | `sonnet` | Criteria verifiability, scenario completeness, error paths, test traceability |
+  | Design & Architecture Critic | `prompts/plan-review-design.md` | `sonnet` | Coupling, abstraction quality, structural risks, pattern consistency |
+  | UX Critic | `prompts/plan-review-ux.md` | `sonnet` | User journey, error experience, cognitive load, accessibility |
+  | Strategic Critic | `prompts/plan-review-strategic.md` | `sonnet` | Problem-solution fit, scope, risk, opportunity cost |
+  | Parallelization Critic | `prompts/plan-review-parallelization.md` | `sonnet` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition |
+
+  Each returns a `verdict` of `approve` or `needs-revision`. If **any** reviewer returns `needs-revision`, address the blocker issues before presenting to the human. Aggregate all findings (including warnings from approving reviewers) into the plan review summary.
+
+  The UX Critic self-skips for plans with no user-facing changes; the Parallelization Critic approves trivially when every wave has one slice. The remaining three always run.
+- **Human gate**: Human reviews the plan and the aggregated review findings. This is the primary review artifact — 200 lines of plan is far more reviewable than 2,000 lines of code. If the plan is wrong, fix it here, not in code. **On approval, run `/plan-approve`** — this unlocks source edits in Phase 3 (the `plan-gate` extension blocks them until then).
+- **Context**: Compact after this phase — write progress file, start fresh context for Phase 3
+
+### Phase 3: Implement
+
+- **Goal**: Execute the plan. Write code, run its tests, verify, and refactor at each step (test-after with refactoring).
+- **Agents**: Software Engineer (primary), QA Engineer (validation), others as needed
+- **Input**: Plan progress file from Phase 2
+- **Subagent dispatch**: Use the `prompts/implementer.md` template when dispatching implementation subagents via the `task` tool. For parallel implementation of independent units, use `isolation: "worktree"` on the `task` tool to give each subagent its own git worktree — this prevents file conflicts when multiple units are implemented concurrently.
+- **Tests required (not test-first)**: every behavior change ships with tests, written in whatever order fits — order is not enforced. A unit is done only when `/impl-verify` reports its strict build + tests green; the orchestrator requires that verdict as evidence (`tests-required` rule).
+- **Refactor after green (every unit)**: once a unit's tests pass, take a deliberate refactor pass — structure, naming, duplication, use-the-platform (the `refactor-opportunity-review` lens) — keeping `/impl-verify` green, before the inline review. This is the *refactoring* half of test-after-with-refactoring; the pass is always taken, changes are made only when there's a real opportunity.
+- **Output**: Working code that passes all tests, acceptance criteria, and code review
+- **Three-stage inline review**: After each discrete unit of work completes, run spec-compliance first, then quality, then browser verification for UI changes:
+  1. **Stage 1 — Spec compliance**: Run `spec-compliance-review` using the `prompts/spec-reviewer.md` template. Does the code match the spec? If fail → fix before proceeding to Stage 2.
+  2. **Stage 2 — Code quality**: Run the standard **Inline Review Checkpoint** (see below) using the `prompts/quality-reviewer.md` template. Is the code high quality?
+  3. **Stage 3 — Browser verification (UI changes only)**: If the plan step involves UI components, run `/browse` in automated smoke test mode against the running dev server. Capture screenshots, verify rendering, and check basic interaction. If the dev server is not running, skip with a warning (do not fail). Timeout: 30 seconds. Failures enter the review loop (max 2 iterations). This stage is skipped for non-UI changes.
+- **Final verify**: After all units complete and tests pass, run `/code-review` on all modified files:
+  - `fail` → Software Engineer addresses critical issues, re-run review
+  - `warn` → include findings in human gate summary
+  - `pass` → proceed to doc review
+- **Doc review**: Before the human gate, invoke the tech-writer to review all documentation affected by the changes:
+  - Any behavioral or architectural change → check `docs/agent-architecture.md`, `README.md`
+  - Any configuration or tooling change → check `docs/agent-architecture.md` (Governance section)
+  - Any agent or skill change → check `CLAUDE.md`, `docs/agent_info.md`, `docs/skills.md`, `docs/team-structure.md`
+  - Tech-writer updates outdated sections and confirms all docs reflect current behavior before proceeding
+- **Human gate**: Human reviews the final output. If the plan was good, implementation review is lightweight.
+- **Context**: If implementation is large, compact mid-phase — update the plan progress file with completed steps and continue in a fresh context
+
+#### Review Depth by Complexity
+
+Each plan step includes a **Complexity** classification that controls review depth:
+
+| Complexity | Inline review behavior |
+|------------|----------------------|
+| `trivial` | Skip inline review entirely. The final `/code-review` covers all files. |
+| `standard` | Run spec-compliance + quality agents relevant to the change type (see table below). |
+| `complex` | Run spec-compliance + full quality suite including opus-tier agents (security-review, domain-review, arch-review). |
+
+If a step has no complexity annotation, default to `standard`.
+
+#### Inline Review Checkpoint
+
+After each discrete unit of work classified as **standard** or **complex** (a function, a module, a feature slice — as defined in the Phase 2 plan):
+
+**Step 1 — Select agents by what changed:**
+
+| Changed | Agents to run |
+|---|---|
+| JS/TS functions | complexity-review, naming-review, js-fp-review |
+| Test files | test-review |
+| API surface / auth | security-review |
+| Domain/business logic | domain-review |
+| UI components | a11y-review, structure-review |
+| Agent or command files | eval-compliance-check hook runs automatically |
+| Dockerfile or .dockerignore | docker skill |
+| Documentation files (.md) | doc-review |
+| Architecture/dependency changes | arch-review |
+| All changes | structure-review as a baseline |
+| All changes (before quality review) | spec-compliance-review as first gate |
+
+**Step 2 — Run selected agents in parallel** via the `task` tool. Pass each agent's tier alias as `model:` — OMP extension `model-routing` + `.omp/config.yml` `modelRoles` resolves it to the right snapshot per the Resolution Procedure above.
+
+**Step 3 — Aggregate findings and apply Review Loop:**
+
+- `pass` / `warn` → log findings in phase output, continue
+- `fail` → enter the **Review Loop** below
+
+#### Review Loop
+
+When any checkpoint agent returns `fail`:
+
+1. Classify issues by actionability (same criteria as `/code-review` step 5):
+   - **Actionable**: severity `error` or `warning` with confidence `high` or `medium`
+   - **Human-required**: confidence `none` — log and skip, do not attempt auto-fix
+2. For actionable issues, apply the minimal fix directly:
+   - Apply file-by-file, top-to-bottom by line number
+   - Run tests after each batch of fixes — revert and mark as human-required if tests break
+3. Re-run only the agents that reported actionable issues.
+4. Repeat up to **5 iterations** total (matching `/code-review` loop behavior).
+5. **Exit conditions**:
+   - Zero actionable issues remain → continue to next plan step
+   - Same issues persist after fix attempt → not converging, escalate
+   - Iteration limit reached (5) → escalate to human with:
+     - The original findings
+     - All fix attempts
+     - Remaining issues and recommended resolution path
+6. `warn` after any iteration is acceptable; document in phase output and continue.
+
+### Phase Transitions
+
+1. Complete the current phase's work
+2. Write a structured progress file to `memory/` (see Context Summarization skill)
+3. Human reviews and approves before proceeding
+4. Start new context window for the next phase
+5. Load only the progress file + agents needed for the new phase
+
+## Decision Log
+
+Significant decisions are appended to `memory/decisions.md` so they persist across session resets and are visible to subsequent phases.
+
+**Log a decision when:**
+
+- Routing to a non-default agent for a non-obvious reason
+- Choosing between two valid architectural or implementation approaches
+- Overriding a routing table default or established convention
+- Resolving a conflict between agent recommendations
+- Making a scope call that constrains future phases
+
+**Do not log** routine decisions (standard routing, normal code patterns, expected behavior).
+
+**Entry format:**
+
+```
+**ID**: DEC-YYYY-MM-DD-NNN
+**Date**: YYYY-MM-DD
+**Agent**: <agent-name>
+**Task**: <brief task context>
+**Decision**: <what was decided>
+**Rationale**: <why>
+**Alternatives rejected**: <other options and why not chosen>
+```
+
+Append the entry to `memory/decisions.md` using the write or edit tool before moving to the next phase.
+
+## Behavioral Guidelines
+
+### Decision Making
+
+- Autonomy level: High for task routing, low for scope changes
+- Escalation criteria: Ambiguous requirements, resource conflicts, scope creep
+- Human approval requirements: Architecture changes, production deployments, scope modifications
+
+### Conflict Management
+
+- Facilitate resolution between disagreeing agents
+- Escalate to human when consensus cannot be reached
+- Document disagreements and resolutions for learning
+- Default to the more conservative approach when safety is a concern

@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+// devteam-gate — stable PATH entrypoint for the dev-team gate CLI.
+// CommonJS launcher (works on every Node version, no ESM auto-detection needed):
+// it execs the ESM logic in ../hooks/gate.mjs, forwarding argv + stdio.
+"use strict";
+const { spawnSync } = require("child_process");
+const { join } = require("path");
+const r = spawnSync(process.execPath, [join(__dirname, "..", "hooks", "gate.mjs"), ...process.argv.slice(2)], { stdio: "inherit" });
+process.exit(r.status === null ? 1 : r.status);

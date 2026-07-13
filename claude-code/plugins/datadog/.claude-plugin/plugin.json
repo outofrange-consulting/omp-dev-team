@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "datadog",
+  "displayName": "Datadog (pup)",
+  "version": "1.0.0",
+  "description": "Datadog observability from the terminal via the Datadog 'pup' CLI: logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, synthetics, RUM, security/audit, CI test visibility, and LLM/agent observability. One broad skill drives pup; the installer sets up pup + auth.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+  "keywords": ["datadog", "observability", "pup", "apm", "logs", "monitors"]
+}

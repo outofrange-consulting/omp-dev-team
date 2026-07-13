@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "azure-devops",
+  "displayName": "Azure DevOps (official MCP)",
+  "version": "1.0.0",
+  "description": "Azure DevOps for Claude Code via Microsoft's official @azure-devops/mcp server: repos, files, pull requests, pipelines/builds, work items, wiki, test plans. Auth via the Azure CLI (az login / DefaultAzureCredential) — no PAT baked into config. Local git PR checkout/push uses Claude Code's native git tools.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+  "keywords": ["azure-devops", "ado", "mcp", "pull-requests", "pipelines", "work-items"],
+  "mcpServers": "./.mcp.json",
+  "userConfig": {
+    "org": {
+      "type": "string",
+      "title": "Azure DevOps organization",
+      "description": "Your ADO organization NAME (e.g. contoso — not the full URL).",
+      "required": true
+    }
+  }
+}

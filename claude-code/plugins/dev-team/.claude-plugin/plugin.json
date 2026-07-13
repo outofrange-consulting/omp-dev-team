@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "dev-team",
+  "displayName": "Agentic Dev Team",
+  "version": "1.0.0",
+  "description": "Agentic dev team for Claude Code (port of bdfinst/agentic-dev-team): orchestrator + 30 specialist/critic subagents, the /specs -> /plan -> /build -> /pr workflow, an advisory plan/review gate, a SessionStart operating manual, and a deterministic /impl-verify build+test gate.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+  "keywords": ["agents", "dev-team", "tdd", "code-review", "orchestrator"],
+  "hooks": "./hooks/hooks.json"
+}

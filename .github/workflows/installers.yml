@@ -24,8 +24,21 @@ jobs:
         shell: bash
         run: |
           rc=0
-          for f in install.sh plugins/*/install.sh; do
+          for f in install.sh plugins/*/install.sh claude-code/install.sh; do
             if bash -n "$f"; then echo "ok $f"; else echo "FAIL $f"; rc=1; fi
+          done
+          exit $rc
+      - name: Node syntax (claude-code hooks/statusline/scripts)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          rc=0
+          for f in claude-code/scripts/*.mjs \
+                   claude-code/plugins/*/hooks/*.mjs \
+                   claude-code/plugins/*/statusline/*.mjs \
+                   claude-code/plugins/dev-team/bin/*; do
+            [ -f "$f" ] || continue
+            if node --check "$f"; then echo "ok $f"; else echo "FAIL $f"; rc=1; fi
           done
           exit $rc
       - name: PowerShell parse

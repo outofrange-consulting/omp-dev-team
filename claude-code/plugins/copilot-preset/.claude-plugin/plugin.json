@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "copilot-preset",
+  "displayName": "GitHub Copilot preset",
+  "version": "1.0.0",
+  "description": "Run Claude Code on a GitHub Copilot license. Claude Code can't use Copilot models natively, so this wires the copilot-api bridge (ericc-ch/copilot-api) and points Claude Code at it via ANTHROPIC_BASE_URL. Config-only: the installer starts the bridge and maps the tiers.",
+  "author": { "name": "outofrange-consulting" },
+  "license": "MIT",
+  "homepage": "https://github.com/outofrange-consulting/omp-dev-team",
+  "keywords": ["provider", "github-copilot", "bridge", "anthropic-base-url"]
+}
