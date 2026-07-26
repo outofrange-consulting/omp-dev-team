@@ -1,6 +1,6 @@
 # Mnemopi coexistence — native OMP memory vs dev-team's `memory/` files
 
-OMP 16.x ships a native cross-session memory subsystem, **Mnemopi** (SQLite +
+OMP 17.x ships a native cross-session memory subsystem, **Mnemopi** (SQLite +
 local embeddings, tools `recall`/`retain`/`reflect`/`memory_edit`). The
 `dev-team` plugin independently implements its own cross-session memory as
 LLM-authored Markdown under a project-local `memory/` directory. This note
@@ -85,6 +85,6 @@ log) — that is the double-write + re-inflation footgun this note exists to fla
 
 ## See also
 
-- `docs/upstream-omp-runtime.md` — the OMP 16.x runtime capabilities the repo
+- `docs/upstream-omp-runtime.md` — the OMP 17.x runtime capabilities the repo
   didn't track (Mnemopi is one of them).
 - `plugins/dev-team/skills/context-summarization/SKILL.md` — the deflation gate.

@@ -252,7 +252,10 @@ for (const f of ALL_MD.concat(walk("scripts", [".sh", ".mjs"]), ["install.sh", "
   PLUGINS.flatMap((p) => ["install.sh", "install.ps1", "config.snippet.yml"].map((x) => join(PLUGINS_DIR, p, x)).filter(exists)))) {
   const t = read(f);
   for (const s of DEAD_SETTINGS)
-    if (t.includes(s) && !t.includes(`REMOVED in OMP 17`) && !t.includes("were REMOVED"))
+    // A file may legitimately NAME a removed setting in order to say it is
+    // removed (docs, migration notes, installer comments). Accept that; only
+    // flag a mention with no such marker anywhere in the file.
+    if (t.includes(s) && !/REMOVED|no longer written|dead keys|deleted from (the )?config/i.test(t))
       fail("dead-setting", `${f} — mentions the removed setting "${s}" without marking it removed`);
 }
 

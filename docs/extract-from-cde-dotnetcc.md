@@ -94,7 +94,7 @@ raisonne wave-by-wave, three-stage review, jusqu'à 5 itérations) → ce
 par schéma JSON, phase de test *skippable*.
 
 **Design (port OMP).** Ajouter une **extension dev-team** (TS, pas un agent)
-`extensions/impl-loop.ts` qui orchestre de façon déterministe :
+`extensions/impl-verify.ts` qui orchestre de façon déterministe :
 1. **implement** → `task` vers `software-engineer` avec prompt focalisé + schéma de sortie.
 2. **validate** → exécute la **commande de build réelle** du stack ; parse pass/fail.
 3. **fix loop borné** (`maxFixes`, défaut 3) : re-`task` ciblé entre tentatives, halte sur divergence matérielle.
@@ -131,7 +131,7 @@ l'agent. W2 et W3 se renforcent.
 l'extension ; l'orchestrateur garde les gates humains et le three-stage review
 sémantique (qui, eux, ont besoin d'un agent).
 
-**Fichiers** : `plugins/dev-team/extensions/impl-loop.ts`,
+**Fichiers** : `plugins/dev-team/extensions/impl-verify.ts`,
 `extensions/lib/shared.ts` (helper d'exécution/parse si besoin),
 `package.json` (`omp.extensions`), `config.snippet.yml`, `commands/build.md`,
 `skills/build/SKILL.md` (référencer la boucle).
@@ -177,7 +177,7 @@ W1, W2, W4 sont parallélisables ; W3 en dernier.
 
 ## Risques & limites
 
-- **W3** : OMP n'a pas le concept « workflows/*.js » de cde ; on l'implémente en *extension* + délégation `task`. Vérifier que `impl-loop.ts` peut piloter des `task` depuis une extension (sinon : commande scriptée). **À confirmer avant de coder W3.**
+- **W3** : OMP n'a pas le concept « workflows/*.js » de cde ; on l'implémente en *extension* + délégation `task`. Vérifier que `impl-verify.ts` peut piloter des `task` depuis une extension (sinon : commande scriptée). **À confirmer avant de coder W3.**
 - **W1** : déplacer l'état hors `cwd` peut surprendre les workflows existants qui lisent `.omp/state/` — prévoir fallback de lecture (ancien chemin) + note de migration.
 - **W4** : `astEdit` ne couvre pas tous les langages aussi bien ; rester *advisory* (« préfère ») et non bloquant.
 - Ne pas régresser les claims README (le REVIEW.md pénalise déjà les incohérences docs).

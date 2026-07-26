@@ -7,8 +7,11 @@ That left a gap: several skills carry assumptions from a much older OMP (or from
 the Claude-Code era before the port), while current OMP exposes capabilities the
 repo wasn't using. This doc tracks the runtime axis.
 
-**Runtime surveyed:** `@oh-my-pi/pi-coding-agent@16.2.2` (inspected by
-`bun add`-ing the package and reading `src/`). Re-verify when bumping OMP.
+**Runtime surveyed:** `@oh-my-pi/pi-coding-agent@17.1.4` (inspected by
+`bun add`-ing the package and reading `src/` + the published `dist/types/`).
+Re-verify when bumping OMP — 17.0.0 REMOVED settings this repo depended on
+(`tools.discoveryMode`, `tools.essentialOverride`, `mcp.discoveryMode`), and OMP
+now deletes them from config on load, so a stale assumption here is silent.
 
 ## Capabilities now available to extensions (that the repo under-used)
 
