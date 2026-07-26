@@ -188,7 +188,7 @@ export default function serenaBuildNet(pi: ExtensionAPI) {
 			}
 			if (r.timedOut) {
 				if (ctx.hasUI)
-					ctx.ui.notify(`serena-forge: build of ${proj} timed out — skipping gate`, "warn");
+					ctx.ui.notify(`serena-forge: build of ${proj} timed out — skipping gate`, "warning");
 				queue = new Set<string>();
 				return; // don't wedge the stop on a slow/hung build
 			}
@@ -205,7 +205,7 @@ export default function serenaBuildNet(pi: ExtensionAPI) {
 			}
 			if (r.timedOut) {
 				if (ctx.hasUI)
-					ctx.ui.notify("serena-forge: tests timed out — skipping test gate", "warn");
+					ctx.ui.notify("serena-forge: tests timed out — skipping test gate", "warning");
 			} else if (!r.ok) {
 				testFailure = `TESTS ($ ${testCmd})\n${tail(r.output)}`;
 			}
@@ -245,7 +245,7 @@ export default function serenaBuildNet(pi: ExtensionAPI) {
 			if (ctx.hasUI)
 				ctx.ui.notify(
 					`serena-forge: build/tests still failing after ${attempts}/${maxFixes} attempts — stopping anyway. Escalate:\n\n${detail}`,
-					"warn",
+					"warning",
 				);
 			return; // allow stop (HALT)
 		}

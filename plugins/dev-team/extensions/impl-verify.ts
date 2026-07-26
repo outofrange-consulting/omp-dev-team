@@ -104,7 +104,7 @@ export default function implVerify(pi: ExtensionAPI) {
 			if (flags.reset) {
 				writeState(cwd, "impl-verify.json", { attempts: 0 } satisfies VerifyState);
 				ctx.ui.notify("impl-verify: fix counter reset", "info");
-				return "impl-verify: fix counter reset.";
+				return;
 			}
 
 			const cfg = loadConfig(cwd);
@@ -112,8 +112,8 @@ export default function implVerify(pi: ExtensionAPI) {
 			if (!stack) {
 				const msg =
 					"impl-verify: could not detect a stack (no .csproj/.sln, package.json, pyproject.toml, go.mod, Cargo.toml). Pass --stack <name> or add it to .omp/dev-team.json.";
-				ctx.ui.notify(msg, "warn");
-				return msg;
+				ctx.ui.notify(msg, "warning");
+				return;
 			}
 
 			const cmds: StackCommands = {
@@ -143,8 +143,8 @@ export default function implVerify(pi: ExtensionAPI) {
 				const failedCmd = !build.ok ? cmds.build : cmds.test;
 				report += `\n$ ${failedCmd}\n${t}`;
 			}
-			ctx.ui.notify(report, verdict.status === "PASS" ? "info" : "warn");
-			return report;
+			ctx.ui.notify(report, verdict.status === "PASS" ? "info" : "warning");
+			return;
 		},
 	});
 }

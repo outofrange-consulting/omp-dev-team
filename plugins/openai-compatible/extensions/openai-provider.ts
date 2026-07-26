@@ -143,7 +143,7 @@ export default function openaiProvider(pi: ExtensionAPI) {
 			if (!url) {
 				ctx.ui.notify(
 					"OAI_PROVIDER_URL is not set. Run plugins/openai-compatible/install.sh to configure it.",
-					"warn",
+					"warning",
 				);
 				return;
 			}

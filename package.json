@@ -5,5 +5,10 @@
   "license": "MIT",
   "private": true,
   "keywords": ["oh-my-pi", "omp", "marketplace", "plugin", "agents", "azure-devops", "copilot", "datadog", "litellm", "openai-compatible", "token-diet"],
-  "comment": "This repo is an OMP MARKETPLACE. Catalog: .claude-plugin/marketplace.json; plugins live under plugins/<name>/, each with its own package.json (omp.extensions) and .claude-plugin/plugin.json. Add it with `omp plugin marketplace add <repo-or-./>` then install plugins individually. All six plugins are independent and share nothing."
+  "comment": "This repo is an OMP MARKETPLACE. Catalog: .claude-plugin/marketplace.json; plugins live under plugins/<name>/, each with its own package.json (omp.extensions) and .claude-plugin/plugin.json. Add it with `omp plugin marketplace add <repo-or-./>` then install plugins individually. All six plugins are independent and share nothing.",
+  "devDependencies": {
+    "@oh-my-pi/pi-coding-agent": "^17.1.4",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
+  }
 }

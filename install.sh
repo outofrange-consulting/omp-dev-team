@@ -34,7 +34,7 @@ for a in "$@"; do case "$a" in
   -y|--yes) YES=1 ;; --no-runtimes) RUNTIMES=0 ;; --no-update) NO_UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;;
   --ca-file=*) CA_FILE="${a#*=}" ;; --ca-from-windows) CA_FROM_WIN=1 ;; --no-config) NO_CONFIG=1 ;;
   --no-cleanup) NO_CLEANUP=1 ;;
-  -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -56,6 +56,33 @@ enable_insecure_tls() {
   printf 'insecure\n' > "$d/.curlrc"; printf 'check_certificate = off\n' > "$d/.wgetrc"
   export CURL_HOME="$d" WGETRC="$d/.wgetrc"
 }
+# ask "Question?" default(Y/n) -> returns 0 for yes
+ask() {
+  local q="$1" def="${2:-Y}" ans
+  if [ "$YES" = 1 ]; then return 0; fi
+  if [ ! -r /dev/tty ]; then case "$def" in [Yy]*) return 0 ;; *) return 1 ;; esac; fi
+  if [ "$def" = "Y" ]; then q="$q [Y/n] "; else q="$q [y/N] "; fi
+  read -r -p "$q" ans </dev/tty || ans=""
+  ans="${ans:-$def}"
+  case "$ans" in [Yy]*) return 0 ;; *) return 1 ;; esac
+}
+# prompt "label" [hidden] -> echoes the typed value (empty if none / non-interactive)
+# Pass "hidden" as the 2nd arg for secrets (PATs/keys): uses `read -s` so the
+# input is NOT echoed to the terminal, and prints a trailing newline (since -s
+# suppresses the echo of the Enter keypress). Matches the sibling installers.
+prompt() {
+  local label="$1" mode="${2:-}" ans=""
+  { [ "$YES" = 1 ] || [ ! -r /dev/tty ]; } && { printf '%s' ""; return 0; }
+  if [ "$mode" = hidden ]; then
+    read -r -s -p "    $label: " ans </dev/tty || ans=""
+    printf '\n' >/dev/tty
+  else
+    read -r -p "    $label: " ans </dev/tty || ans=""
+  fi
+  printf '%s' "$ans"
+}
+
+
 # Enable insecure TLS only on an explicit opt-in. A bare OMP_INSECURE_TLS left in
 # the environment must NOT silently disable certificate verification for the whole
 # install: confirm it interactively, or skip it (verification stays ON) when
@@ -104,32 +131,6 @@ ca_from_windows() {
   { [ -n "$sys" ] && cat "$sys"; printf '%s\n' "$out"; } > "$bundle"
   say "Wrote CA bundle: $bundle ($(grep -c 'BEGIN CERTIFICATE' "$bundle") certs)"
   CA_FILE="$bundle"
-}
-
-# ask "Question?" default(Y/n) -> returns 0 for yes
-ask() {
-  local q="$1" def="${2:-Y}" ans
-  if [ "$YES" = 1 ]; then return 0; fi
-  if [ ! -r /dev/tty ]; then case "$def" in [Yy]*) return 0 ;; *) return 1 ;; esac; fi
-  if [ "$def" = "Y" ]; then q="$q [Y/n] "; else q="$q [y/N] "; fi
-  read -r -p "$q" ans </dev/tty || ans=""
-  ans="${ans:-$def}"
-  case "$ans" in [Yy]*) return 0 ;; *) return 1 ;; esac
-}
-# prompt "label" [hidden] -> echoes the typed value (empty if none / non-interactive)
-# Pass "hidden" as the 2nd arg for secrets (PATs/keys): uses `read -s` so the
-# input is NOT echoed to the terminal, and prints a trailing newline (since -s
-# suppresses the echo of the Enter keypress). Matches the sibling installers.
-prompt() {
-  local label="$1" mode="${2:-}" ans=""
-  { [ "$YES" = 1 ] || [ ! -r /dev/tty ]; } && { printf '%s' ""; return 0; }
-  if [ "$mode" = hidden ]; then
-    read -r -s -p "    $label: " ans </dev/tty || ans=""
-    printf '\n' >/dev/tty
-  else
-    read -r -p "    $label: " ans </dev/tty || ans=""
-  fi
-  printf '%s' "$ans"
 }
 
 PROFILES=("$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc")
@@ -221,7 +222,12 @@ if have omp; then say "Registering marketplace ($MARKET)"; run "omp plugin marke
 # the native extension dirs. Mirror a plugin's extension modules into the user
 # native dir (~/.omp/agent/extensions/<name>/), which OMP always discovers.
 install_extensions() {  # install_extensions <name> <dir>
-  local name="$1" dir="$2" dest="$HOME/.omp/agent/extensions/$name"
+  # NB: `local` expands ALL its arguments before any assignment takes effect,
+  # so a "$name" referenced in the same `local` reads the OUTER scope's value.
+  # It only worked here because the caller happened to use the same variable
+  # name. Split the declaration so it is correct by construction.
+  local name="$1" dir="$2"
+  local dest="$HOME/.omp/agent/extensions/$name"
   [ -d "$dir/extensions" ] || return 0
   rm -rf "$dest"; mkdir -p "$dest"
   cp -R "$dir/extensions" "$dest/"
@@ -237,7 +243,11 @@ plug() {  # plug <name> <dir>
   [ "$name" = token-diet ] && flags="$flags --no-config"   # global config merge owns config.yml
   if have omp; then run "omp plugin install --force ${name}@${MARKET} || true"; fi
   install_extensions "$name" "$dir"
-  if [ -f "$dir/install.sh" ]; then run "bash \"$dir/install.sh\" $flags ${YES:+-y} || true"; fi
+  # NB: `${YES:+-y}` would ALWAYS expand — YES=0 is a non-empty string, so an
+  # interactive run silently passed -y to every plugin installer and skipped all
+  # of their credential prompts. Compare the value, not the emptiness.
+  local yflag=""; [ "$YES" = 1 ] && yflag="-y"
+  if [ -f "$dir/install.sh" ]; then run "bash \"$dir/install.sh\" $flags $yflag || true"; fi
 }
 
 # Remove leftovers from earlier versions that an upgrade/uninstall does NOT clean:
@@ -295,6 +305,7 @@ PY
   if [ -f "$HOME/.claude/cc-dev-team.env" ]; then rm -f "$HOME/.claude/cc-dev-team.env" 2>/dev/null || true; ok "removed ~/.claude/cc-dev-team.env"; removed=1; fi
   # Never auto-edit ~/.claude/settings.json or CLAUDE.md (your files) — only flag it.
   if [ -f "$HOME/.claude/settings.json" ] && grep -qiE 'cc-dev-team|cde-dotnetcc' "$HOME/.claude/settings.json" 2>/dev/null; then
+    # shellcheck disable=SC2088  # display text for the user, not a path we expand
     warn "~/.claude/settings.json references an old Claude Code dev-team install — review/remove those hook entries by hand (left untouched)."
   fi
 
@@ -303,20 +314,9 @@ PY
 }
 
 # --- config merge helpers (preserve existing user values) -------------------
-# cfg_has detects a TRUE top-level YAML key only: anchored at column 0
-# (`^<key>:`), so an indented key or the key appearing inside a string/comment
-# does NOT count as a match. This prevents cfg_add from appending a SECOND
-# top-level block for a key that already exists (most YAML parsers then clobber
-# one or error). The key is regex-escaped before anchoring.
-cfg_has() {
-  local k; k="$(printf '%s' "$1" | sed 's/[][\.*^$/]/\\&/g')"
-  grep -qE "^${k}:([[:space:]]|\$)" "$CFG" 2>/dev/null
-}
-cfg_add() {  # cfg_add <topkey> ; YAML block on stdin ; append only if topkey absent
-  local key="$1" block; block="$(cat)"
-  cfg_has "$key" && return 0
-  printf '\n%s\n' "$block" >> "$CFG"
-}
+# Shared with every per-plugin installer so the two documented install paths
+# cannot write conflicting or duplicated top-level YAML keys. See scripts/lib/cfg.sh.
+. "$ROOT/scripts/lib/cfg.sh"
 
 # Merge the managed model-roles/skills/isolation defaults into the OMP config.
 # Existing top-level keys are ALWAYS preserved — we only add what's missing.
@@ -387,14 +387,12 @@ task:
   simple: default
 EOF
   fi
-  # token-diet: hide non-essential tool schemas behind OMP's on-demand discovery.
-  if [ "${SEL_TOKENDIET:-0}" = 1 ]; then
-    cfg_add tools <<'EOF'
-tools:
-  discoveryMode: all
-  essentialOverride: [read, bash, edit, write, find, search, task, todo]
-EOF
-  fi
+  # NOTE: we used to write `tools.discoveryMode: all` + `tools.essentialOverride`
+  # here for token-diet. Both settings were REMOVED in OMP 17.0.0 and are now
+  # deleted from the config on load (config/settings.ts), so writing them only
+  # left dead keys in every user's global config. OMP's replacement, `tools.xdev`
+  # (default on), mounts non-essential and MCP tools as `xd://` devices behind a
+  # doc budget — nothing to configure.
   # Provider isolation: keep other tool ecosystems out of OMP (self-contained).
   cfg_add commands <<'EOF'
 commands:
@@ -422,33 +420,60 @@ EOF
 }
 
 # Merge the team MCP servers into ~/.omp/agent/mcp.json (existing servers kept).
-# Atlassian is intentionally NOT here — acli is our go-to for Jira/Confluence.
+#
+# Three official remote MCP servers, all `type: http`:
+#   github    https://api.githubcopilot.com/mcp/       PAT in an Authorization header
+#   atlassian https://mcp.atlassian.com/v1/mcp/authv2  OAuth 2.1 at first use
+#   context7  https://mcp.context7.com/mcp             CONTEXT7_API_KEY header
+#
+# Atlassian and Context7 used to ship here as CLI+skill wrappers (acli / ctx7) on
+# the argument that an MCP server's tool schemas inline into every system prompt.
+# OMP 17 killed that argument: `tools.xdev` (default on) mounts MCP tools as
+# `xd://` devices behind a doc budget, so a server costs a mount, not a schema
+# dump. Both are back on their official endpoints, and the CLI wrappers are gone.
 write_mcp() {
   [ "$NO_CONFIG" = 1 ] && return 0
   have node || have bun || { warn "no node/bun — skipping mcp.json (re-run after runtimes)"; return 0; }
-  local mcp="$HOME/.omp/agent/mcp.json" patch gh ghblock=""
+  local mcp="$HOME/.omp/agent/mcp.json" patch gh ghblock="" c7 c7block="" atlblock="" secret=0
   gh="${GITHUB_TOKEN:-${GH_TOKEN:-${GITHUB_PERSONAL_ACCESS_TOKEN:-}}}"
   [ -z "$gh" ] && gh="$(prompt 'GitHub PAT for the GitHub MCP (optional, blank to skip)' hidden)"
-  # Only GitHub is configured as an MCP, and only when a token is available.
-  # Atlassian -> acli, Context7 -> ctx7 CLI, both as CLI+skill (not MCP). No Miro.
   if [ -n "$gh" ]; then
+    secret=1
     ghblock="$(printf '"github": { "type": "http", "url": "https://api.githubcopilot.com/mcp/", "headers": { "Authorization": "Bearer %s" }, "enabled": true }' "$gh")"
   else
     ghblock='"github": { "type": "http", "url": "https://api.githubcopilot.com/mcp/", "enabled": false }'
   fi
-  patch="$(mktemp)"
+
+  # Atlassian: OAuth 2.1, no credential to store — enabled outright. The browser
+  # consent runs on first tool call, not at install time.
+  atlblock='"atlassian": { "type": "http", "url": "https://mcp.atlassian.com/v1/mcp/authv2", "enabled": true }'
+
+  # Context7: needs an API key (free tier at context7.com). Registered disabled
+  # without one so the entry is discoverable rather than silently absent.
+  c7="${CONTEXT7_API_KEY:-}"
+  [ -z "$c7" ] && c7="$(prompt 'Context7 API key for the Context7 MCP (optional, blank to skip)' hidden)"
+  if [ -n "$c7" ]; then
+    secret=1
+    c7block="$(printf '"context7": { "type": "http", "url": "https://mcp.context7.com/mcp", "headers": { "CONTEXT7_API_KEY": "%s" }, "enabled": true }' "$c7")"
+  else
+    c7block='"context7": { "type": "http", "url": "https://mcp.context7.com/mcp", "enabled": false }'
+  fi
+
+  patch="$(mktemp)"; chmod 600 "$patch" 2>/dev/null || true
   cat > "$patch" <<EOF
 {
   "mcpServers": {
-    $ghblock
+    $ghblock,
+    $atlblock,
+    $c7block
   }
 }
 EOF
   mkdir -p "$(dirname "$mcp")"
   run "js_run \"$ROOT/scripts/merge-json.mjs\" \"$mcp\" \"$patch\" >/dev/null || true"
-  [ -n "$gh" ] && chmod 600 "$mcp" 2>/dev/null || true
+  [ "$secret" = 1 ] && chmod 600 "$mcp" 2>/dev/null || true
   rm -f "$patch"
-  ok "mcp.json merged ($([ -n "$gh" ] && echo 'github enabled' || echo 'github present (add a PAT to enable)'))"
+  ok "mcp.json merged (github $([ -n "$gh" ] && echo enabled || echo 'present, add a PAT to enable'); atlassian enabled (OAuth on first use); context7 $([ -n "$c7" ] && echo enabled || echo 'present, add a key to enable'))"
 }
 
 # --- Cleanup obsolete leftovers before (re)installing plugins ---------------
@@ -466,7 +491,7 @@ if ask "Install copilot-preset (route models through GitHub Copilot)?"; then
   plug copilot-preset "$ROOT/plugins/copilot-preset"; SEL_COPILOT=1
 fi
 
-if ask "Install token-diet (ctx-wire + caveman + yagni + acli + LSP)?"; then
+if ask "Install token-diet (ctx-wire output filters + caveman)?"; then
   plug token-diet "$ROOT/plugins/token-diet"; SEL_TOKENDIET=1
 fi
 

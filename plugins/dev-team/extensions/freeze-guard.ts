@@ -36,7 +36,7 @@ export default function freezeGuard(pi: ExtensionAPI) {
 			const state = load(ctx.cwd);
 			state.globs = [...new Set([...state.globs, ...globs])];
 			writeState(ctx.cwd, "freeze.json", state);
-			ctx.ui.notify(`frozen: ${state.globs.join(", ")}`, "warn");
+			ctx.ui.notify(`frozen: ${state.globs.join(", ")}`, "warning");
 		},
 	});
 

@@ -77,7 +77,7 @@ export default function specGuard(pi: ExtensionAPI) {
 			allowFeatureEdits = true;
 			ctx.ui.notify(
 				".feature edits ALLOWED this session — change specs deliberately. Re-protect with /protect-features.",
-				"warn",
+				"warning",
 			);
 		},
 	});

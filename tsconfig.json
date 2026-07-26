@@ -1,0 +1,19 @@
+{
+  "//": "Typecheck-only config for CI. `bun build --target node` bundles and STRIPS types, so it compiles a type error clean; this is what actually checks them. No emit — the extensions ship as .ts and OMP loads them directly. CI installs @oh-my-pi/pi-coding-agent as a devDependency so the ExtensionAPI surface is checked against the REAL published types (the package ships dist/types/index.d.ts), not a hand-written stub that would drift.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["plugins/*/extensions/**/*.ts", "plugins/*/scripts/**/*.ts"],
+  "exclude": ["node_modules"]
+}

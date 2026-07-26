@@ -69,7 +69,7 @@ export default function pathGuard(pi: ExtensionAPI) {
 			if (warn) {
 				ctx.ui.notify(
 					`editing protected config "${p}" (${warn}) — double-check the change`,
-					"warn",
+					"warning",
 				);
 			}
 		}

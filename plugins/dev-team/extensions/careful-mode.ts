@@ -25,7 +25,7 @@ export default function carefulMode(pi: ExtensionAPI) {
 			const arg = (args ?? "").trim().toLowerCase();
 			if (arg === "on") {
 				writeState(ctx.cwd, "careful.json", { active: true, since: new Date().toISOString() });
-				ctx.ui.notify("careful mode ON — destructive commands will be blocked", "warn");
+				ctx.ui.notify("careful mode ON — destructive commands will be blocked", "warning");
 			} else if (arg === "off") {
 				writeState(ctx.cwd, "careful.json", { active: false });
 				ctx.ui.notify("careful mode OFF", "info");

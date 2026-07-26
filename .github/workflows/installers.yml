@@ -24,10 +24,22 @@ jobs:
         shell: bash
         run: |
           rc=0
-          for f in install.sh plugins/*/install.sh; do
+          for f in install.sh plugins/*/install.sh scripts/lib/*.sh; do
             if bash -n "$f"; then echo "ok $f"; else echo "FAIL $f"; rc=1; fi
           done
           exit $rc
+      # `bash -n` only parses. It cannot see `${YES:+-y}` always expanding, a
+      # function called before its definition, or unquoted expansions — all of
+      # which shipped. shellcheck catches that class.
+      - name: shellcheck
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          # SC2294 (eval in `run() { eval "$@"; }`) is deliberate: the installers
+          # pass composed command STRINGS, not argument arrays.
+          LC_ALL=C.UTF-8 shellcheck --severity=warning --shell=bash --exclude=SC2294 \
+            install.sh plugins/*/install.sh scripts/lib/*.sh
       - name: PowerShell parse
         shell: pwsh
         run: |
@@ -58,14 +70,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      # EVERY plugin that ships extensions, discovered from the filesystem — the
+      # hardcoded list silently omitted plugins/datadog while the README claimed
+      # all extensions were built.
       - name: bun build the extension modules
         run: |
           rc=0
-          for f in \
-            plugins/dev-team/extensions/*.ts \
-            plugins/token-diet/extensions/*.ts \
-            plugins/azure-devops-fs/extensions/*.ts \
-            plugins/openai-compatible/extensions/*.ts; do
+          for f in plugins/*/extensions/*.ts; do
+            [ -e "$f" ] || continue
             if bun build "$f" --target node >/dev/null; then
               echo "ok $f"
             else
@@ -73,6 +85,12 @@ jobs:
             fi
           done
           exit $rc
+      # `bun build` bundles and STRIPS types — it is not a typecheck. A type error
+      # compiles clean. This is the actual typecheck.
+      - name: typecheck (tsc --noEmit)
+        run: |
+          bun install --frozen-lockfile
+          bunx tsc --noEmit -p tsconfig.json
       - name: bun unit tests (pure extension logic)
         run: |
           rc=0
@@ -122,6 +140,30 @@ jobs:
             grep -q "$p@omp-dev-team" /tmp/plugins.txt || { echo "missing $p"; exit 1; }
           done
           echo "all plugins installed"
+
+      # The README's own recommended sequence is "global installer, then the
+      # plugin's own installer". That used to re-append whole config snippets,
+      # producing DUPLICATE top-level YAML keys which most parsers resolve
+      # last-wins — the exact opposite of the "your values are preserved"
+      # guarantee. Assert the sequence stays idempotent.
+      - name: Re-run per-plugin installers, assert no duplicate YAML keys (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export PATH="$HOME/.bun/bin:$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+          for p in dev-team copilot-preset; do
+            bash "plugins/$p/install.sh" --apply-config -y || true
+          done
+          bash plugins/token-diet/install.sh -y || true
+          cfg="$HOME/.omp/agent/config.yml"
+          dup="$(grep -oE '^[A-Za-z_][A-Za-z0-9_.-]*:' "$cfg" | sort | uniq -d)"
+          if [ -n "$dup" ]; then
+            echo "DUPLICATE top-level keys in $cfg:"; echo "$dup"
+            grep -nE '^[A-Za-z_][A-Za-z0-9_.-]*:' "$cfg"; exit 1
+          fi
+          echo "config.yml has no duplicate top-level keys"
+          python3 -c "import yaml,sys; yaml.safe_load(open('$cfg')); print('config.yml parses as valid YAML')" \
+            || echo "(PyYAML unavailable — duplicate-key check still passed)"
 
       - name: Run global installer (Windows)
         if: runner.os == 'Windows'

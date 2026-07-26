@@ -78,7 +78,7 @@ export default function planGate(pi: ExtensionAPI) {
 				set(ctx.cwd, "trivial", "trivial");
 				ctx.ui.notify(
 					"scoped TRIVIAL — fast path: source edits unlocked; agents route at their floor band (cheap agents stay cheap). /plan-reset to re-arm.",
-					"warn",
+					"warning",
 				);
 			} else {
 				const size: Size = /(^|\s)--complex(\s|$)/.test(a) ? "complex" : "standard";
@@ -98,7 +98,7 @@ export default function planGate(pi: ExtensionAPI) {
 			set(ctx.cwd, "trivial", "trivial");
 			ctx.ui.notify(
 				"scoped TRIVIAL — source edits unlocked for this task. /plan-reset to re-arm.",
-				"warn",
+				"warning",
 			);
 		},
 	});
@@ -111,7 +111,7 @@ export default function planGate(pi: ExtensionAPI) {
 			if (st.stage === undefined) {
 				ctx.ui.notify(
 					"run /scope first (pre-analysis) — a plan can't be approved before the task is scoped.",
-					"warn",
+					"warning",
 				);
 				return;
 			}
@@ -131,7 +131,7 @@ export default function planGate(pi: ExtensionAPI) {
 			writeState(ctx.cwd, "plan-gate.json", {} satisfies PlanGateState);
 			ctx.ui.notify(
 				"plan gate re-armed — next source edit requires /scope then (if non-trivial) /plan-approve.",
-				"warn",
+				"warning",
 			);
 		},
 	});

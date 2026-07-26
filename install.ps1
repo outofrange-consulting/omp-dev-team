@@ -269,9 +269,9 @@ skills:
     Cfg-Add 'eval'  "eval:`n  py: false`n  js: false"
     Cfg-Add 'task'  "task:`n  maxRecursionDepth: 4`n  simple: default"
   }
-  if ($SEL_TOKENDIET) {
-    Cfg-Add 'tools' "tools:`n  discoveryMode: all`n  essentialOverride: [read, bash, edit, write, find, search, task, todo]"
-  }
+  # NOTE: `tools.discoveryMode` / `tools.essentialOverride` were REMOVED in OMP
+  # 17.0.0 and are deleted from the config on load, so they are no longer written
+  # here. OMP's replacement is `tools.xdev` (default on) — nothing to configure.
   Cfg-Add 'commands' "commands:`n  enableClaudeUser: false`n  enableClaudeProject: false"
   Cfg-Add 'disabledProviders' @"
 disabledProviders:

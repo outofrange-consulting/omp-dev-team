@@ -1,17 +1,14 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "1.11.0",
-  "description": "Token-reduction toolkit for OMP: ctx-wire + context-mode + caveman + yagni, plus read/context dedup and a protect-masked context compressor (safe by default). (Symbolic C# code intelligence AND precise C# semantics moved to the dev-team plugin's serena-forge integration.)",
+  "version": "2.0.0",
+  "description": "Command-output filtering for OMP: ctx-wire filters for the commands OMP's native shellMinimizer does not cover, plus the caveman output-brevity skill. Opt-in context compressor.",
   "license": "MIT",
   "private": true,
   "omp": {
     "extensions": [
       "./extensions/path-inject.ts",
-      "./extensions/read-dedup.ts",
-      "./extensions/context-dedup.ts",
-      "./extensions/context-compress.ts",
-      "./extensions/cache-meter.ts"
+      "./extensions/context-compress.ts"
     ]
   },
-  "comment": "Ships no MCP server and no LSP (symbolic C# code intelligence and precise C# semantics moved to the dev-team plugin's serena-forge integration), an always-on rule, a config.snippet.yml, five skills (caveman, yagni, token-diet, mcp-as-cli-skill-creator, atlassian), a path-inject extension (prepends ~/.local/bin to process.env.PATH at OMP startup, since OMP spawns bash non-login/non-interactive and never sources shell profiles — otherwise every ~/.local/bin tool this plugin's install.sh lands, e.g. ctx-wire/acli/ast-grep, is invisible to the bash tool), three context-transform extensions (read-dedup + context-dedup are lossless and on by default; context-compress runs at safe (near-lossless) by default, with lite|full (lossy) or off via TOKEN_DIET_CONTEXT_COMPRESS), and a read-only cache-meter extension (live footer statusline + /cache-health for prompt-cache read/churn + cost + thinking-share + provider quota; off with TOKEN_DIET_CACHE_METER=off, statusline-only off with TOKEN_DIET_CACHE_STATUSLINE=off). install.sh mirrors extensions/ into ~/.omp/agent/extensions/token-diet (OMP does not load extensions from marketplace cache installs) and installs ctx-wire PATH shims. Pure logic lives in extensions/lib and is unit-tested by scripts/extensions.test.ts."
+  "comment": "v2.0.0 REFOCUS. OMP 17.x absorbed the runtime layer this plugin used to provide: compaction.supersedeReads (default true) replaces read-dedup + context-dedup; the native statusline cost/cache_read/cache_write/cache_hit segments replace cache-meter; secrets.enabled replaces the claimed in-process scrub; tools.xdev replaces the mcp-as-cli-skill-creator premise; and tools.discoveryMode/essentialOverride (this plugin's headline win) were REMOVED in OMP 17.0.0 and are now deleted from config on load. Those extensions and skills are gone. What remains is the part OMP does not do: ctx-wire's semantic filters (OMP truncates mechanically - 50KB tail, 768-byte column cap; only these filters know a 20KB all-green dotnet publish collapses to one line), the caveman skill (targets OUTPUT tokens, which nothing in OMP or ADT addresses), and path-inject (OMP's shell snapshot runs `bash -c`, which sources no profile, so ~/.local/bin tooling like ctx-wire stays invisible until the user opens a new login shell). context-compress is kept but OFF by default - a sliding compression window mutates the already-sent prefix and busts the prompt cache. Pure logic lives in extensions/lib and is unit-tested by scripts/extensions.test.ts."
 }

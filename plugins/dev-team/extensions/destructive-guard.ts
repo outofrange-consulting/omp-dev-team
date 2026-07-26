@@ -262,7 +262,7 @@ export default function destructiveGuard(pi: ExtensionAPI) {
 		}
 		ctx.ui.notify(
 			`CAUTION: destructive command (${match}) — hard to reverse. Confirm with the user.`,
-			"warn",
+			"warning",
 		);
 	});
 }

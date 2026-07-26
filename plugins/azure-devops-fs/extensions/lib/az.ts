@@ -85,11 +85,15 @@ export function makeAz(env: AdoEnv, signal?: AbortSignal): AzClient {
 		const full = [...args, "--only-show-errors", ...(raw ? [] : ["--output", "json"])];
 		let out: string;
 		try {
+			// execFileSync has no `signal` option — passing one was silently
+			// ignored, so cancellation never reached the `az` subprocess. A sync
+			// spawn cannot be interrupted mid-flight, so the honest contract is:
+			// refuse to START another call once the caller has cancelled.
+			if (signal?.aborted) throw new AdoError("cancelled");
 			out = execFileSync("az", full, {
 				encoding: "utf8",
 				env: childEnv,
 				maxBuffer: 1 << 26, // 64 MB (large diffs/logs)
-				signal,
 			});
 		} catch (e) {
 			throw new AdoError(azError(e));
