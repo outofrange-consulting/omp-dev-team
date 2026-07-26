@@ -46,14 +46,10 @@ fi
 # --- Optionally apply the config snippet ------------------------------------
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$APPLY" = 1 ]; then
-  say "Appending config.snippet.yml to $CFG"
-  mkdir -p "$(dirname "$CFG")"; touch "$CFG"
-  if grep -q "copilot-preset" "$CFG" 2>/dev/null; then
-    echo "  (already present — skipping)"
-  else
-    { echo ""; echo "# --- copilot-preset (appended $(date -u +%FT%TZ)) ---"; cat "$HERE/config.snippet.yml"; } >> "$CFG"
-    echo "  appended. Review $CFG and adjust model ids to your plan."
-  fi
+  say "Merging config.snippet.yml into $CFG"
+  . "$HERE/../../scripts/lib/cfg.sh"
+  cfg_add_snippet "$HERE/config.snippet.yml" copilot-preset
+  echo "  Review $CFG and adjust model ids to your plan."
 fi
 
 cat <<'EOF'

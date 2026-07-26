@@ -2,7 +2,8 @@
 name: performance-review
 description: Resource leaks, N+1 queries, unbounded growth, timeouts, algorithmic issues
 tools: read, search, find
-model: pi/plan
+# Regrade (plan A.4): upstream runs this on haiku; @smol is our cheap tier.
+model: "@smol, @default"
 thinking-level: medium
 blocking: true
 ---

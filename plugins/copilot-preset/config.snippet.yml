@@ -3,77 +3,188 @@
 #
 # Billing note (changed 2026-06-01): Copilot is now USAGE-BASED — you pay per
 # token (input/cached/output) at each model's rate, drawn from your plan's
-# monthly AI-credit allowance (1 credit = $0.01). So model choice per tier is
+# monthly AI-credit allowance (1 credit = $0.01). So model choice per role is
 # now a direct $ lever. See pricing.md for the full rate table + comparison.
 #
 # Auth first (one of):
 #   omp                       # then /login -> GitHub Copilot (OAuth), or
-#   export COPILOT_GITHUB_TOKEN=...   # (falls back to GH_TOKEN / GITHUB_TOKEN)
+#   export COPILOT_GITHUB_TOKEN=...
+# NOTE: COPILOT_GITHUB_TOKEN is the ONLY env var this provider reads. There is
+# no GH_TOKEN / GITHUB_TOKEN fallback — the descriptor declares a single-element
+# envVars array (packages/catalog/src/provider-models/descriptors.ts:161-166)
+# and the credential resolver builds a single-key lookup from it. (Upstream's
+# own packages/ai/README.md still claims a fallback; it is stale.)
+#
 # Verify ids against YOUR plan (catalog is fetched live from your Copilot acct):
 #   omp --list-models | grep github-copilot
 
-# Restrict OMP to Copilot-served models (recommended for teams).
-enabledModels:
-  - github-copilot/*
+# Restrict OMP to Copilot-served models. COMMENTED OUT ON PURPOSE — three
+# reasons, any one of which is sufficient:
+#  1. It is an ARRAY. Config layers replace arrays wholesale, so a project-level
+#     .omp/config.yml that sets enabledModels for any reason silently drops this
+#     lockdown (or, worse, keeps it and drops theirs).
+#  2. A zero-match pattern yields an EMPTY model list with NO fallback:
+#     resolveAllowedModels "returns an empty list when enabledModels is
+#     configured but no model matches any pattern — callers MUST treat this as
+#     'no usable model' rather than falling back to the global default"
+#     (model-resolver.ts, see issue #1022). A typo bricks the session rather
+#     than degrading it.
+#  3. It forecloses the non-Copilot open-weight providers OMP already ships
+#     (cerebras/GLM, qwen-portal, moonshot, deepseek). Copilot's entire
+#     open-weight lineup is ONE model (Kimi K2.7 Code); locking to
+#     github-copilot/* is the opposite of a model-open posture.
+# Uncomment only if you deliberately want a hard team lockdown to Copilot.
+#
+# enabledModels:
+#   - github-copilot/*
 
+# Preference order, not a lockdown: with credentials for several providers, the
+# Copilot-served copy wins ambiguous role resolution. Note OMP itself ranks
+# github-copilot LAST in DEFAULT_MODEL_PROVIDER_ORDER (it deprioritizes
+# editor/proxy providers), which is exactly what this line overrides.
 modelProviderOrder:
   - github-copilot
 
-# Tier -> Copilot model (out-of-the-box: cheap execution, Sonnet orchestration,
-# Opus for the hard stuff). rates per 1M tokens, in/out — see pricing.md.
+# Role -> Copilot model. Rates per 1M tokens, in/out — see pricing.md.
+#
+# ALL EIGHT ROLES ARE SET EXPLICITLY. `plan` and `task` in particular MUST be:
+# priority.json has chains for only smol/slow/designer, and
+# shouldInheritDefaultBeforePriority (model-resolver.ts:946-948) returns true
+# for only those same three. So an unset `plan` resolves to undefined and every
+# `@plan` agent silently falls through to the parent SESSION model, and `@task`
+# is deliberately session-inheriting by design (isSessionInheritedAgentPattern,
+# model-resolver.ts:935-944). Neither is a declared tier unless you write it.
 modelRoles:
-  # The cheap end is SPLIT by workload shape (dev-team's nano + code tiers):
-  #
-  # smol = NANO tier — pure lexical/checklist review + input-bound scan (no code
-  # semantics, no tool-use): naming, complexity, token-efficiency, a11y,
-  # progress-guardian. Highest volume, runs in parallel every checkpoint, so the
-  # output rate dominates — route to the cheapest capable model. GPT-5-mini is
-  # ~55% cheaper output / ~66% cheaper input than MAI, and good enough for
-  # checklist work.
-  smol: github-copilot/gpt-5-mini          # nano  $0.25 / $2.00
-  # task = CODE tier — cheap work that DOES need code semantics or agentic
-  # tool-use: post-plan implementation (software-engineer build floor), js-fp &
-  # svelte structural review. MAI-Code-1-Flash is coding-tuned and agentic; it
-  # beats Haiku 4.5 on every coding bench tested (SWE-Bench Verified 71.6 vs 66.6,
-  # SWE-Bench Pro 51.2 vs 35.2, Terminal Bench 2 54.8 vs 41.6) with up to 60%
-  # fewer tokens — and it's cheaper than Haiku.
-  task: github-copilot/mai-code-1-flash-picker    # code  $0.75 / $4.50
-  # everyday DEFAULT — Sonnet 5 runs the dev-team orchestrator (non-trivial work ->
-  # research -> plan -> implement -> review). Sonnet 5 lands near-Opus quality on
-  # coding & agentic work at the same $3/$15 Sonnet price, so it now also carries
-  # architecture/domain DESIGN synthesis (architect, arch-review, domain-review,
-  # moved down from the deep tier). MAI-Code-1-Flash (71.6 SWE-bench) stays below
-  # it for cross-file orchestration. Want ultra-cheap? See block below.
-  default: github-copilot/claude-sonnet-5  # $3.00 / $15.00
-  plan: github-copilot/claude-sonnet-5
-  # deep reasoning — reserved for high-stakes SECURITY verdicts (security-review,
+  # everyday DEFAULT — orchestration, cross-file reasoning, and (since Sonnet 5)
+  # architecture/domain DESIGN synthesis. PRICE CORRECTION: this is $2.00/$10.00,
+  # not the $3/$15 Sonnet line we used to document — 33% cheaper both ways, and
+  # cheaper than gpt-5.4 ($2.50/$15) and than its own predecessor Sonnet 4.6.
+  # 1M ctx, 128K max output, vision, configurable reasoning, available on Pro.
+  # ⏳ TIME BOMB: $2/$10 is PROMOTIONAL "through August 31, 2026" (GitHub docs
+  # footnote [^sonnet-5-promo]); the post-promo rate is unpublished. Re-check on
+  # 2026-09-01 — if it reverts to $3/$15, switch to
+  # github-copilot/gpt-5.6-terra ($2.50/$15, 1.05M ctx, GitHub's own "balanced
+  # default"), which is already first in the `default` fallback chain below.
+  default: github-copilot/claude-sonnet-5            # $2.00 / $10.00
+  # plan follows default: 1M context is the real differentiator for architecture
+  # and domain synthesis across many files, and configurable reasoning lets us
+  # raise effort without changing models.
+  plan: "@default"
+  # deep reasoning — high-stakes SECURITY verdicts (security-review,
   # security-engineer) where Opus still leads Sonnet 5.
-  slow: github-copilot/claude-opus-4.8     # $5.00 / $25.00
+  # Deliberately NOT github-copilot/claude-opus-5 despite the identical $5/$25:
+  # Opus 5 is pro=false (breaks Copilot Pro users) and its launch changelog warns
+  # of "enhanced safeguards for high-harm cyber content" that "may block some
+  # cyber-related or security-adjacent requests" — precisely this role's workload.
+  slow: github-copilot/claude-opus-4.8               # $5.00 / $25.00
+  # nano tier — pure lexical/checklist review + input-bound scan. Highest volume,
+  # so the output rate dominates. gpt-5-mini is the cheapest model ACTUALLY
+  # reachable from the OMP CLI: gpt-5.4-nano ($0.20/$1.25) is client-unavailable
+  # everywhere and is a background utility model, and raptor-mini ($0.25/$2.00)
+  # is cli=false, VS Code + Pro-tier only. Keeps vision and 264K ctx.
+  smol: github-copilot/gpt-5-mini                    # $0.25 / $2.00
+  # code tier — cheap work that needs code semantics or agentic tool-use
+  # (post-plan implementation, js-fp/svelte structural review). MAI-Code-1-Flash
+  # is coding-tuned and agentic, 128K max output, and cheaper than Haiku 4.5
+  # ($1.00/$5.00) which it beats on every coding bench Microsoft published.
+  # 137B total / 5B active MoE. See the open-weight opt-in block below.
+  task: github-copilot/mai-code-1-flash-picker       # $0.75 / $4.50
+  # designer — UI/UX and a11y work. Not taste: OMP's own native designer chain is
+  # Gemini-first (priority.json), and GitHub lists Gemini 3.1 Pro under both
+  # "deep reasoning" and "working with visuals". The OMP id carries the
+  # `-preview` suffix; plain `gemini-3.1-pro` does not resolve.
+  designer: github-copilot/gemini-3.1-pro-preview    # $2.00 / $12.00
+  # vision — LOAD-BEARING WITH THIS GRID, not optional. mai-code-1-flash-picker
+  # (on `task` above) is the ONLY model in the whole Copilot catalog whose input
+  # modalities are ["text"] — every other one takes images. inspect_image
+  # resolves @vision -> @default -> active model and then HARD-ERRORS
+  # ("does not support image input") if what it lands on is text-only
+  # (tools/inspect-image.ts:158-172). Cheapest vision-capable CLI model wins.
+  vision: github-copilot/gpt-5-mini                  # $0.25 / $2.00
+  # advisor — second-opinion reviewer. OMP aliases it to the `slow` chain but it
+  # NEVER inherits the primary's model, precisely so it stays a DISTINCT model
+  # (model-resolver.ts:950-962). A second opinion from the same vendor as `slow`
+  # is worth less, so this is deliberately OpenAI against an Anthropic `slow`.
+  # gpt-5.3-codex is also GitHub's designated base AND LTS model (support
+  # committed for one year from 2026-03-18) — the most rollout-stable id in the
+  # catalog — at 44% lower output cost than Opus. Note: assigning this role does
+  # NOT enable the advisor; see `advisor.enabled` below.
+  advisor: github-copilot/gpt-5.3-codex              # $1.75 / $14.00
+  # tiny / commit: DELIBERATELY UNSET. OMP aliases tiny -> the smol chain
+  # (ROLE_PRIORITY_ALIAS, model-resolver.ts:959-962) and resolves commit via
+  # ["commit","smol",...] (commit/model-selection.ts:46), so both already land on
+  # gpt-5-mini. Setting them here would be a no-op — set them ONLY to diverge.
 
-# MAI-Code-1-Flash rollout can lag on non-VS-Code OAuth clients (CLI/API):
-# GitHub returns 400 unsupported_api_for_model until your tenant's access
-# lands (GA dates below may run ahead of actual per-tenant rollout). This
-# fallback keeps `task` productive meanwhile and reverts to MAI automatically
-# once it responds (retry.fallbackRevertPolicy, default cooldown-expiry).
+# ---------------------------------------------------------------------------
+# OPEN-WEIGHT OPT-IN — Kimi K2.7 Code on the `task` tier
+# ---------------------------------------------------------------------------
+# github-copilot/kimi-k2.7-code is the FIRST AND ONLY open-weight model in
+# GitHub Copilot (GitHub's own model-release-status.yml groups it under a
+# literal "# Open-weight models" comment; the 2026-07-01 changelog calls it
+# "the first open-weight model offered as a selectable option in the Copilot
+# model picker"). Weights: Modified-MIT at huggingface.co/moonshotai/Kimi-K2.7-Code,
+# 1T total / 32B active MoE, hosted by GitHub on Azure.
+#
+# THE TRADE, honestly:
+#   + output $4.00 vs MAI's $4.50 (−11%), and output dominates this tier
+#   + vision-capable, where MAI is text-only (would make `vision` belt-and-braces
+#     rather than mandatory)
+#   + purpose-built agentic coding model, 256K ctx
+#   − maxTokens 32K vs MAI's 128K — a LARGE SINGLE-SHOT SLICE CAN TRUNCATE, and
+#     `task` is the build tier. This is the reason it is not the default here.
+#   − OFF BY DEFAULT on Copilot Business/Enterprise (an admin must enable the
+#     policy), so on those tenants it silently never resolves and the fallback
+#     chain below carries the work.
+#   − input $0.95 vs MAI's $0.75 (+27%); cheaper only if your task tier is
+#     output-heavy, which it usually is.
+#
+# To adopt it, uncomment BOTH lines (the fallback keeps MAI's 128K output
+# available the moment Kimi truncates or is policy-blocked):
+#
+# modelRoles:
+#   task: github-copilot/kimi-k2.7-code              # $0.95 / $4.00 — OPEN WEIGHT
+# retry:
+#   fallbackChains:
+#     task: [github-copilot/mai-code-1-flash-picker, github-copilot/gpt-5.4-mini]
+# ---------------------------------------------------------------------------
+
 retry:
+  # Return to the primary once its suppression window ends (this is also OMP's
+  # default; stated explicitly so a fallback is never sticky).
+  fallbackRevertPolicy: cooldown-expiry
   fallbackChains:
+    # task — gpt-5.4-mini is the same $0.75/$4.50 as MAI with 400K ctx and the
+    # widest client support, so it is a true like-for-like. haiku-4.5 sits last
+    # purely for VENDOR diversity (MAI is Microsoft, gpt-5.4-mini is OpenAI):
+    # at $1.00/$5.00 it is Pareto-dominated and is a last resort, not a choice.
     task: [github-copilot/gpt-5.4-mini, github-copilot/claude-haiku-4.5]
+    # default — terra first because it is the model we would switch to anyway if
+    # the Sonnet 5 promo expires (see the note on `default`).
+    default: [github-copilot/gpt-5.6-terra, github-copilot/claude-sonnet-4.6]
+    # PROVIDER WILDCARD — the concrete mechanism for staying model-open. A
+    # "provider/*" key keeps the FAILING MODEL'S ID and swaps only the provider,
+    # so if Copilot is degraded or your seat lapses, claude-sonnet-5 retries as
+    # anthropic/claude-sonnet-5 with direct billing instead of dying. Harmless
+    # when you have no Anthropic credentials — the entry simply never resolves.
+    "github-copilot/*": ["anthropic/*"]
+
+# Assigning modelRoles.advisor does NOT turn the advisor on: `advisor.enabled`
+# is a separate boolean, default false. Enable it only when you want a second
+# model reviewing every turn — it bills a second stream against the same credit
+# allowance.
+advisor:
+  enabled: false
 
 skills:
   enableSkillCommands: true
 
 # ---------------------------------------------------------------------------
-# MAI-Code-1-Flash (Microsoft, "MIA Coding"): now wired into the cheap tiers
-# above (smol/task). To go further and run the EVERYDAY default ultra-cheap too,
-# uncomment — trades some orchestration quality for ~4x cheaper output vs Sonnet:
-#
-# modelRoles:
-#   default: github-copilot/mai-code-1-flash-picker   # ultra-cheap everyday profile
-#   plan:    github-copilot/mai-code-1-flash-picker
+# NOTE — running the dev-team fully on Copilot
 # ---------------------------------------------------------------------------
-
-# NOTE — running the dev-team fully on Copilot:
-# All dev-team agents use provider-agnostic `pi/` role aliases in their `model:`
-# frontmatter: `pi/smol` (nano), `pi/task` (code), `pi/plan` (balanced),
-# `pi/slow` (deep). Every tier resolves through modelRoles above — no agent
-# pins a concrete Anthropic id, so the full team runs on Copilot-served models.
+# dev-team agents declare provider-agnostic role aliases in their `model:`
+# frontmatter using the canonical `@` prefix — `@smol` (nano), `@plan`
+# (balanced), `@slow` (deep), `@designer` (UI) — as a comma-separated fallback
+# list (`@plan, @default`), because the first RESOLVABLE pattern wins. Every
+# tier resolves through modelRoles above; no agent pins a concrete Anthropic id,
+# so the full team runs on Copilot-served models. (`pi/` is still accepted as
+# the legacy alias prefix, but `@` is canonical.)

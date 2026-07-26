@@ -2,8 +2,20 @@
 name: software-engineer
 description: Full-stack development, code generation, implementation, and refactoring
 tools: read, search, find, edit, write, bash
-model: pi/task
+# Was pi/task: @task is session-inheriting (model-resolver.ts:936-943), not a cheap tier.
+model: "@smol, @default"
 thinking-level: medium
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - quality-gate-pipeline
+  - testing-discipline
+  - systematic-debugging
+  - hexagonal-architecture
+  - domain-driven-design
+  - api-design
+  - legacy-code
+  - mutation-testing
+  - code-review
 ---
 
 # Software Engineer Agent

@@ -2,9 +2,12 @@
 name: test-review
 description: Test quality, coverage gaps, assertion quality, and test hygiene
 tools: read, search, find
-model: pi/plan
+model: "@plan, @default"
 thinking-level: medium
 blocking: true
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - feature-file-validation
 ---
 
 # Test Review

@@ -2,8 +2,13 @@
 name: security-engineer
 description: Threat modeling, security analysis, vulnerability assessment, and secure design guidance
 tools: read, search, find, bash
-model: pi/slow
+model: "@slow, @plan, @default"
 thinking-level: high
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+# Upstream also lists `governance-compliance`; we do not ship that skill — dropped, not stubbed.
+autoload-skills:
+  - threat-modeling
+  - quality-gate-pipeline
 ---
 
 # Security Engineer Agent

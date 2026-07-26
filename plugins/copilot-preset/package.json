@@ -1,8 +1,8 @@
 {
   "name": "@omp-dev-team/copilot-preset",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "GitHub Copilot model preset for Oh-My-Pi.",
   "license": "MIT",
   "private": true,
-  "comment": "Config-only plugin: ships a skill + a config.snippet.yml. It has no omp.extensions because model routing (modelRoles/enabledModels) is a USER setting that plugins cannot set automatically — paste config.snippet.yml into ~/.omp/agent/config.yml."
+  "comment": "Config-only plugin: ships a skill + a config.snippet.yml + pricing.md. It has no omp.extensions because model routing (modelRoles/retry.fallbackChains/enabledModels) is a USER setting that plugins cannot set automatically — paste config.snippet.yml into ~/.omp/agent/config.yml, or run install.sh --apply-config, which merges it key-by-key via scripts/lib/cfg.sh. Keep this version identical to .claude-plugin/plugin.json."
 }

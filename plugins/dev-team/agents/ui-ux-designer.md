@@ -2,8 +2,13 @@
 name: ui-ux-designer
 description: User interface design, UX optimization, and accessibility compliance
 tools: read, search, find
-model: pi/plan
+# @designer is a real OMP model role, dead in our port until now; @plan/@default keep it alive if unset.
+model: "@designer, @plan, @default"
 thinking-level: medium
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - quality-gate-pipeline
+  - design-doc
 ---
 
 # UI/UX Designer Agent

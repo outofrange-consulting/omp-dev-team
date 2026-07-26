@@ -2,9 +2,13 @@
 name: domain-review
 description: Domain boundaries, abstraction leaks, business logic placement
 tools: read, search, find
-model: pi/plan
+# Regrade (plan A.4): upstream runs these design-synthesis agents on opus.
+model: "@slow, @plan, @default"
 thinking-level: high
 blocking: true
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - ubiquitous-language
 ---
 
 # Domain Review

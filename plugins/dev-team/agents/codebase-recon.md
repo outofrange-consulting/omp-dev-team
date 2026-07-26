@@ -2,7 +2,8 @@
 name: codebase-recon
 description: Reconnaissance agent that surveys a codebase's structure, entry points, dependencies, security surface, and git history. Produces a contract-conformant RECON artifact at `memory/recon-<slug>.{md,json}` that other agents consume.
 tools: read, search, find, bash
-model: pi/task
+# Was pi/task: @task is session-inheriting (model-resolver.ts:936-943), not a cheap tier.
+model: "@smol, @default"
 thinking-level: medium
 ---
 
@@ -18,7 +19,7 @@ First-pass discovery for security-review, domain-analysis, and architecture work
 
 ## Contract
 
-Output conforms to the RECON envelope schema at `evals/codebase-recon/expected-schema.json` (v0.1 placeholder). Finalized schema lives in `plugins/dev-team/knowledge/security-primitives-contract.md#envelope-1-recon` once P2 Step 4 ships.
+Output conforms to the RECON envelope schema at `evals/codebase-recon/expected-schema.json` (v0.1 placeholder). Finalized schema lives in `skill://dev-team-knowledge/security-primitives-contract.md#envelope-1-recon` once P2 Step 4 ships.
 
 Artifacts written:
 

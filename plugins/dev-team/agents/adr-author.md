@@ -1,12 +1,21 @@
 ---
 name: adr-author
 description: Creates and manages Architecture Decision Records (ADRs) with a decision framework for when to create one
-tools: read, write, find, search
-model: pi/plan
+# `bash` added: adr-tools drives numbering, index regeneration and supersede edits through
+# shell tooling. Without it this agent could not run the tooling it exists to drive.
+tools: read, write, find, search, bash
+model: "@plan, @default"
 thinking-level: medium
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - adr-tools
 ---
 
 # ADR Author Agent
+
+## Skills
+
+- [ADR Tools](skill://adr-tools) — declared in `autoload-skills:`, so it is already resident when you start; it owns sequential numbering, the `docs/adr/README.md` index, and the supersede/deprecate mechanics used throughout the Process section below. Do not hand-roll any of those.
 
 ## Technical Responsibilities
 

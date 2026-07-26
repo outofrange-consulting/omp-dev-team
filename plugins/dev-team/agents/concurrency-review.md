@@ -2,9 +2,13 @@
 name: concurrency-review
 description: Race conditions, async pitfalls, idempotency, shared state safety
 tools: read, search, find
-model: pi/plan
+# Regrade (plan A.4): upstream runs this on haiku; @smol is our cheap tier.
+model: "@smol, @default"
 thinking-level: medium
 blocking: true
+# Verbatim file bytes, not structural summaries: races live in statement *order* and in
+# which awaits sit inside a lock — exactly what a structural summary drops.
+read-summarize: false
 ---
 
 # Concurrency Review
@@ -19,7 +23,7 @@ Status: pass=no concurrency issues, warn=potential concerns, fail=likely race co
 Severity: error=race condition or data corruption risk, warning=potential concurrency concern, suggestion=defensive improvement
 Confidence: high=mechanical pattern fix (add await, add finally); medium=fix direction clear but requires understanding shared state; none=requires human judgment (architectural concurrency design)
 
-Model tier: mid
+Model tier: small
 Context needs: full-file
 
 ## Skip

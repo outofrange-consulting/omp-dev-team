@@ -2,7 +2,7 @@
 name: progress-guardian
 description: Tracks plan step completion, enforces commit discipline, and gates plan changes through human approval
 tools: read, search, find
-model: pi/smol
+model: "@smol, @default"
 thinking-level: low
 blocking: true
 ---
@@ -19,7 +19,7 @@ Status: pass=on track, warn=drift detected, fail=plan violation or scope creep
 Severity: error=skipped step or plan deviation, warning=uncommitted work accumulating, suggestion=consider committing
 Confidence: high=mechanical (step skipped, test missing); medium=judgment call (scope boundary); none=requires human input
 
-Model tier: mid
+Model tier: small
 Context needs: full-file (reads plan + git state)
 
 ## Skip

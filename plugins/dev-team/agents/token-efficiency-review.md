@@ -2,7 +2,7 @@
 name: token-efficiency-review
 description: Token usage optimization, file length, CLAUDE.md size, LLM anti-patterns
 tools: read, search, find
-model: pi/smol
+model: "@smol, @default"
 thinking-level: low
 blocking: true
 ---

@@ -93,10 +93,9 @@ else warn "uvx not found — serena-forge's Serena MCP server can't launch (inst
 # --- Optionally apply the config snippet ------------------------------------
 CFG="$HOME/.omp/agent/config.yml"
 if [ "$APPLY" = 1 ]; then
-  say "Appending config.snippet.yml to $CFG"
-  mkdir -p "$(dirname "$CFG")"; touch "$CFG"
-  if grep -q "dev-team —" "$CFG" 2>/dev/null; then echo "  (already present — skipping)"
-  else { echo ""; cat "$HERE/config.snippet.yml"; } >> "$CFG"; echo "  appended."; fi
+  say "Merging config.snippet.yml into $CFG"
+  . "$HERE/../../scripts/lib/cfg.sh"
+  cfg_add_snippet "$HERE/config.snippet.yml" dev-team
 fi
 
 # --- Load the guard/routing extensions --------------------------------------

@@ -6,35 +6,84 @@
 # your model routing, skills, and subagent graph.
 
 # ---------------------------------------------------------------------------
-# MODEL ROUTING (tier -> model)
+# MODEL ROUTING (role -> model)
 # ---------------------------------------------------------------------------
-# Agents declare a tier in their `model:` frontmatter (the cheap end is split by
-# WORKLOAD SHAPE):
-#   nano (lexical/scan) agents -> `pi/smol`   (resolved here, role smol)
-#   code (coding/tool-use)     -> `pi/task`   (resolved here, role task)
-#   balanced agents            -> `pi/plan`   (resolved here, role plan)
-#   deep-reasoning agents      -> `pi/slow`   (resolved here, role slow)
+# Agents declare a role in their `model:` frontmatter, canonical `@role` prefix
+# (`pi/role` is still accepted but is LEGACY_MODEL_ROLE_ALIAS_PREFIX —
+# omp/packages/coding-agent/src/config/model-roles.ts:9-15):
+#   nano (lexical/scan) agents -> `@smol`
+#   code (coding/tool-use)     -> `@smol` (see the `task` note below)
+#   balanced agents            -> `@plan`
+#   deep-reasoning agents      -> `@slow`
+#   design/UI agents           -> `@designer`
 #
-# nano + code are CHEAP-CLOUD high-volume tiers: nano is pure lexical/checklist
-# review and input-bound scan (no code semantics, no tool-use); code is cheap
-# coding & agentic tool-use. Keep both on the cheapest capable model for the
-# shape. On base Anthropic both resolve to Haiku; copilot-preset splits them
-# (smol -> gpt-5-mini, task -> mai-code-1-flash-picker).
+# Agents declare a COMMA-SEPARATED fallback list (`@plan, @default`) because
+# parseModelList takes CSV and the first *resolvable* pattern wins — an
+# unresolvable role is skipped, not fatal (discovery/helpers.ts:216-221). That
+# keeps the team working for a user who never pasted this snippet.
+#
+# WHY EVERY VALUE IS A LIST, AND WHY BOTH ID SPELLINGS APPEAR:
+# there is no dot/dash normalization anywhere in the catalog's id matcher
+# (packages/catalog/src/identity/id.ts only trims whitespace, lowercases, and
+# strips bracketed affixes). Anthropic writes `claude-opus-4-8`, GitHub Copilot
+# writes `claude-opus-4.8`. OMP's own priority.json hedges the same way
+# ("opus-4.8", "opus-4-8", "haiku-4-5", "haiku-4.5"). Listing both spellings
+# plus a non-Anthropic third choice is what makes this block provider-neutral:
+# whichever provider you are logged into, one pattern resolves.
 modelRoles:
-  # nano tier (lexical/scan) -> cheapest capable. copilot-preset -> gpt-5-mini.
-  smol: claude-haiku-4-5
-  # code tier (coding/tool-use) -> cheap coding model. copilot-preset -> mai-code-1-flash-picker.
-  task: claude-haiku-4-5
-  # everyday DEFAULT -> Sonnet 5 runs the orchestrator (non-trivial -> research ->
-  # plan -> implement -> review). Sonnet 5 also now covers architecture/domain
-  # DESIGN synthesis (architect, arch-review, domain-review moved down from deep):
-  # near-Opus quality on cross-file design at ~40% lower cost, xhigh effort available.
-  default: claude-sonnet-5
-  plan: claude-sonnet-5
-  # deep reasoning -> reserved for high-stakes SECURITY verdicts (security-review,
-  # security-engineer) where Opus still leads Sonnet 5.
-  slow: claude-opus-4-8
+  # everyday DEFAULT -> runs the orchestrator (non-trivial -> research -> plan ->
+  # implement -> review) and carries architecture/domain DESIGN synthesis.
+  default: [claude-sonnet-5, claude-sonnet-4-6, claude-sonnet-4.6, gpt-5.5]
+  # deep reasoning -> high-stakes SECURITY verdicts (security-review,
+  # security-engineer) and the design-synthesis agents' first choice.
+  slow: [claude-opus-4-8, claude-opus-4.8, gpt-5.5:xhigh]
+  # nano tier: pure lexical/checklist review + input-bound scan. Highest volume,
+  # runs in parallel every checkpoint -> cheapest capable model wins.
+  smol: [claude-haiku-4-5, claude-haiku-4.5, gpt-5.4-mini, gpt-5-mini]
+  # MUST be set explicitly. `plan` has NO priority.json chain (that file has
+  # exactly three keys: smol, slow, designer) and is NOT in
+  # shouldInheritDefaultBeforePriority (model-resolver.ts:946-948, which returns
+  # true only for smol/slow/designer). An unset `plan` therefore resolves to
+  # undefined and every `@plan` agent silently falls through to the parent
+  # SESSION model — the opposite of a declared tier.
+  plan: "@default"
+  # MUST be set explicitly, for the opposite reason: `@task` (like `@default`)
+  # is *deliberately* session-inheriting (isSessionInheritedAgentPattern,
+  # model-resolver.ts:935-944). That is right for OMP's generic `task` agent and
+  # wrong for a "cheap code tier", so pin it to the cheap chain.
+  task: "@smol"
+  # designer -> UI/UX + a11y work. OMP's own designer chain is Gemini-first
+  # (priority.json), so we follow it rather than invent one.
+  designer: [gemini-3.1-pro-preview, gemini-3-pro-preview, claude-sonnet-5]
+  # vision is LOAD-BEARING, not decorative: inspect_image resolves
+  # @vision -> @default -> active model and then HARD-ERRORS if the resolved
+  # model has no "image" input modality (tools/inspect-image.ts:158-172). Any
+  # profile that puts a text-only model on `default` breaks image handling
+  # unless `vision` is pinned.
+  vision: [claude-sonnet-5, gemini-3.1-pro-preview]
+  # advisor -> second-opinion reviewer. It aliases the `slow` chain but NEVER
+  # inherits the primary (ROLE_PRIORITY_ALIAS + the doc comment at
+  # model-resolver.ts:950-962), so it stays a distinct strong model. `:medium`
+  # keeps the passive reviewer from costing more than the turn it reviews.
+  advisor: [claude-opus-4-8:medium, claude-opus-4.8:medium, gpt-5.5:medium]
+  # tiny / commit: DELIBERATELY UNSET. ROLE_PRIORITY_ALIAS maps tiny -> smol
+  # (model-resolver.ts:959-962) and commit resolves via
+  # ["commit","smol",...MODEL_ROLE_IDS] (commit/model-selection.ts:46), so both
+  # already land on our smol chain. Setting them is a no-op today — set them
+  # ONLY to make them diverge from smol.
   # (With copilot-preset, the global installer wires these to github-copilot/* .)
+
+# Which roles /model cycling walks through. OMP's default is
+# [smol, default, slow] (settings-schema.ts:314); we insert `plan` because it is
+# a first-class tier here, not an alias of default.
+cycleOrder: [smol, default, plan, slow]
+
+# Assigning modelRoles.advisor does NOT turn the advisor on — `advisor.enabled`
+# is a separate boolean, default false (settings-schema.ts:441-443). Set it to
+# true only when you want a second model reviewing every turn (it bills a
+# second stream). Left off deliberately.
+advisor:
+  enabled: false
 
 # ---------------------------------------------------------------------------
 # SKILLS
@@ -54,8 +103,9 @@ skills:
 # task (see each agent's `tools:` frontmatter) plus the systematic-debugging
 # skill — none declare the DAP `debug` tool or the Python/JS `eval` code-exec
 # tool. Turning them off removes their schemas from startup context (~3K) with
-# no loss of capability. (Paired with token-diet's discoveryMode they would be
-# hidden anyway; disabling them keeps them out of the discovery set too.)
+# no loss of capability. (OMP's own `tools.xdev`, default on, already mounts
+# non-essential and MCP tools as `xd://` devices under a doc budget — nothing to
+# configure there; disabling these two keeps them out of that set as well.)
 debug:
   enabled: false
 eval:
@@ -93,27 +143,27 @@ eval:
 # python, package.json -> node (dotnet wins a mixed repo).
 
 # ---------------------------------------------------------------------------
-# EFFORT-BAND MODEL ROUTING (model-routing extension)
+# EFFORT (phase-aware) — NOTHING TO CONFIGURE HERE
 # ---------------------------------------------------------------------------
-# Phase-aware bump-from-floor: the effort goes into spec/plan, not the build. The
-# TASK SIZE (set by /scope) raises the band ONLY while planning (stage
-# needs-plan): target trivial->code, standard->balanced, complex->deep, and
-# effective = max(agent floor, target). Once the plan is approved, build/review
-# run at the floor (no bump) — a solid plan makes the build routine. An agent is
-# never routed BELOW its tier (high-stakes deep agents hold). No signal -> floor.
-# Configured in skills/dev-team-knowledge/model-routing.json -> effortBand;
-# copilot-preset unaffected (the band picks a tier; modelRoles resolves it).
+# The plugin-side effort-band resolver is retired. OMP's own `task` tool takes a
+# per-call `effort: "lo" | "med" | "hi"`, which outranks both the agent's
+# frontmatter and any `:level` model suffix, and maps onto whatever ladder the
+# ACTUALLY RESOLVED model supports — so it degrades gracefully on Copilot and
+# open-weight models that have no Anthropic-style effort ladder.
 #
-# Enforcement is set there (default "advisory") and overridable per-run by env:
-#   DEV_TEAM_EFFORT_ROUTING=advisory   # log + warn on mismatch (default)
-#   DEV_TEAM_EFFORT_ROUTING=enforce    # block a mis-banded dispatch
-#   DEV_TEAM_EFFORT_ROUTING=off        # disable the band (pure static tiers)
-# Inspect with /routing.
+# The rule the orchestrator applies: frontmatter declares the FLOOR; /scope's
+# task size maps to the per-call effort (trivial -> lo, standard -> med,
+# complex -> hi) and is passed ONLY during spec/plan. Build and review pass
+# nothing, so they run at the floor — a solid plan makes the build routine.
 #
-# Optional extra saving (off by default): set effortBand.trivialDownshift=true in
-# model-routing.json to route agents ONE band BELOW their floor on a trivial
-# (fast-path) task — except a deep floor (protectDownshift), which holds. The only
-# case an agent goes below its tier; leave off to keep the never-below-floor rule.
+# Caveat worth knowing: every Copilot model served over `openai-completions` is
+# built with compat.supportsReasoningEffort=false, so effort is a NO-OP on the
+# wire for Gemini/Kimi via Copilot. It does take effect on Copilot's Claude
+# (anthropic-messages) and GPT-5.x (openai-responses) models.
+#
+# Per-agent model overrides and enable/disable are native too — see
+# `task.agentModelOverrides`, `task.disabledAgents` and the `/agents` command.
+# Do not add a plugin-side equivalent.
 
 # ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH

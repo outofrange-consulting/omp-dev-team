@@ -2,9 +2,13 @@
 name: js-fp-review
 description: Array mutations, parameter mutations, global state, impure patterns in JS/TS
 tools: read, search, find
-model: pi/task
+# Was pi/task: @task is session-inheriting (model-resolver.ts:936-943), not a cheap tier.
+model: "@smol, @default"
 thinking-level: low
 blocking: true
+# Verbatim file bytes, not structural summaries: mutation is expression-level
+# (`arr.push`, `obj.x =`, a reassigned parameter). A signature-level summary shows none of it.
+read-summarize: false
 ---
 
 # JS FP Review
@@ -21,7 +25,7 @@ Output JSON:
 Severity: error=external state mutation, warning=local mutation, suggestion=style
 Confidence: high=mechanical substitution (push→spread, let→const); medium=pattern clear but spread vs clone depends on usage; none=requires human judgment (intentional mutation for performance)
 
-Model tier: mid
+Model tier: small
 Context needs: diff-only
 
 ## Skip

@@ -2,7 +2,8 @@
 name: doc-review
 description: Documentation accuracy, README staleness, API doc alignment, inline comment drift, ADR update triggers
 tools: read, search, find
-model: pi/plan
+# Regrade (plan A.4): upstream runs this on haiku; @smol is our cheap tier.
+model: "@smol, @default"
 thinking-level: medium
 blocking: true
 ---
@@ -19,7 +20,7 @@ Status: pass=docs accurate, warn=minor drift, fail=misleading or missing critica
 Severity: error=documentation actively misleads (wrong behavior, removed feature still documented); warning=documentation is stale or incomplete; suggestion=docs could be clearer or more complete
 Confidence: high=mechanical update (update version, remove reference to deleted thing); medium=content direction clear, exact wording requires context; none=requires human judgment (architectural narrative, ADR decision rationale)
 
-Model tier: mid
+Model tier: small
 Context needs: project-structure
 
 ## Skip

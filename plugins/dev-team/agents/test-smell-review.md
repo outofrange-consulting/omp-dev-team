@@ -2,7 +2,7 @@
 name: test-smell-review
 description: xUnit test smells, test double selection, and test-pyramid layer placement
 tools: read, search, find
-model: pi/plan
+model: "@plan, @default"
 thinking-level: medium
 blocking: true
 ---

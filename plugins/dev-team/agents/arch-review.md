@@ -2,7 +2,8 @@
 name: arch-review
 description: Architectural alignment — ADR compliance, layer boundary violations, dependency direction, pattern consistency
 tools: read, search, find
-model: pi/plan
+# Regrade (plan A.4): upstream runs these design-synthesis agents on opus.
+model: "@slow, @plan, @default"
 thinking-level: high
 blocking: true
 ---

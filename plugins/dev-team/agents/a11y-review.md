@@ -2,7 +2,8 @@
 name: a11y-review
 description: WCAG 2.1 AA compliance, semantic HTML, ARIA, keyboard navigation, focus management
 tools: read, search, find
-model: pi/smol
+# @designer is a real OMP model role, dead in our port until now; @plan/@default keep it alive if unset.
+model: "@designer, @plan, @default"
 thinking-level: low
 blocking: true
 ---

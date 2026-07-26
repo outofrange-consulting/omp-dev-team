@@ -2,7 +2,8 @@
 name: refactor-opportunity-review
 description: Assesses refactoring opportunities after tests pass (the test-after refactoring step), distinguishing semantic duplication from structural similarity
 tools: read, search, find
-model: pi/plan
+# Regrade (plan A.4): upstream runs this on haiku; @smol is our cheap tier.
+model: "@smol, @default"
 thinking-level: medium
 blocking: true
 ---
@@ -19,7 +20,7 @@ Status: pass=code is clean, warn=refactoring opportunities exist, fail=critical 
 Severity: error=semantic duplication (real DRY violation), warning=high-value refactor opportunity, suggestion=nice-to-have cleanup
 Confidence: high=mechanical (extract method, rename); medium=judgment call (is this duplication semantic or structural?); none=requires domain knowledge
 
-Model tier: mid
+Model tier: small
 Context needs: full-file
 
 ## Skip

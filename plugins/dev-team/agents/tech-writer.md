@@ -2,8 +2,14 @@
 name: tech-writer
 description: Project documentation, terminology consistency, and ubiquitous language enforcement
 tools: read, search, find, edit, write
-model: pi/plan
+model: "@plan, @default"
 thinking-level: medium
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+# Upstream lists `governance-compliance` here; we do not ship that skill. Substituted
+# `ubiquitous-language`, which this agent's own description already claims to enforce
+# and which is the skill domain-review dispatches for the same vocabulary.
+autoload-skills:
+  - ubiquitous-language
 ---
 
 # Technical Writer Agent
@@ -16,6 +22,8 @@ thinking-level: medium
 - Enforce ubiquitous language alignment between docs and code
 
 ## Skills
+
+- [Ubiquitous Language](skill://ubiquitous-language) — declared in `autoload-skills:`, so it is already resident when you start. It is the source of truth for the Terminology standards below: when you flag that two agents name the same concept differently, propose the unified term from the glossary rather than inventing one. `domain-review` uses the same skill, so a term you introduce here is the term it will review against.
 
 ## Behavioral Guidelines
 

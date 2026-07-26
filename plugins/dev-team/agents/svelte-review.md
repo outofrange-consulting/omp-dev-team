@@ -2,7 +2,8 @@
 name: svelte-review
 description: Svelte reactivity pitfalls, closure state leaks, $state proxy issues, store subscription leaks
 tools: read, search, find
-model: pi/task
+# Was pi/task: @task is session-inheriting (model-resolver.ts:936-943), not a cheap tier.
+model: "@smol, @default"
 thinking-level: low
 blocking: true
 ---
@@ -23,7 +24,7 @@ Status: pass=no reactivity issues, warn=potential concerns, fail=likely silent r
 Severity: error=silent reactivity breakage, warning=potential reactivity concern, suggestion=defensive improvement
 Confidence: high=mechanical Svelte fix (wrap in $state, add unsubscribe, change to $derived); medium=reactivity pattern identified but component design may affect the fix; none=requires human judgment (state architecture decisions)
 
-Model tier: mid
+Model tier: small
 Context needs: full-file
 
 ## Skip

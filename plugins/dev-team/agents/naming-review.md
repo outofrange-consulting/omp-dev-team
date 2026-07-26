@@ -2,7 +2,8 @@
 name: naming-review
 description: Naming clarity, conventions, magic values, and consistency
 tools: read, search, find
-model: pi/smol
+# Regrade (plan A.4): upstream runs this on sonnet; @smol was a two-tier downgrade.
+model: "@plan, @default"
 thinking-level: low
 blocking: true
 ---
@@ -19,7 +20,7 @@ Status: pass=clear names, warn=improvements needed, fail=harms readability
 Severity: error=misleading names, warning=unclear, suggestion=style
 Confidence: high=mechanical (add is/has prefix, extract magic value to constant); medium=better name suggested but domain context may differ; none=requires human judgment (domain terminology choices)
 
-Model tier: small
+Model tier: mid
 Context needs: diff-only
 
 ## Knowledge Files

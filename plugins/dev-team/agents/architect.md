@@ -2,8 +2,20 @@
 name: architect
 description: System design, architecture definition, and technical decision oversight
 tools: read, search, find, bash
-model: pi/plan
+# Regrade (plan A.4): upstream runs these design-synthesis agents on opus.
+model: "@slow, @plan, @default"
 thinking-level: high
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - quality-gate-pipeline
+  - design-doc
+  - design-it-twice
+  - hexagonal-architecture
+  - domain-driven-design
+  - specs
+  - threat-modeling
+  - api-design
+  - legacy-code
 ---
 
 # Architect Agent
@@ -19,6 +31,7 @@ thinking-level: high
 ## Skills
 - [Quality Gate Pipeline](skill://quality-gate-pipeline) - invoke before delivering architecture decisions (Phase 1: verify assumptions against actual codebase state)
 - [Design Doc](skill://design-doc) - invoke during Research phase to produce a written design document with alternatives analysis before planning begins
+- [Design It Twice](skill://design-it-twice) - invoke before committing to a design: produce a second, genuinely different option and compare, rather than refining the first idea
 - [Hexagonal Architecture](skill://hexagonal-architecture) - invoke when designing service boundaries, port/adapter separation, and dependency rules
 - [Domain-Driven Design](skill://domain-driven-design) - invoke when modeling bounded contexts, aggregates, domain events, and context maps
 - [Specs](skill://specs) - invoke during specification phase to lead Architecture Specification stage and run the cross-artifact consistency gate

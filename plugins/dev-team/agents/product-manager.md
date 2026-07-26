@@ -2,8 +2,14 @@
 name: product-manager
 description: Requirements clarification, priority management, and stakeholder alignment
 tools: read, search, find
-model: pi/plan
+model: "@plan, @default"
 thinking-level: medium
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+autoload-skills:
+  - design-doc
+  - domain-driven-design
+  - human-oversight-protocol
+  - specs
 ---
 
 # Product Manager Agent

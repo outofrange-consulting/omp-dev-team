@@ -2,7 +2,8 @@
 name: complexity-review
 description: Cyclomatic complexity, nesting depth, function size, parameter count
 tools: read, search, find
-model: pi/smol
+# Regrade (plan A.4): upstream runs this on sonnet; @smol was a two-tier downgrade.
+model: "@plan, @default"
 thinking-level: low
 blocking: true
 ---
@@ -19,7 +20,7 @@ Status: pass=manageable, warn=hotspots, fail=critical issues
 Severity: error=unmaintainable, warning=high complexity, suggestion=could simplify
 Confidence: high=threshold violation (function >N lines, nesting >N levels); medium=extraction direction clear, exact split requires context; none=requires human judgment (algorithm design)
 
-Model tier: small
+Model tier: mid
 Context needs: full-file
 
 ## Knowledge Files
@@ -73,7 +74,7 @@ Derive `status` from the highest-severity finding, never from volume (`skill://d
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#structure-review`. Use the structure-review challenge questions (the nearest applicable section — no complexity-specific section exists). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#complexity-review`. Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

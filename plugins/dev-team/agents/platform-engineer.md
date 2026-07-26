@@ -2,8 +2,12 @@
 name: platform-engineer
 description: Pipeline design, deployment strategy, observability, and reliability planning
 tools: read, search, find, bash
-model: pi/plan
+model: "@plan, @default"
 thinking-level: medium
+# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
+# Upstream also lists `governance-compliance`; we do not ship that skill — dropped, not stubbed.
+autoload-skills:
+  - quality-gate-pipeline
 ---
 
 # Platform Engineer Agent
