@@ -2,193 +2,123 @@
 
 > 🌐 **English** · [Français](README.fr.md)
 
-Aggressive **token reduction** for OMP dev teams. Bundles three best-in-class
-external token savers and wires them into OMP the native way — on top of what OMP
-already does (compaction, `astGrep`/`summarizeCode`, provider prompt caching), not
-in place of it.
+**v2.0.0 — refocused.** This plugin used to be a runtime layer over OMP:
+read dedup, context dedup, a prompt-cache meter, a "lean tool surface". OMP 17.x
+ships all of it. What is left is the narrow set of things the harness genuinely
+does not do — and nothing here duplicates it.
 
-| Layer | What | Win | Upstream |
-|---|---|---|---|
-| **ctx-wire** | transparent CLI proxy that filters command **output** + scrubs secrets (full logs kept on disk); **EN+FR** filter overrides for `git status` + `dotnet build`/`test` (VSTest & MTP)/`restore`/`run`/`tool` | big cuts on `git`/build/test/lint noise | [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) |
-| **context-mode** | native OMP plugin that **sandboxes tool output** and indexes it (FTS5/BM25, language-agnostic) — keeps raw payloads out of context + survives compaction | ~98% on giant/unstructured output; any locale (incl. ro) | [mksglu/context-mode](https://github.com/mksglu/context-mode) |
-| **context7** | MCP library docs lookup — up-to-date API docs on demand | eliminates stale-knowledge hallucinations on library APIs | [upstash/context7](https://github.com/upstash/context7) |
-| **caveman** | terse, fragment-style **output** (on demand) | ~65% output tokens | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
-| **yagni** | write **less code** — YAGNI / laziest-senior-dev (on demand) | ~80–94% less code; fewer tokens now + every future turn | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) |
-| **mcp-as-cli-skill-creator** (skill) | a schema-heavy MCP server inlines its whole tool schema into the system prompt every request | turns an MCP / OpenAPI / GraphQL into a thin runtime CLI + on-demand skill, keeping its schema **out of the context window** (the ctx7/acli pattern, generalized) | native OMP skill |
-| **atlassian** (skill) | Jira/Confluence work needs an always-loaded Atlassian MCP schema, or hand-rolled `curl` against the REST API | a skill (`skill://atlassian`) that drives the already-installed `acli` CLI for Jira/Confluence reads *and* writes — issue search/view/create/edit/comment/transition/link, Confluence page/space/blog reads — triggered automatically on "Jira", "Confluence", a bare issue key, or an atlassian.net URL | native OMP skill over the official `acli` CLI |
-| **read-dedup** + **context-dedup** | re-reads of unchanged files + byte-identical repeated blocks inflate **input** | LOSSLESS, on: re-read → stub; identical blocks collapsed before each call | caveman-code's "Read Dedup", reimplemented on OMP's `tool_call`/`context` hooks |
-| **context-compress** | old **prose** context stays verbose every turn | protect-masked prose shrink of old messages — code/paths/numbers byte-identical (`safe` on by default; `lite`/`full` opt-in) | quality-preserving take on [caveman-code](https://github.com/JuliusBrussee/caveman-code)'s LLMLingua/Provence |
-| **cache-meter** | the prompt-cache savings you *think* you get are unmeasured — and a prefix-mutating transform can silently bust them | READ-ONLY, on: a live **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) + `/cache-health` for the full read-rate / churn / cost / thinking-share / provider-quota breakdown; **warns** when `lite`/`full` compression coincides with high cache churn | OMP per-turn `usage` (`turn_end`) + `after_provider_response` headers + `ui.setStatus` |
-| **Provider isolation** | excludes all foreign-tool user configs from OMP context | eliminates agent noise from Claude Code / Codex / Gemini / Cursor / Windsurf / Copilot / OpenCode plugin registries | built-in OMP settings |
-| **Lean tool surface** | `tools.discoveryMode: all` — hides non-essential tool schemas behind OMP's on-demand discovery tool, keeping only the hot path loaded | startup "System tools" ~18K → ~10K (full dev-team startup ~29K → ~20K), no capability lost | built-in OMP settings |
+| Layer | What | Why it survives |
+|---|---|---|
+| **ctx-wire filters** (4) | EN+FR filters for `dotnet publish` / `pack` / `run` / `tool` | OMP truncates *mechanically* (tail window, column cap, artifact spill). Only these know a 20 KB all-green `dotnet publish` collapses to one artifact line — and only these know it in French. OMP's own Rust filters already own `git` and `dotnet build\|test\|restore\|format`, so we ship neither. |
+| **caveman** (skill) | terse, fragment-style **output**, on demand | The only lever aimed at **output** tokens. Nothing in OMP — or in upstream agentic-dev-team — touches what the model writes. Costs only its name + description until invoked. |
+| **path-inject** (extension) | prepends `~/.local/bin` to `PATH` inside the OMP process | OMP spawns bash non-login/non-interactive, so `~/.profile` is never sourced and a freshly installed ctx-wire shim is invisible until you open a new terminal. 32 lines, no hooks, no message mutation. |
+| **context-compress** (extension) | protect-masked prose shrink of OLD messages | **OFF by default, opt-in.** Kept as an instrumented experiment, not a feature — see the warning below. |
+| **token-tools** (rule) | ~15 lines, `alwaysApply` | ctx-wire is transparent; `read`/`grep`/`astEdit` still beat raw shell; edit symbols structurally. |
+| **provider isolation + native settings** | `config.snippet.yml` | `disabledProviders` plus the handful of OMP settings that actually pay off today (below). |
+
+## What OMP does natively (so this plugin doesn't)
+
+| Native | Default | Replaced from this plugin |
+|---|---|---|
+| `compaction.supersedeReads` | **on** | `read-dedup` + `context-dedup`. And native is *better*: it keeps the **newest** read and blanks the older; ours blocked the newer and forced the model onto stale bytes. |
+| `compaction.dropUseless`, `pruneToolOutputs` | **on** / built in | the rest of the dedup story |
+| `shellMinimizer` Rust filters | **on** | our `git-status` / `dotnet-build` / `dotnet-test` / `dotnet-restore` filters |
+| statusline `cost` / `cache_read` / `cache_write` / `cache_hit` / `context_pct` / `usage` | segments | `cache-meter` and `/cache-health` — and the installer's fork of OMP's own status-line renderer, which was broken anyway |
+| `secrets.enabled` + `~/.omp/agent/secrets.yml` | off → **we turn it on** | the token-redaction stage of the old `acli` filter — and it covers the case a command filter never could: secrets arriving via `read .env` or an MCP result |
+| `tools.xdev` | **on** | `tools.discoveryMode` / `tools.essentialOverride` (removed in OMP 17.0.0 and now silently deleted from your config on load) and the `mcp-as-cli-skill-creator` skill built on their premise |
+| `lsp` + built-in `omnisharp` | auto | any C#-specific navigation tooling this plugin used to install |
+
+**Design rule that follows from this:** do not build a plugin-side context
+transform. Rewriting *old* messages mutates the prefix the provider KV-caches,
+and cached input is ~10× cheaper than fresh input — a cache bust costs more than
+the bytes it saves.
+
+## Where the removed pieces went
+
+| Removed | Now |
+|---|---|
+| `atlassian` skill + the `acli` install/auth + `acli.toml` | the **official Atlassian remote MCP server** (`https://mcp.atlassian.com/v1/mcp/authv2`, OAuth), wired by the repo-root installer |
+| `context7` skill + the `ctx7` CLI install | the **official Context7 remote MCP server** (`https://mcp.context7.com/mcp`, `CONTEXT7_API_KEY` header), wired by the repo-root installer |
+| `yagni` skill | **deleted** |
+| `mcp-as-cli-skill-creator` skill | deleted — its premise ("MCP schemas cost context, wrap them as CLIs") died with `tools.xdev` |
+| `read-dedup`, `context-dedup`, `cache-meter` extensions, `/cache-health` | deleted — native (table above) |
+| `context-mode` plugin install | deleted — OMP's shellMinimizer + artifact spill cover it |
 
 ## Install
 
 ```sh
 omp plugin install token-diet@omp-dev-team
-bash plugins/token-diet/install.sh   # installs ctx-wire and turns everything on.
-                                     # Restart omp.
+bash plugins/token-diet/install.sh    # then restart omp
 ```
 
-**Active by default after `install.sh`** — no manual flags: ctx-wire shims compress
-command output and the skills are turned on. token-diet ships no MCP server (its
-`.mcp.json` is empty). Symbolic C#/.NET navigation and editing now live in the
-**dev-team** plugin as its **serena-forge** integration.
+The installer: installs/updates ctx-wire and its PATH shims, merges the four
+filters into `~/.config/ctx-wire/filters.toml`, installs `ast-grep`, merges
+`config.snippet.yml` per top-level key, and mirrors `extensions/` + `rules/` into
+`~/.omp/agent`. Flags: `--no-update`, `--no-config`, `--no-cleanup`,
+`--insecure-tls`, `--ca-file=…`.
 
 ## How it's wired into OMP
 
-- **ctx-wire** → installed by `install.sh`, then **`ctx-wire shims install`** drops
-  transparent wrappers into `~/.local/bin` (first on PATH, inherited by OMP's bash
-  tool) so the agent runs commands normally — **no prefix** — and their output is
-  filtered + secret-scrubbed before it hits context (full logs kept on disk).
-  (`ctx-wire init claude` only wires Claude Code, not OMP, so we use shims.)
-  `ctx-wire gain` shows savings; `ctx-wire doctor` verifies; `ctx-wire mcp-wrap` can also compress
-  MCP-server output. Replaces the earlier RTK integration (RTK is also English-only,
-  so it offered no localization advantage).
-  **Restart required**: shims land in `~/.local/bin`; an OMP process already
-  running when `install.sh` executes keeps its old PATH and won't see them
-  until you restart OMP (re-running the installer again does not help). The
-  installer now probes a fresh non-interactive shell right after `ctx-wire
-  shims install` and prints an explicit warning if this session is stale.
-  **Multilingual filters** → `install.sh` merges EN+FR overrides
-  (`ctx-wire/filters.d/`) for `git status` + `dotnet build`/`test` (VSTest **and**
-  Microsoft.Testing.Platform)/`restore`/`run`/`tool` into
-  `~/.config/ctx-wire/filters.toml`, so the same compaction fires in `fr_*`
-  locales (FR strings taken verbatim from git/MSBuild/VSTest localization). Only
-  git+dotnet are localized: every other ctx-wire filter is either structural
-  (grep, git-log, ls) or wraps an English-only toolchain (npm/cargo/go/…).
-  **No Romanian** — git and .NET ship no `ro` translation, so they emit English
-  in a `ro_RO` locale; Romanian only appears in *data*, handled by context-mode.
-  See `ctx-wire/README.md`.
-- **token-tools rule** → `rules/token-tools.md` (`alwaysApply: true`) is the
-  agent-facing routing guidance for everything on this page: run commands
-  with no prefix, `astEdit` over whole-file
-  rewrites, and how to recognize a stale/pre-restart shim session. OMP's rule
-  provider only auto-discovers `rules/*.md` inside *configured* extension
-  package roots, and a bare marketplace install of this plugin isn't one — so
-  `install.sh`/`install.ps1` copy it into `~/.omp/agent/rules/token-diet-*.md`
-  (same workaround the `extensions/` mirror below already uses), where OMP's
-  native provider always scans it.
-- **context-mode** → `omp plugin install context-mode` (run by `install.sh`,
-  `--no-context-mode` to skip). A native OMP plugin on the
-  `tool_call`/`tool_result`/`session_start`/`session_before_compact` hooks that
-  sandboxes tool output and indexes it with language-agnostic FTS5/BM25 — the
-  locale-agnostic safety net for any-language output (incl. Romanian) and for
-  session continuity across compaction. Layers on top of ctx-wire's deterministic
-  collapses, not in place of them. It also compresses **MCP** tool output (it hooks
-  `tool_result`), so the verbose Atlassian/Miro/GitHub MCP JSON is reduced too —
-  the ctx-wire shims only see shell commands, not MCP. For self-defined MCP servers
-  you can additionally use `ctx-wire mcp-wrap --compress`; see `ctx-wire/README.md`.
-- **acli** → the official **Atlassian CLI** (Jira/Confluence), installed to
-  `~/.local/bin` by `install.sh` (`--no-acli` to skip; re-run to update — versions are
-  supported ~6 months). **acli is our go-to for Atlassian** — for both reads and
-  writes, instead of an Atlassian MCP (none is registered). `install.sh` also offers
-  to run `acli jira auth login` when interactive. Its output is English/structural —
-  the bundled `ctx-wire/filters.d/acli.toml` compacts it and redacts bare `ATATT…`
-  API tokens (ctx-wire already scrubs GitHub/ADO/Atlassian tokens in header/URL/
-  `key=value` form). The bundled **`atlassian` skill** (`skill://atlassian`) is what
-  actually drives it: it teaches the agent the `acli jira`/`acli confluence`
-  subcommand surface and triggers automatically on "Jira", "Confluence", a bare
-  issue key (`PROJ-123`), or an `atlassian.net` URL — the same always-on trigger
-  pattern as the **context7** skill below.
-- **symbolic C#/.NET navigation + C# semantics** → no longer part of token-diet.
-  token-diet ships no MCP server (`.mcp.json` is empty) and no LSP. Roslyn-based
-  symbolic navigation/editing *and* precise C# semantics (exact
-  find-all-references, rename, live diagnostics, hover) for C#/.NET now live in
-  the **dev-team** plugin as its **serena-forge** integration (built on
-  [oraios/serena](https://github.com/oraios/serena)).
-- **skills** → `install.sh` appends `config.snippet.yml` to `~/.omp/agent/config.yml`
-  enabling skill commands and applying provider isolation. `--no-config` to skip.
-- **context7** → CLI mode (`ctx7 library` / `ctx7 docs` via bash — no MCP process).
-  `install.sh` installs the `ctx7` CLI globally. The bundled `context7` skill
-  (`skill://context7`) instructs the agent to fetch current docs automatically
-  whenever a library, framework, or API is involved.
-- **mcp-as-cli-skill-creator** → a native skill (`skill://mcp-as-cli-skill-creator`)
-  that **generalizes the `ctx7`/`acli` move**: given an MCP server (or OpenAPI /
-  GraphQL endpoint), it generates a thin runtime **CLI** (`~/.local/bin/<tool>`,
-  one subcommand per operation) plus a companion **skill doc**, and keeps the
-  server **out of `.mcp.json`**. The capability stays a bash call away while its
-  JSON schema leaves the system prompt — directly serving the lean tool surface
-  (`discoveryMode: all`). Ships a `references/cli-template.ts` skeleton (MCP-stdio
-  JSON-RPC handshake + arg parsing + compact JSON out). Best for schema-heavy,
-  call-light servers; not for hot-path or streaming/stateful tools.
-- **Lean tool surface** → `config.snippet.yml` sets `tools.discoveryMode: all` with
-  an `essentialOverride` hot path (`read, bash, edit, write, find, search, task,
-  todo`). OMP otherwise inlines every tool's JSON schema into the system prompt on
-  every request (~18K with dev-team); discovery mode hides the non-essential ones
-  behind the built-in `search_tool_bm25` discovery tool, so they cost nothing until
-  used. Drops startup "System tools" to ~10K. Widen the always-loaded set (e.g. add
-  `ast_grep`) via `tools.essentialOverride`; set `discoveryMode: auto` to only hide
-  MCP tools past 40, or `off` to disable.
-- **Provider isolation** → `config.snippet.yml` sets `disabledProviders` +
-  `enableClaudeUser/Project/CodexUser: false` so OMP only loads its own plugins and
-  project-level `AGENTS.md`/`CLAUDE.md`. Excluded: `~/.claude/plugins`, `~/.codex`,
-  `~/.gemini`, `~/.cursor`, `~/.codeium/windsurf`, `~/.copilot`, `~/.config/opencode`,
-  `.clinerules`. Existing users who re-run `install.sh` get a `disabledProviders`
-  block appended without touching other settings.
-- **Context-file heads-up** → if you don't yet have `~/.omp/agent/AGENTS.md`,
-  OMP falls back to reading `~/.claude/CLAUDE.md` verbatim at user scope,
-  including any Claude-Code-only advice it carries (e.g. a ctx-wire-injected
-  block telling the agent to prefer raw shell over built-in tools — right for
-  Claude Code, wrong for OMP). `install.sh`/`install.ps1` print a one-time
-  warning when this applies; consider a native `AGENTS.md` with just the
-  conventions that actually apply to OMP.
-- **caveman** → a native OMP skill (`/caveman`, levels lite/full/ultra) rather
-  than the upstream installer, so it's first-class in OMP. See `skill://caveman`.
-- **yagni** → a native OMP skill (`/yagni`, levels lite/full/ultra/off) porting
-  the ponytail "laziest senior dev" YAGNI discipline: a *do-I-even-need-this*
-  ladder + review/audit/debt modes. Lazy ≠ negligent — security/validation/data-
-  loss/a11y/tests are never cut (and it won't edit `.feature` specs to dodge
-  work). See `skill://yagni`.
-- **read-dedup / context-dedup / context-compress** → native OMP extensions,
-  mirrored into `~/.omp/agent/extensions/token-diet` by `install.sh` (OMP doesn't
-  load extensions from marketplace cache installs). The two **dedups are lossless
-  and on by default**: read-dedup gates the `read` tool (`tool_call`) so a
-  byte-identical re-read of an unchanged file returns a stub instead of the bytes
-  (compaction-aware), and context-dedup uses the `context` hook to collapse
-  byte-identical large blocks repeated across tool/assistant messages (keeping
-  the newest verbatim) — catching duplicates from any source, including
-  `bash`/`cat` and MCP. **context-compress runs at `safe` by default**
-  (near-lossless: strips ANSI + collapses whitespace only, never drops words) —
-  the quality-preserving realization of caveman-code's LLMLingua/Provence context
-  transform. A *protect mask* keeps code, paths, numbers and identifiers
-  **byte-identical** (the same set you'd hand real LLMLingua-2 as `force_tokens`),
-  only prose is touched, and the recency window + every user/system message are
-  left untouched. Go further (lossy — drops filler/articles) or disable with
-  `TOKEN_DIET_CONTEXT_COMPRESS=lite|full|off`. Pure logic in `extensions/lib`,
-  unit-tested by `bun scripts/extensions.test.ts`. Full analysis + the heavier
-  real-LLMLingua escalation path: `research/caveman-code.md`.
-- **cache-meter** → a **read-only** extension (never mutates a request) that
-  accumulates OMP's per-turn `usage` (`turn_end.message.usage`:
-  input/output/**cacheRead/cacheWrite**/cost/thinking) plus the provider
-  rate-limit headers (`after_provider_response`). It keeps a live footer
-  **statusline** via `ctx.ui.setStatus` (`td $<cost> cache <read%> churn <%>`,
-  with a ⚠ on cache-bust risk — the always-visible glance at cost/cache health),
-  and `/cache-health` prints the full breakdown: prompt-cache **read-rate** and
-  **churn**, cumulative **cost**, thinking-token share, context-window %, and
-  provider quota. Its point is the closing-the-loop
-  check for the rest of token-diet: because `context-compress`/the dedups rewrite
-  **old** messages — exactly the stable prefix a provider KV-caches — they can
-  *raise* visible-token savings while *busting* the 10×-cheaper cache read. The
-  meter **warns** when prefix-mutating compression (`lite`/`full`) coincides with
-  high cache churn, so the "CacheAligner" prefix-freeze is only built if the
-  numbers actually show a problem (measure first). Off (whole meter) with
-  `TOKEN_DIET_CACHE_METER=off`, or silence just the footer line with
-  `TOKEN_DIET_CACHE_STATUSLINE=off`; pure math in `extensions/lib/cache-stats.ts`,
-  unit-tested. (OMP exposes this usage to extensions today — the older
-  "token usage isn't available to hooks" assumption no longer holds.)
-
-## What OMP already does (so you don't double up)
-
-Compaction/handoffs (history summarization), native AST tools (`astGrep`,
-`astEdit`, `summarizeCode`, `blockRangeAt`), and provider prompt/context caching.
-This plugin fills the remaining gaps: raw command output and verbose model output.
-See `skill://token-diet` for the full decision guide.
+- **ctx-wire** → `ctx-wire shims install` drops transparent wrappers into
+  `~/.local/bin` (first on PATH, inherited by OMP's bash tool), so the agent runs
+  commands with **no prefix** and their output is filtered before it hits
+  context. Full logs stay on disk; `ctx-wire gain` shows the savings,
+  `ctx-wire doctor` verifies. **Restart required**: an OMP process already
+  running when the installer executes keeps its old PATH; the installer probes a
+  fresh login shell and warns when this session is stale. (`path-inject` closes
+  the same gap from inside the process for future sessions.)
+- **Filters** → only `dotnet publish`/`pack`/`run`/`tool`. `git` and
+  `dotnet build|test|restore|format` are handled by OMP's own Rust minimizer, on
+  by default, so shipping ours would be two passes over the same bytes.
+  **The locale gap is the real reason this pack exists**: OMP's `LANG=C.UTF-8`
+  hardening is **Windows-only**, so on Linux/macOS a French locale reaches
+  git/dotnet and the native English filters silently miss. The cheapest fix is
+  to pin the locale (`DOTNET_CLI_UI_LANGUAGE=en`, `LC_MESSAGES=C`) — see
+  `ctx-wire/README.md`. No Romanian: git and .NET ship no `ro` translation.
+- **Extensions** → mirrored into `~/.omp/agent/extensions/token-diet`, because
+  OMP does not load extension entry points from a marketplace install.
+  `path-inject` is always on and configuration-free. `context-compress` is
+  **off** unless you set `TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full`: at `safe`
+  its whole job (strip ANSI, collapse whitespace) is already done at the source,
+  and its `keepRecent` window *slides*, so every turn one more message flips
+  from pristine to compressed — a recurring byte change inside the already-sent
+  prefix, which is exactly what busts the prompt cache. Turn it on only after
+  measuring your cache-read ratio. Pure logic lives in `extensions/lib` and is
+  unit-tested by `bun scripts/extensions.test.ts`.
+- **token-tools rule** → `rules/token-tools.md` is `alwaysApply: true`, so it is
+  in the system prompt of every request and is deliberately ~15 lines. OMP's
+  plugin rule provider only auto-discovers `rules/*.md` inside *configured*
+  extension package roots, and a marketplace install isn't one — so the
+  installers copy it to `~/.omp/agent/rules/token-diet-*.md`, which the native
+  provider (priority 100) always scans.
+- **config.snippet.yml** → merged per top-level key via `scripts/lib/cfg.sh`, so
+  running the repo-root installer and this one cannot produce duplicate
+  top-level YAML keys. It sets `secrets.enabled`,
+  `tools.artifactSpillThreshold: 10`, `bashInterceptor.enabled`,
+  `shellMinimizer.sourceOutlineLevel: aggressive`, `compaction.idleEnabled`,
+  `read.summarize.prose`, the skills/commands toggles, and `disabledProviders`
+  (`~/.claude/plugins`, `~/.codex`, `~/.gemini`, `~/.cursor`,
+  `~/.codeium/windsurf`, `~/.config/opencode`, `.clinerules`). The `github`
+  provider is deliberately left enabled so copilot-preset keeps working.
+- **Cost / cache visibility** → native, no plugin:
+  ```yaml
+  statusLine:
+    preset: custom
+    rightSegments: [cost, cache_hit, cache_write, context_pct, usage]
+  ```
+- **Context-file heads-up** → without `~/.omp/agent/AGENTS.md`, OMP falls back
+  to Claude Code's own user-scope `CLAUDE.md` and reads it verbatim, including
+  Claude-Code-only advice
+  (e.g. a ctx-wire-injected block telling the agent to prefer raw shell over
+  built-in tools — right for Claude Code, wrong for OMP). The installers warn
+  once when this applies.
 
 ## Notes
 
 - Pairs naturally with **copilot-preset** (cheap per-token models) — fewer tokens
   × cheaper tokens.
-- Symbolic C#/.NET navigation, editing, and precise C# semantics live in the
-  **dev-team** plugin's serena-forge integration, not in token-diet.
+- Ships no MCP server and no LSP. C# navigation and semantics go through OMP's
+  native `lsp` tool, which has `omnisharp` as a built-in default for `.cs`/`.csx`.
 - Independent of the other plugins; install only what you want.
+- CI runs both proofs: `python3 ctx-wire/scripts/verify-filters.py ctx-wire/filters.d`
+  (23/23) and `bun scripts/extensions.test.ts`.

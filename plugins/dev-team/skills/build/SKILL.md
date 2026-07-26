@@ -1,11 +1,12 @@
 ---
 name: build
 description: >-
-  Execute an approved implementation plan. Reads the plan, implements each step
-  (tests required for behavior changes; test-first ordering is not), gates each
-  step on /impl-verify, runs inline review checkpoints, and produces verification
-  evidence. Use when the user says "build this", "implement the plan", "start
-  building", or after /plan has been approved.
+  Execute an approved implementation plan in the Code-First Small Batches
+  cadence — one behavior at a time, IMPLEMENT then TEST then REFACTOR, with a
+  refactor on every green. Gates each step on /impl-verify, runs inline review
+  checkpoints, and produces verification evidence. Use when the user says
+  "build this", "implement the plan", "start building", or after /plan has been
+  approved.
 argument-hint: "[--plan <path>]"
 user-invocable: true
 allowed-tools: read, write, edit, find, search, bash, task, ask
@@ -20,7 +21,7 @@ You have been invoked with the `/build` command.
 ## Orchestrator constraints
 
 1. **Follow the plan exactly.** If the plan is wrong, stop and ask the user — do not deviate silently.
-2. **Every step ships tests.** Tests are required for behavior changes; test-first ordering is **not** (write code and tests in any order). A step is done only when `/impl-verify` reports its strict build + tests green (`tests-required` rule).
+2. **One cadence: Code-First Small Batches.** Each behavior follows **IMPLEMENT → TEST → REFACTOR**, one small batch at a time, one agent doing all three. There is nothing to resolve and no per-plan opt-in — this is the only cycle a step follows (upstream ADR-0017; see `docs/plan-gate-over-tdd.md` for the measured cost result behind it). The **refactor runs on every green** — never deferred to an end-of-build pass, never skipped, never made conditional on task size. **Tests are frozen during REFACTOR** (behaviour-preserving means the tests do not move). Big-batch shapes are prohibited: never all the code then all the tests, never all the tests then all the code. A step is done only when `/impl-verify` reports its strict build + tests green (`tests-required` rule).
 3. **Incremental.** Each step must leave the codebase in a working, committable state.
 4. **Verification evidence required.** Paste the fresh `/impl-verify` verdict before claiming a step is done.
 5. **Review checkpoints.** After each unit of work, run inline review (spec-compliance first, then quality agents). Max 2 correction iterations before escalating.
@@ -44,7 +45,7 @@ Read the plan file. If the status is not `approved`, ask the user: "This plan ha
 
 ### 3. Verify acceptance criteria (gate)
 
-Before implementation begins, dispatch a spec-compliance-review subagent in **criteria verification mode** (see `${CLAUDE_PLUGIN_ROOT}/prompts/spec-reviewer.md` § Pre-build criteria verification mode). Pass the plan's acceptance criteria and per-step test expectations.
+Before implementation begins, dispatch a spec-compliance-review subagent in **criteria verification mode** (see the `prompts/spec-reviewer.md` template, § Pre-build criteria verification mode — a plugin-relative path, the same form the orchestrator uses, because OMP substitutes the plugin-root variable only in discovery configs, never inside a skill body). Pass the plan's acceptance criteria and per-step test expectations.
 
 The reviewer evaluates each criterion for:
 
@@ -74,23 +75,73 @@ Work the plan **wave by wave** using the `## Parallelization` section (the waves
      - A **failing slice** → stop the wave, name the failing slice, list which same-wave slices succeeded and where their (preserved) worktrees are, and start no next-wave slice. Resume rebuilds only the incomplete slice.
      - A **reconcile conflict** (two same-wave diffs touch one file — the Parallelization Critic should have caught this at plan time) → stop, name the file, pick no side, and start no next-wave slice.
 
-For each step within a slice, dispatch implementation following the implementer template (`${CLAUDE_PLUGIN_ROOT}/prompts/implementer.md`). Pass the implementer its step **and the slice's Gherkin scenario(s)** — the scenarios are the behavioral contract the step's test must satisfy.
+For each step within a slice, dispatch the **`software-engineer`** agent directly via the `task` tool — one call per step. There is no implementer prompt template: it was retired per upstream ADR-0029 because it restated what the agent already knows and was a second place the cadence had to be kept in sync. The per-step contract below *is* the template; pass the step **and the slice's Gherkin scenario(s)** — the scenarios are the behavioral contract the step's test must satisfy. Pass no `effort:`: build is post-plan, so it runs at the agent's declared floor (`agents/orchestrator.md` § Resolution Procedure).
 
-1. **Implement** — Write the step's code **and its tests** (in whichever order fits — test-first is not required), covering the slice scenario it traces to. Don't add behavior beyond what the step and its tests require.
-2. **Verify (hard gate)** — Run **`/impl-verify`** (strict stack build + tests, bounded fix counter). **PASS** → proceed. **FAIL** → fix the *cause* and re-run; never silence the gate (`no-disable-analyzers`). **HALT** (fix budget spent) → escalate to the human. Paste the verdict as evidence.
-3. **Refactor (after green — the test-after refactoring step)** — Take a deliberate refactor pass on **every** step once tests are green: scan for structure, naming, duplication, and reinvented built-ins (the `refactor-opportunity-review` lens), apply behavior-preserving cleanups, then re-run `/impl-verify` and keep it green. The pass is always taken; making changes is conditional on finding a real opportunity. This is the *refactoring* half of omp's test-after-with-refactoring — don't skip it. Refactors beyond the step's scope are logged as follow-ups, not done inline.
+1. **IMPLEMENT** — Write the step's code for **one behavior**. Don't add behavior beyond what the step requires, and don't do surrounding cleanup yet. Prefer real code over mocks.
+2. **TEST** — Write that behavior's test, covering the slice scenario the step traces to, then run **`/impl-verify`** (strict stack build + tests, bounded fix counter). **PASS** → proceed. **FAIL** → fix the *cause* and re-run; never silence the gate (`no-disable-analyzers`). **HALT** (fix budget spent) → escalate to the human. Paste the verdict as evidence.
+3. **REFACTOR (on every green)** — Take a deliberate refactor pass **every** time the batch goes green: scan for structure, naming, duplication, and reinvented built-ins (the `refactor-opportunity-review` lens), apply behavior-preserving cleanups, then re-run `/impl-verify` and keep it green. **Tests are frozen during REFACTOR** — if a cleanup needs a test to change, it is not behaviour-preserving; split it into its own batch. The pass is always taken; making changes is conditional on finding a real opportunity. Never defer it to an end-of-build sweep. Refactors beyond the step's scope are logged as follow-ups, not done inline.
+
 4. **Inline review checkpoint** — Route review depth based on the step's **Complexity** classification:
    - **trivial**: Skip inline review. The final `/code-review` (step 6) covers all modified files.
    - **standard**: Run `/review-agent spec-compliance-review` against changed files. If it passes, run quality review agents relevant to what changed. If review finds actionable issues (error/warning with high/medium confidence), auto-fix and re-run failed agents (up to 5 iterations per the review-fix loop in `agents/orchestrator.md`). Escalate to user if the loop doesn't converge.
-   - **complex**: Run `/review-agent spec-compliance-review`, then the full quality agent suite including opus-tier agents (security-review, domain-review, arch-review). Same review-fix loop applies.
+   - **complex**: Run `/review-agent spec-compliance-review`, then the full quality agent suite including the `@slow`-role agents (security-review, domain-review, arch-review). Same review-fix loop applies.
    - If no complexity is specified, default to **standard**.
-   - **UI changes (any complexity)**: After quality review passes, run browser verification via `/browse` in automated smoke test mode. Skip with warning if the dev server is not running. See `agents/orchestrator.md` Stage 3.
+   - **UI changes (any complexity)**: After quality review passes, run browser verification via `/skill:browse` in automated smoke test mode. Skip with warning if the dev server is not running. See `agents/orchestrator.md` Stage 3.
 5. **Mark step done** — Use the Edit tool to update the plan file's `## Build Progress` section on disk:
    - Change `- [ ] Step N.M: <title>` to `- [x] Step N.M: <title>` for the completed step.
    - When every step under a slice is `[x]`, check off the parent `- [ ] Slice N: <title>`.
    - For each acceptance criterion verified by this step, change `- [ ]` to `- [x]` in the Build Progress `### Acceptance Criteria` subsection.
    - After all slices are `[x]`, change `**Status**: approved` to `**Status**: in-progress`.
    - This disk write is the durable commit. If a `/clear` occurs, `/continue` reads `## Build Progress` to determine the resume point without needing conversation history.
+
+#### Per-step contract for the implementation subagent
+
+This is what the `software-engineer` call carries. **The design is settled — do not design.** The subagent is executing one step of an approved plan, not re-opening it.
+
+**What it receives**
+
+- The plan step it is executing (description, complexity, target files, target behavior, draft commit message)
+- The Gherkin scenario(s) for the slice the step belongs to — the behavioral contract its tests must satisfy
+- A reference to the full plan (the plan file under `plans/`, or the plan progress file) — read it for context, but do not work outside the assigned step
+- Existing source files relevant to the step, and any prior step output this step depends on
+- A worktree path when running in parallel with other slices (`isolation: "worktree"`)
+
+**Constraints**
+
+- **Honor the gate.** No completion without a green `/impl-verify` verdict pasted as evidence.
+- **Do not work outside the assigned step.** A bug or improvement found in adjacent code is flagged to the orchestrator as a follow-up, not fixed inline.
+- **Do not silently revert unrelated changes** on a worktree merge conflict. Stop and escalate.
+- **Do not claim completion without verification evidence.** No "tests passed" from memory.
+- **No preamble, no narration.** Output only the structured result below.
+
+**Escalate to the orchestrator when**
+
+- The plan step contradicts the slice's scenarios or acceptance criteria.
+- The required behavior cannot be tested in isolation (an architectural gap in the plan).
+- A dependency it needs was not produced by a prior step that should have produced it.
+- After 2 fix attempts `/impl-verify` still reports FAIL/HALT for a reason it cannot resolve.
+
+**Output format**
+
+```json
+{
+  "step": "<step number and title from the plan>",
+  "status": "complete | blocked | escalated",
+  "filesChanged": ["<path>", "..."],
+  "evidence": {
+    "implVerify": "<the /impl-verify verdict line (PASS, or the resolved FAIL/HALT history)>",
+    "testsAdded": ["<test name or path>", "..."]
+  },
+  "followUps": [
+    { "type": "refactor | bug | adjacent-improvement", "description": "<short note>", "file": "<path>" }
+  ],
+  "escalation": {
+    "reason": "<why escalating, if status=escalated|blocked>",
+    "context": "<what the orchestrator needs to resolve it>"
+  },
+  "summary": "<2-3 sentences: what was implemented and what the /impl-verify verdict demonstrates>"
+}
+```
 
 ### 5. Run full test suite
 

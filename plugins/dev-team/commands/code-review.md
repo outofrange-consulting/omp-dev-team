@@ -10,8 +10,10 @@ changesets; default scope is uncommitted changes).
 1. `read skill://code-review` and follow it exactly.
 2. Select review agents by what changed (see the Inline Review Checkpoint table
    in the orchestrator agent), and dispatch them **in parallel** via `task`.
-   Cheap-tier agents (`pi/smol` = nano lexical, `pi/task` = code) run on the
-   cheapest capable model; balanced/deep agents run on Sonnet/Opus.
+   Pass `agent` and `task` only: there is no `model` parameter, each agent's own
+   `model:` frontmatter declares its role floor, and OMP resolves it. Review is
+   not the planning leg, so pass no `effort` either — every agent runs at its
+   floor.
 3. If `REVIEW-CONTEXT.md` exists in the project root, pass its contents to each
    agent as additional context.
 4. Classify findings: **actionable** = error/warning severity with high/medium

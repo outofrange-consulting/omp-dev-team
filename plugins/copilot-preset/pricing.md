@@ -59,11 +59,15 @@ bundled catalog. Rows marked ⛔ exist but must **not** be routed to; see
 | Claude Fable 5 | $10.00 | $1.00 | $12.50 | $50.00 |
 
 ⏳ **Sonnet 5's $2/$10 is PROMOTIONAL "through August 31, 2026"** (GitHub docs
-footnote `[^sonnet-5-promo]`). The post-promo rate is **not published**. Assume
-reversion to the $3/$15 Sonnet line and **re-check on 2026-09-01**. If it does
-revert, `github-copilot/gpt-5.6-terra` ($2.50/$15, 1.05M ctx, GitHub's own
-"balanced default") becomes the better `default` — it is already first in this
-preset's `retry.fallbackChains.default`.
+footnote `[^sonnet-5-promo]`). The post-promo *Copilot* rate is **not
+published** — but the parallel promo on Anthropic's direct API carries the same
+2026-08-31 end date and an explicit reversion to $3.00/$15.00 (dev-team's cost
+instrument, `skill://dev-team-knowledge/model-pricing.json`, already prices
+Sonnet 5 at the standard rate for exactly that reason). Assume the $3/$15 Sonnet
+line and **re-check on 2026-09-01**. If it does revert,
+`github-copilot/gpt-5.6-terra` ($2.50/$15, 1.05M ctx, GitHub's own "balanced
+default") becomes the better `default` — it is already first in this preset's
+`retry.fallbackChains.default`.
 
 ⚠ **Claude Opus 5** (GA 2026-07-24) is the same $5/$25 as Opus 4.8 but this
 preset deliberately does **not** route `slow` to it: it is `pro=false` (breaks

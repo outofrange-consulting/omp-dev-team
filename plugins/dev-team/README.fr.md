@@ -50,28 +50,40 @@ bash plugins/dev-team/install.sh        # vérifie OMP/git/outils optionnels, in
 Pour les tâches complexes, l'**orchestrateur** déroule **Research → Plan →
 Implement** avec un point de contrôle humain entre les phases. Plus `/code-review`
 (`/review`), `/review-agent`, `/continue`, `/triage`, `/design-doc`,
-`/issues-from-plan`, et le diagnostic `/routing`. Chaque skill est aussi
+et `/issues-from-plan`. Chaque skill est aussi
 disponible en `/skill:<nom>`.
 
-## Tiers de modèles (tous cloud, orientés-workload)
+## Tiers de modèles (100 % cloud, par forme de charge, ouverts sur les fournisseurs)
 
-Les agents déclarent un tier dans leur frontmatter `model:`, résolu nativement par
-vos `modelRoles`. Le bas de gamme est **scindé par forme de workload** pour
-qu'aucune moitié ne surpaie le modèle de l'autre :
+Les agents déclarent une **liste de rôles** dans le frontmatter `model:`. OMP prend
+le **premier motif résoluble**, donc chaque agent termine sa liste par `@default`
+et route même si vous n'avez jamais collé le snippet de config. Le bas de gamme est
+scindé par **forme de charge**, pour qu'aucune moitié ne paie le modèle de l'autre :
 
 | Tier | Frontmatter | Pour |
 |---|---|---|
-| nano | `pi/smol` (cloud le moins cher ; Haiku, ou gpt-5-mini sur Copilot) | revue purement lexicale/checklist + scan input-bound — pas de sémantique code ni de tool-use ; plus gros volume |
-| code | `pi/task` (cloud coding bon marché ; Haiku, ou mai-code-1-flash-picker sur Copilot) | travail cheap nécessitant sémantique code ou tool-use agentique : implémentation post-plan (software-engineer, qa-engineer), revue structurelle (js-fp, svelte), codebase-recon (proportionnel à la taille via l'effort-band) |
-| balanced | `pi/plan` → `claude-sonnet-5` | la plupart des agents de revue + l'orchestrateur + les agents d'équipe hors-build + la synthèse de design archi/domaine (architect, arch-review, domain-review) |
-| deep | `pi/slow` → `claude-opus-4-8` | verdicts de sécurité à fort enjeu (security-review, security-engineer) où Opus devance encore Sonnet 5 |
+| nano | `"@smol, @default"` | revue purement lexicale/checklist + scan input-bound — pas de sémantique code ni de tool-use ; plus gros volume |
+| code | `"@smol, @default"` | travail bon marché nécessitant sémantique code ou tool-use agentique : implémentation post-plan (software-engineer, qa-engineer), revue structurelle (js-fp, svelte), codebase-recon |
+| balanced | `"@plan, @default"` | la plupart des agents de revue + l'orchestrateur + les agents d'équipe hors-build |
+| design | `"@designer, @plan, @default"` | travail UI/UX et accessibilité — `designer` est un rôle OMP de première classe qu'on laissait mort |
+| deep | `"@slow, @plan, @default"` | synthèse de design archi/domaine et verdicts de sécurité à fort enjeu |
 
-Les tiers **nano + code** à gros volume sont là où la dépense de tokens se
-concentre — gardez-les bon marché. Sur Anthropic de base, les deux résolvent vers
-Haiku ; le plugin **copilot-preset** les scinde (`smol` → `github-copilot/gpt-5-mini`,
-`task` → `github-copilot/mai-code-1-flash-picker`). Combinez avec **token-diet** pour
-réduire encore les tokens. Source de vérité :
-`skills/dev-team-knowledge/model-routing.json` ; diagnostic via `/routing`.
+Deux faits OMP motivent ce découpage et méritent d'être connus :
+
+- **`@task` n'est *pas* un tier bon marché.** Il hérite délibérément de la session
+  (`model-resolver.ts:936-943`) : les agents qui le déclaraient tournaient donc sur
+  le modèle de session, pas sur un modèle cheap. Ils déclarent désormais `@smol`.
+- **Seuls `smol`, `slow` et `designer` héritent de `default`**
+  (`model-resolver.ts:946`). Un `modelRoles.plan` non défini retombe donc
+  **silencieusement** sur le modèle de session — d'où le snippet livré qui pose
+  `plan` et `task` explicitement au lieu de compter sur l'héritage.
+
+Aucun agent ne fige d'id de modèle fournisseur. Sur Anthropic direct les rôles
+résolvent vers Haiku/Sonnet/Opus ; le plugin **copilot-preset** superpose des
+modèles servis par Copilot, et n'importe quel fournisseur compatible OpenAI passe
+par **openai-compatible**. Il n'y a plus de résolveur côté plugin : le harness
+résout `modelRoles` lui-même (voir `docs/upstream-v8-v10.md` pour la raison du
+retrait du résolveur de bandes).
 
 ## Garde-fous (extensions)
 
@@ -83,7 +95,7 @@ et un plan approuvé** — impose pré-analyse → plan → build → review ; `
 code, pas la spec ; `/allow-feature-edits` pour outrepasser), `review-gate` (bloque
 `git commit` jusqu'à `/code-review` + `/review-approve`), `impl-verify`
 (`/impl-verify` build strict + tests), `telemetry` + `/cost-report`,
-`model-routing` (log de tier des dispatches + `/routing`). Elles interceptent
+et `telemetry` + `/cost-report`. Elles interceptent
 `tool_call` et bloquent avec un motif — le mécanisme de blocage natif d'OMP.
 
 ## Disposition
@@ -91,6 +103,6 @@ code, pas la spec ; `/allow-feature-edits` pour outrepasser), `review-gate` (blo
 ```
 .claude-plugin/plugin.json · package.json (omp.extensions)
 agents/  skills/  commands/  rules/  extensions/  .mcp.json
-skills/dev-team-knowledge/   # registres, rubriques, model-routing.json
+skills/dev-team-knowledge/   # registres (générés), rubriques, tarifs
 config.snippet.yml  install.sh  install.ps1
 ```

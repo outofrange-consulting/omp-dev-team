@@ -29,7 +29,7 @@ Sources: OMP default `memory.backend: "off"` (`settings-schema.ts`); auto-recall
 into the base system prompt (`mnemopi/state.ts` `maybeRecallOnAgentStart` →
 `refreshBaseSystemPrompt`); compaction co-injection (`backend.ts`
 `preCompactionContext`). dev-team store: `orchestrator.md` (`memory/decisions.md`,
-progress files), `context-summarization/SKILL.md`, `continue/SKILL.md`.
+progress files), `handoff-policy/SKILL.md`, `continue/SKILL.md`.
 
 ## Authoritative store: dev-team `memory/` (keep Mnemopi off)
 
@@ -42,9 +42,9 @@ Mnemopi is left at its default (off). Rationale:
 - **No hidden injection.** dev-team memory is pulled in **explicitly** (the agent
   reads files on `/continue` / phase start). Mnemopi auto-injects a `<memories>`
   block into the system prompt — invisible context the plugin doesn't control.
-- **Aligns with deflation.** `context-summarization` exists to push context
+- **Aligns with deflation.** `handoff-policy` exists to push context
   **below 40%** and "**replace conversation history; never reload prior turns**"
-  (`context-summarization/SKILL.md:14`). Mnemopi's job is the opposite —
+  (`handoff-policy/SKILL.md:14`). Mnemopi's job is the opposite —
   remember and re-inject — so leaving it off avoids working against the gate.
 
 This stance is **reversible**: it documents the current default and adds no new
@@ -60,7 +60,7 @@ Setting `memory.backend: "mnemopi"` turns on, by default, both `autoRecall` and
    `injectionTokenLimit`, 5000 tokens) into the base system prompt; on every
    compaction, `preCompactionContext` pushes recalled memory into the
    summarization prompt. That re-introduces exactly what
-   `context-summarization`'s "never reload" rule just discarded, working against
+   `handoff-policy`'s "never reload" rule just discarded, working against
    the 40% ceiling.
 2. **Content duplication.** The same decision can land in both
    `memory/decisions.md` and Mnemopi, with no dedup or cross-reference.
@@ -87,4 +87,4 @@ log) — that is the double-write + re-inflation footgun this note exists to fla
 
 - `docs/upstream-omp-runtime.md` — the OMP 17.x runtime capabilities the repo
   didn't track (Mnemopi is one of them).
-- `plugins/dev-team/skills/context-summarization/SKILL.md` — the deflation gate.
+- `plugins/dev-team/skills/handoff-policy/SKILL.md` — the deflation gate.

@@ -3,9 +3,14 @@
 // shape: content is `string | part[]`, and a part may carry text under `.text`
 // or `.content`. We only ever READ or REPLACE those string fields — never
 // restructure a message — so an unexpected shape degrades to a no-op, never a
-// corruption. Both transforms are unit-tested in scripts/extensions.test.ts.
+// corruption. Unit-tested in scripts/extensions.test.ts.
+//
+// Sole consumer: extensions/context-compress.ts (opt-in, off by default). The
+// former `collapseDuplicateBlobs` export is gone with context-dedup — OMP does
+// that natively and cache-aware via `compaction.supersedeReads` (default true)
+// + `compaction.dropUseless` (default true) + `pruneToolOutputs`.
 
-import { type Level, compress, estimateTokens, sha1 } from "./protect.ts";
+import { type Level, compress, estimateTokens } from "./protect.ts";
 
 // A read/write handle onto one text field somewhere inside a message.
 export interface Blob {
@@ -44,47 +49,6 @@ export function textBlobs(message: unknown): Blob[] {
 		}
 	}
 	return out;
-}
-
-/**
- * LOSSLESS. Collapse byte-identical large blocks that appear 2+ times across
- * assistant/tool messages: keep the LAST (most recent) occurrence verbatim,
- * replace earlier identical copies with a one-line pointer. Information is
- * retained exactly once, and the canonical copy is present in the same payload,
- * so the model loses nothing. User/system messages are never touched.
- * Returns the estimated tokens saved.
- */
-export function collapseDuplicateBlobs(
-	messages: unknown,
-	minChars: number,
-): number {
-	if (!Array.isArray(messages)) return 0;
-	const byHash = new Map<string, Blob[]>();
-	for (const message of messages) {
-		if (!COMPRESSIBLE_ROLES.has(messageRole(message))) continue;
-		for (const blob of textBlobs(message)) {
-			const text = blob.get();
-			if (typeof text !== "string" || text.length < minChars) continue;
-			const h = sha1(text);
-			const arr = byHash.get(h);
-			if (arr) arr.push(blob);
-			else byHash.set(h, [blob]);
-		}
-	}
-	let saved = 0;
-	for (const blobs of byHash.values()) {
-		if (blobs.length < 2) continue;
-		for (let k = 0; k < blobs.length - 1; k++) {
-			const original = blobs[k].get();
-			blobs[k].set(
-				`[token-diet context-dedup] identical ${original.length}-char block ` +
-					`elided — the same content is repeated verbatim later in this ` +
-					`context (lossless; disable with TOKEN_DIET_CONTEXT_DEDUP=0).`,
-			);
-			saved += estimateTokens(original);
-		}
-	}
-	return saved;
 }
 
 export interface CompressMessagesOpts {

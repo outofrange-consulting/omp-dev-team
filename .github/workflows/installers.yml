@@ -63,7 +63,7 @@ jobs:
         run: python3 plugins/token-diet/ctx-wire/scripts/verify-filters.py plugins/token-diet/ctx-wire/filters.d
 
   # 1c) Compile the plugin extension modules under bun (catches TS/syntax errors
-  #     in the guard/routing/provider/context-transform extensions).
+  #     in the guard/provider/context-transform extensions).
   extensions:
     name: extensions compile (bun)
     runs-on: ubuntu-latest
@@ -112,6 +112,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate framework compliance
         run: node scripts/ci-framework-compliance.mjs
+      # The knowledge index and both registries are GENERATED from the filesystem.
+      # Without this step the generators are advisory and the files drift back to
+      # hand-maintained — which is how agent-registry.md ended up listing 36 of 64
+      # skills and pointing at a directory layout that does not exist here.
+      # ORDER MATTERS: build-registries.mjs WRITES skills-registry.md into the
+      # knowledge dir, which build-knowledge-index.mjs then has to index. Checking
+      # the index first passes on a stale index and fails after a registry
+      # regeneration. Registries first, then the index.
+      - name: Registries and knowledge index are up to date
+        run: |
+          node scripts/build-registries.mjs --check
+          node scripts/build-knowledge-index.mjs --check
 
   # 2) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
   #    verifies OMP launches and lists all plugins).

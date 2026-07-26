@@ -2,8 +2,13 @@
 //   bun plugins/token-diet/scripts/extensions.test.ts
 // No OMP dependency — exercises the quality-critical invariants directly:
 // protect/restore is lossless, compression preserves every technical detail,
-// the activation threshold + never-expand guards hold, and the message-array
-// transforms (lossless dedup, lossy recency-preserving compress) behave.
+// the activation threshold + never-expand guards hold, and the one surviving
+// message-array transform (recency-preserving compress) behaves.
+//
+// v2.0.0: the read-dedup / context-dedup / cache-meter suites are gone with
+// their modules — OMP does all three natively (compaction.supersedeReads,
+// compaction.dropUseless, the cost/cache_read/cache_write/cache_hit statusline
+// segments). What remains covers only what the plugin still ships.
 
 import {
 	type Level,
@@ -12,22 +17,8 @@ import {
 	protect,
 	restore,
 } from "../extensions/lib/protect.ts";
-import {
-	collapseDuplicateBlobs,
-	compressOldMessages,
-	textBlobs,
-} from "../extensions/lib/messages.ts";
+import { compressOldMessages, textBlobs } from "../extensions/lib/messages.ts";
 import { parseLevel } from "../extensions/context-compress.ts";
-import {
-	addUsage,
-	cacheChurn,
-	cacheReadRate,
-	emptyAccum,
-	extractUsage,
-	formatReport,
-	formatStatusLine,
-	reasoningShare,
-} from "../extensions/lib/cache-stats.ts";
 
 let failures = 0;
 function check(name: string, cond: boolean, extra?: unknown): void {
@@ -122,24 +113,7 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("textBlobs tolerates null", textBlobs(null).length === 0);
 }
 
-// 7) collapseDuplicateBlobs: lossless dedup, keep last, never touch user/system.
-{
-	const big = `BIGBLOCK ${"x".repeat(1500)}`;
-	const messages: Array<{ role: string; content: string }> = [
-		{ role: "tool", content: big },
-		{ role: "assistant", content: "small reply" },
-		{ role: "user", content: big }, // user copy must be untouched
-		{ role: "tool", content: big }, // last assistant/tool copy kept verbatim
-	];
-	const saved = collapseDuplicateBlobs(messages, 1200);
-	check("dedup saved tokens > 0", saved > 0, saved);
-	check("dedup stubbed the first tool copy", messages[0].content.includes("context-dedup"));
-	check("dedup left the user copy intact", messages[2].content === big);
-	check("dedup kept the last tool copy verbatim", messages[3].content === big);
-	check("dedup is a no-op on junk input", collapseDuplicateBlobs(null, 1200) === 0);
-}
-
-// 8) compressOldMessages: compress old prose, preserve recency + details.
+// 7) compressOldMessages: compress old prose, preserve recency + details.
 {
 	const oldMsg = { role: "assistant", content: PROSE + " ".repeat(0) + PROSE };
 	const recentMsg = { role: "assistant", content: PROSE };
@@ -154,7 +128,7 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("user message untouched", userMsg.content === PROSE);
 }
 
-// 8b) protect/restore is lossless even when the ORIGINAL text already contains a
+// 8) protect/restore is lossless even when the ORIGINAL text already contains a
 // NUL<digits>NUL sequence that looks exactly like our runtime placeholder. The
 // round-trip must NOT silently delete it (regression for the sentinel-collision
 // data loss).
@@ -167,7 +141,7 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("compress is a lossless no-op on a NUL-sentinel input", compress(sample, { level: "full" }) === sample);
 }
 
-// 8c) `safe`-level compression preserves multi-space column alignment (tables,
+// 9) `safe`-level compression preserves multi-space column alignment (tables,
 // diffs, ASCII art). Interior single-space-significant runs must survive safe.
 {
 	const table = "NAME    VALUE\nfoo     1\nbarbaz  22";
@@ -178,75 +152,19 @@ for (const level of ["safe", "lite", "full"] as Level[]) {
 	check("lite collapses interior multi-space runs", !lite.includes("NAME    VALUE"), lite);
 }
 
-// 9) context-compress level parsing: safe by default, off disables.
+// 10) context-compress level parsing: OFF unless explicitly opted in.
+// The extension is opt-in as of v2.0.0, so an UNSET variable must yield null
+// (disabled), not "safe" — a sliding compression window mutates the
+// already-sent prefix and busts the provider prompt cache.
 {
-	check("parseLevel() unset => safe", parseLevel(undefined) === "safe");
-	check("parseLevel('') => safe", parseLevel("") === "safe");
+	check("parseLevel() unset => null (off)", parseLevel(undefined) === null);
+	check("parseLevel('') => null (off)", parseLevel("") === null);
 	check("parseLevel('SAFE') => safe", parseLevel("SAFE") === "safe");
 	check("parseLevel('lite') => lite", parseLevel("lite") === "lite");
 	check("parseLevel('full') => full", parseLevel("full") === "full");
 	check("parseLevel('off') => null", parseLevel("off") === null);
 	check("parseLevel('0') => null", parseLevel("0") === null);
-	check("parseLevel('garbage') => safe", parseLevel("garbage") === "safe");
-}
-
-// 10) cache-stats: defensive usage extraction + cache-health math + warning.
-{
-	// extractUsage tolerates junk and non-usage messages.
-	check("extractUsage(null) => null", extractUsage(null) === null);
-	check("extractUsage(no usage) => null", extractUsage({ role: "assistant" }) === null);
-	check(
-		"extractUsage(empty usage) => null",
-		extractUsage({ usage: { cost: {} } }) === null,
-	);
-	const u = extractUsage({
-		role: "assistant",
-		usage: {
-			input: 100,
-			output: 40,
-			cacheRead: 900,
-			cacheWrite: 0,
-			reasoningTokens: 10,
-			cost: { total: 0.0123 },
-		},
-	});
-	check("extractUsage reads token buckets", !!u && u.cacheRead === 900 && u.input === 100, u);
-	check("extractUsage reads cost.total", !!u && u.costTotal === 0.0123, u?.costTotal);
-	check("extractUsage tolerates string junk fields", extractUsage({ usage: { input: "x" } }) === null);
-
-	// Healthy cache: high read, low churn -> no warning even with compression on.
-	const healthy = emptyAccum();
-	addUsage(healthy, { input: 100, output: 40, cacheRead: 900, cacheWrite: 0, reasoningTokens: 10, costTotal: 0.01 });
-	check("cacheReadRate healthy ~0.9", Math.abs(cacheReadRate(healthy) - 0.9) < 0.001, cacheReadRate(healthy));
-	check("cacheChurn healthy = 0", cacheChurn(healthy) === 0, cacheChurn(healthy));
-	check("reasoningShare healthy = 0.25", Math.abs(reasoningShare(healthy) - 0.25) < 0.001, reasoningShare(healthy));
-	const okReport = formatReport(healthy, { compressionActive: true });
-	check("healthy report is info (no false alarm)", okReport.level === "info", okReport.level);
-	check("report includes cost", okReport.text.includes("$="), okReport.text);
-
-	// Prefix-busting pattern: cache constantly rewritten, never read back.
-	const busted = emptyAccum();
-	addUsage(busted, { input: 100, output: 20, cacheRead: 50, cacheWrite: 950, reasoningTokens: 0, costTotal: 0.2 });
-	check("cacheChurn busted high (>0.9)", cacheChurn(busted) > 0.9, cacheChurn(busted));
-	const warn = formatReport(busted, { compressionActive: true });
-	check("busted + compression => warn", warn.level === "warn", warn.level);
-	check("warn explains prefix risk", warn.text.includes("prompt-cache prefix"), warn.text);
-	// Same churn but compression OFF must NOT warn (no actor to blame).
-	const noBlame = formatReport(busted, { compressionActive: false });
-	check("busted + no compression => info", noBlame.level === "info", noBlame.level);
-
-	// Empty accumulator is safe (no div-by-zero, no false warning).
-	const empty = emptyAccum();
-	check("empty cacheReadRate = 0", cacheReadRate(empty) === 0);
-	check("empty report says no billed turns", formatReport(empty, { compressionActive: true }).level === "info");
-
-	// formatStatusLine: empty before any turn, compact + flags on risk.
-	check("statusline empty before billed turns", formatStatusLine(empty) === "");
-	const okLine = formatStatusLine(healthy, { compressionActive: true });
-	check("statusline shows cost + cache", okLine.includes("$") && okLine.includes("cache"), okLine);
-	check("statusline healthy has no warn marker", !okLine.includes("⚠"), okLine);
-	check("statusline busted+compression has ⚠", formatStatusLine(busted, { compressionActive: true }).includes("⚠"));
-	check("statusline busted+no-compression has no ⚠", !formatStatusLine(busted, { compressionActive: false }).includes("⚠"));
+	check("parseLevel('garbage') => null (fail closed)", parseLevel("garbage") === null);
 }
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);

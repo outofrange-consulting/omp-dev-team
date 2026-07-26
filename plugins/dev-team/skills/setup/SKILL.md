@@ -55,7 +55,7 @@ Also detect frameworks within each stack:
 - **Python**: check for `django`, `flask`, `fastapi`, `pytest` in deps
 - **Go**: check for `gin`, `echo`, `fiber` in `go.mod`
 
-Write findings to `.claude/project-stack.json`:
+Write findings to `.omp/project-stack.json`:
 
 ```json
 {
@@ -101,18 +101,18 @@ Present the list to the user and ask for confirmation before scaffolding.
 
 ### 4. Generate project-level CLAUDE.md
 
-If `.claude/CLAUDE.md` does not already exist in the target project, generate one containing:
+If `.omp/AGENTS.md` does not already exist in the target project, generate one containing:
 
 - Project name and detected stack summary
 - Discovered conventions (formatter, linter, test runner)
 - References to activated agent templates
 - Build/test/lint commands detected from `package.json` scripts, `Makefile`, etc.
 
-If `.claude/CLAUDE.md` already exists, ask whether to merge or skip.
+If `.omp/AGENTS.md` already exists, ask whether to merge or skip.
 
 ### 5. Generate PostToolUse formatting hook
 
-Based on detected stack, generate the appropriate PostToolUse hook entry for the project's `.claude/settings.json`. Use the formatting table:
+Based on the detected stack, enable OMP's native format-on-write instead of writing a hook: set `lsp.formatOnWrite: true` in the project's `.omp/config.yml`. (This skill predates the port and used to emit a Claude Code PostToolUse hook entry; there is no hook layer here.) Use the formatting table to pick the formatter:
 
 | Stack | Extensions | Formatter command |
 |-------|-----------|-------------------|
@@ -141,9 +141,10 @@ Display a summary of everything created:
 **Package manager**: pnpm
 
 ### Created
-- `.claude/project-stack.json` — stack detection results
-- `.claude/CLAUDE.md` — project conventions
-- `.claude/settings.json` — PostToolUse formatting hook (prettier + eslint)
+- `.omp/project-stack.json` — stack detection results
+- `.omp/AGENTS.md` — project conventions (OMP's native context file; it also
+  discovers `CLAUDE.md`/`AGENTS.md` at the repo root)
+- `.omp/config.yml` — `lsp.formatOnWrite` for format-on-write
 - Activated templates: ts-enforcer, esm-enforcer, react-testing
 
 ### Recommendations

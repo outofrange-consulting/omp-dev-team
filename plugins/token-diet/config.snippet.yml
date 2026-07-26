@@ -1,23 +1,72 @@
-# token-diet config — appended to ~/.omp/agent/config.yml by install.sh.
-# Enables skills/commands and isolates OMP from all foreign-tool user configs
-# (~/.claude, ~/.codex, ~/.gemini, ~/.cursor, ~/.codeium/windsurf,
-# ~/.config/opencode) so OMP only loads its own plugins and project-level files.
-# NOTE: the `github` provider (~/.copilot / .github) is intentionally NOT disabled
-# here, to stay consistent with the global installer and keep copilot-preset's
-# `.github`/Copilot integration intact. Keep this list identical to install.sh's
-# write_config so the two install paths never write conflicting blocks.
-# (ctx-wire: PATH shims)
+# token-diet config — merged into ~/.omp/agent/config.yml by install.sh
+# (per top-level key, via scripts/lib/cfg.sh — a key you already declare is
+# never re-declared, so the repo-root installer and this one cannot fight).
+#
+# v2.0.0: `tools.discoveryMode` and `tools.essentialOverride` are GONE from this
+# file. They were REMOVED in OMP 17.0.0 and are now silently deleted from your
+# config on load (omp packages/coding-agent/src/config/settings.ts does
+# `delete toolsObj.discoveryMode; delete toolsObj.essentialOverride`), so the
+# "System tools ~18K -> ~10K" claim they carried was measuring nothing. The
+# replacement needs no configuration: `tools.xdev` (default on) mounts
+# non-essential and MCP tools as `xd://` devices under a doc budget.
+#
+# What is left below are settings that DO pay off today. Every key was checked
+# against omp packages/coding-agent/src/config/settings-schema.ts; each carries
+# its verified default, because a key whose default already suits you is one you
+# should delete from your config rather than pin.
 
-# Lean tool surface — token-diet's biggest startup-context win. OMP loads every
-# tool's JSON schema into the system prompt on every request; with dev-team that
-# "System tools" block is ~18K tokens. discoveryMode: all hides all non-essential
-# tools behind the built-in on-demand discovery tool (search_tool_bm25) and keeps
-# only essentialOverride always loaded, dropping System tools to ~10K (startup
-# context ~29K -> ~20K). Nothing is lost — hidden tools are one discovery call
-# away. Add any tool you reach for constantly (e.g. ast_grep) to essentialOverride.
+# --- Secret handling ---------------------------------------------------------
+# THE REAL FIX for the gap this plugin used to gesture at. ctx-wire only ever
+# scrubbed the stdout of commands it wrapped; secrets that arrive via `read .env`
+# or an MCP result never passed through it. `secrets.enabled` (default FALSE)
+# obfuscates matched values on EVERY outbound message instead, and the
+# placeholders are restored when context is rebuilt for display/resume.
+# Add your own shapes to ~/.omp/agent/secrets.yml (global) or <repo>/.omp/secrets.yml
+# (project). It is a YAML array; `type: regex` entries are the extensible half:
+#   - type: regex
+#     content: "AT(?:ATT|CTT|OAT)[A-Za-z0-9_=.\\-]{20,}"
+#     friendlyName: Atlassian Token
+secrets:
+  enabled: true
+
+# --- Tool output -------------------------------------------------------------
 tools:
-  discoveryMode: all
-  essentialOverride: [read, bash, edit, write, find, search, task, todo]
+  # Default 50 (KB). Tool output above this spills to an artifact and only the
+  # tail stays inline — LOSSLESS, the full payload stays addressable at
+  # `artifact://<id>`. 10 KB (~2.5K tokens) is the honest ceiling for a single
+  # command's output in a dev-team session.
+  artifactSpillThreshold: 10
+
+# --- Shell -------------------------------------------------------------------
+bashInterceptor:
+  # Default FALSE. Blocks shell commands that have a dedicated tool, which
+  # mechanically enforces what rules/token-tools.md can only ask for in prose
+  # (`read`/`grep`/`glob`/`astEdit` instead of cat/grep/sed via bash).
+  enabled: true
+
+shellMinimizer:
+  # Default "default". `aggressive` outlines cat/read of source files harder.
+  # OMP's minimizer is the Rust filter set in crates/pi-shell/src/minimizer —
+  # it already covers git and `dotnet build|test|restore|format`, which is why
+  # this plugin's ctx-wire pack now ships only publish/pack/run/tool.
+  sourceOutlineLevel: aggressive
+
+# --- Context -----------------------------------------------------------------
+compaction:
+  # Default FALSE. Compacts while the session is IDLE rather than mid-turn, so
+  # the cost lands on wall-clock you were not using. Leave the rest of
+  # compaction alone: `supersedeReads` and `dropUseless` are already true by
+  # default and are what replaced this plugin's read-dedup/context-dedup.
+  idleEnabled: true
+
+read:
+  summarize:
+    # Default FALSE (`read.summarize.enabled` is already true for code).
+    # Returns structural summaries for Markdown/plain-text reads too — the
+    # docs-heavy half of a repo, which is otherwise read whole.
+    prose: true
+
+# --- Skills / commands: don't inherit other agents' registries ---------------
 skills:
   enabled: true
   enableSkillCommands: true
@@ -29,6 +78,11 @@ commands:
   enableClaudeProject: false # don't load .claude/ project commands into OMP
   enableOpencodeUser: false  # don't load ~/.config/opencode commands into OMP
   enableOpencodeProject: false
+
+# Provider isolation — keep OMP out of every foreign tool's user config.
+# NOTE: the `github` provider (~/.copilot / .github) is intentionally NOT
+# disabled, to stay consistent with the repo-root installer and keep
+# copilot-preset's Copilot integration intact.
 disabledProviders:
   - claude-plugins  # ~/.claude/plugins/cache/ — marketplace agents, MCP servers
   - codex           # ~/.codex/ and .codex/ — Codex/OpenAI Codex config
@@ -38,31 +92,28 @@ disabledProviders:
   - opencode        # ~/.config/opencode/ and .opencode/ — OpenCode MCP
   - cline           # .clinerules — Cline project rules
 
-# Context-transform extensions (installed as files by install.sh into
-# ~/.omp/agent/extensions/token-diet — they are NOT config.yml keys). They are
-# controlled by environment variables, all quality-first defaults:
-#   read-dedup       LOSSLESS, ON  — suppress byte-identical re-reads of unchanged
-#                    files while the original is still in context (compaction-aware).
-#                    Off: TOKEN_DIET_READ_DEDUP=0
-#   context-dedup    LOSSLESS, ON  — before each LLM call, collapse byte-identical
-#                    large blocks repeated across tool/assistant messages (keep the
-#                    newest verbatim). Off: TOKEN_DIET_CONTEXT_DEDUP=0
-#                    Threshold: TOKEN_DIET_DEDUP_MIN_CHARS (default 1200)
-#   context-compress ON at `safe` by default — protect-masked prose compression of
-#                    OLD assistant/tool messages (code/paths/numbers byte-identical;
-#                    recency window + user/system untouched). `safe` is near-lossless
-#                    (ANSI + whitespace only, no word drop). Go further (lossy) or
-#                    turn off: TOKEN_DIET_CONTEXT_COMPRESS=lite|full|off
+# --- Extensions (files, not config.yml keys) ---------------------------------
+# install.sh mirrors extensions/ into ~/.omp/agent/extensions/token-diet,
+# because OMP does not load extension entry points from a marketplace install.
+#   path-inject      ALWAYS ON, no config. Prepends ~/.local/bin to PATH inside
+#                    the OMP process so the ctx-wire shims are visible without
+#                    restarting your terminal.
+#   context-compress OFF by default — OPT IN with
+#                    TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full.
+#                    Why off: at `safe` its whole job (strip ANSI, collapse
+#                    whitespace) is already done at the source, and `keepRecent`
+#                    is a SLIDING window — every turn one more message flips
+#                    from pristine to compressed, i.e. a recurring byte change
+#                    inside the already-sent prefix, which is exactly what busts
+#                    the provider prompt cache. Cached input is ~10x cheaper
+#                    than fresh input, so a bust costs more than the bytes saved.
+#                    Turn it on only after measuring your cache-read ratio.
 #                    Tuning: TOKEN_DIET_COMPRESS_MIN_CHARS (600),
-#                    TOKEN_DIET_COMPRESS_KEEP_RECENT (6)
-#   cache-meter      READ-ONLY, ON — accumulates OMP's per-turn usage
-#                    (input/output/cacheRead/cacheWrite/cost/thinking) and provider
-#                    rate-limit headers. Keeps a live footer STATUSLINE
-#                    (`td $<cost> cache <read%> churn <%>`, ⚠ on cache-bust risk) via
-#                    setStatus, and `/cache-health` prints the full breakdown +
-#                    quota. WARNS when prefix-mutating compression (lite/full)
-#                    coincides with high cache churn (it may be busting the cached
-#                    prefix). Never mutates requests. Off (whole meter):
-#                    TOKEN_DIET_CACHE_METER=off ; silence just the footer line:
-#                    TOKEN_DIET_CACHE_STATUSLINE=off ; log path override:
-#                    TOKEN_DIET_CACHE_LOG (default ~/.omp/state/token-diet/cache-meter.jsonl)
+#                    TOKEN_DIET_COMPRESS_KEEP_RECENT (6).
+
+# --- Seeing where the tokens go (native, no plugin code) ---------------------
+# Cost and prompt-cache health are first-class statusline segments — `cost`,
+# `cache_read`, `cache_write`, `cache_hit`, `context_pct`, `usage`. Uncomment:
+# statusLine:
+#   preset: custom
+#   rightSegments: [cost, cache_hit, cache_write, context_pct, usage]

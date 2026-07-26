@@ -11,6 +11,11 @@ description: >-
 Compress YOUR output by dropping predictable grammar while preserving the
 unpredictable, factual content. Style only — never sacrifice technical accuracy.
 
+This is the only lever here aimed at **output** tokens. Compaction, superseded
+reads, shell minimizing and artifact spill all shrink what goes *in*; nothing in
+OMP touches what the model writes. Costs nothing until invoked — only this
+skill's name and description sit in the system prompt.
+
 ## Rules
 
 - Drop filler: articles (a/the), pleasantries, hedging, restating the question,

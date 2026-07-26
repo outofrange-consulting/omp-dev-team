@@ -15,7 +15,10 @@ allowed-tools: read, write, find, search, bash(mkdir *), bash(date *), bash(git 
 
 Role: orchestrator. This command creates a structured plan — it does not implement anything.
 
-You have been invoked with the `/plan` command.
+You have been invoked with the `/dt-plan` command. (Not `/plan` — that name is an
+OMP builtin that toggles plan mode. Native command providers outrank plugin ones
+and dedup is first-wins, so a plugin `plan` command would be permanently
+shadowed and silently never run.)
 
 ## Orchestrator constraints
 
@@ -171,7 +174,7 @@ Each step must include a complexity rating that controls review depth during `/b
 |--------|----------|--------------|
 | `trivial` | Single-file rename, config change, typo fix, documentation-only | Skip inline review; covered by final `/code-review` |
 | `standard` | New function, test, module, or behavioral change within existing patterns | Spec-compliance + relevant quality agents |
-| `complex` | Architectural change, security-sensitive, cross-cutting concern, new abstraction | Full agent suite including opus-tier agents |
+| `complex` | Architectural change, security-sensitive, cross-cutting concern, new abstraction | Full agent suite, including the `@slow`-floor agents (architecture, domain, security) |
 
 When in doubt, classify up (standard rather than trivial, complex rather than standard).
 
@@ -219,13 +222,17 @@ Derive the waves from each slice's `Depends-on`: a slice's wave is one greater t
 
 Before presenting to the user, dispatch **five plan review personas in parallel** as sub-agents. Each critically challenges the plan from a different perspective:
 
-| Reviewer | Template | Model | Focus |
-|----------|----------|-------|-------|
-| Acceptance Test Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-acceptance.md` | `sonnet` | Per-slice Gherkin quality (determinism, isolation, implementation-independence), scenario gaps, error paths, criteria coverage, step-to-scenario traceability |
-| Design & Architecture Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-design.md` | `sonnet` | Coupling, abstractions, structural risks, pattern adherence |
-| UX Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-ux.md` | `sonnet` | User journey, error UX, cognitive load, accessibility |
-| Strategic Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-strategic.md` | `sonnet` | Problem fit, scope, slice boundaries, risk, opportunity cost |
-| Parallelization Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-parallelization.md` | `sonnet` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition for parallelism |
+| Reviewer | Template | Focus |
+|----------|----------|-------|
+| Acceptance Test Critic | `prompts/plan-review-acceptance.md` | Per-slice Gherkin quality (determinism, isolation, implementation-independence), scenario gaps, error paths, criteria coverage, step-to-scenario traceability |
+| Design & Architecture Critic | `prompts/plan-review-design.md` | Coupling, abstractions, structural risks, pattern adherence |
+| UX Critic | `prompts/plan-review-ux.md` | User journey, error UX, cognitive load, accessibility |
+| Strategic Critic | `prompts/plan-review-strategic.md` | Problem fit, scope, slice boundaries, risk, opportunity cost |
+| Parallelization Critic | `prompts/plan-review-parallelization.md` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition for parallelism |
+
+**Resolving those paths.** They are relative to the **dev-team plugin root** — the same form `agents/orchestrator.md` uses. From this skill's own directory that is `../../prompts/`, and OMP appends `[Skill directory: <abs path>]` to a user-invoked skill precisely so you can resolve relative paths against it. Do **not** expect a plugin-root variable to expand: OMP substitutes it only in discovery configs (MCP `command`/`cwd`/`args`/`env`), never inside a skill or prompt body, so it would reach you as literal text and every one of these paths would dead-end.
+
+**There is no `Model` column, on purpose.** Naming a concrete model here would reintroduce the vendor-name dependency the Resolution Procedure exists to remove, and the `task` tool has no `model` parameter anyway. All five critics run at the balanced role. Because this is the *planning* leg, pass the per-call `effort:` for the recorded task size — `trivial`→`lo`, `standard`→`med`, `complex`→`hi`; nothing if the task was never scoped.
 
 Pass each reviewer the full plan content; also pass the Parallelization Critic the derived `## Parallelization` waves so it can intersect same-wave `Files`. Each returns a structured verdict (`approve` or `needs-revision`) with issues. The Acceptance Test Critic is the gate for the scenarios authored in step 2 — it validates the per-slice Gherkin the same way `feature-file-validation` would, so no separate scenario-review pass is needed before the human gate. A `needs-revision` from the Parallelization Critic triggers plan revision (re-wave the colliding slices) before the human sees the plan.
 

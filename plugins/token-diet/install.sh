@@ -1,31 +1,36 @@
 #!/usr/bin/env bash
-# token-diet installer (Linux/macOS) — installs the LATEST ctx-wire. caveman/yagni
-# ship as OMP skills. Also sets up the acli (Atlassian CLI), ast-grep, and the
-# ctx7 docs CLI. Everything is refreshed to latest by default.
-# (Symbolic C# navigation/edit AND precise C# semantics — rename, exact
-# references, diagnostics, hover — are provided by the dev-team plugin's
-# Serena-backed serena-forge integration, not token-diet.)
+# token-diet installer (Linux/macOS) — v2.0.0, refocused.
+# Installs the LATEST ctx-wire + the EN/FR filter pack for the four `dotnet`
+# commands OMP's native shellMinimizer does NOT cover (publish, pack, run,
+# tool), mirrors the extensions and the always-on rule into ~/.omp/agent, and
+# merges config.snippet.yml. caveman ships as an OMP skill.
+# NOT installed any more (OMP does it, or it moved):
+#   acli / the atlassian skill  -> official remote MCP server, wired by the
+#                                  repo-root install.sh
+#   ctx7 / the context7 skill   -> official remote MCP server, ditto
+#   context-mode                -> OMP's shellMinimizer + artifact spill
+#   the OMP status-line fork    -> native statusLine.preset + cost/cache_* segments
 # Flags:
 #   --no-update          keep tools already installed (don't refresh them)
-#   --no-config          don't enable the bundled skills in ~/.omp/agent/config.yml
-#   --no-context-mode    don't install the context-mode OMP plugin
-#   --no-acli            don't install / authenticate the Atlassian CLI (acli)
+#   --no-config          don't merge config.snippet.yml into ~/.omp/agent/config.yml
 #   --no-cleanup         don't remove obsolete predecessors (codebase-memory-mcp,
 #                        CodeGraph, RTK, csharp-ls) from this machine on install
-#   ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN (env)  non-interactive acli auth (auto-run
-#                        on install when acli isn't already authenticated)
-#   -y, --yes            non-interactive (don't prompt for auth)
+#   --insecure-tls       disable TLS verification for this run (corporate MITM proxy)
+#   --ca-file=<path>     use this CA bundle for this run
+#   -y, --yes            non-interactive (accepted for parity; nothing prompts)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YES=0; INSECURE_TLS=0; NO_CONFIG=0; NO_CTXMODE=0; NO_ACLI=0; NO_UPDATE=0; NO_CLEANUP=0
+INSECURE_TLS=0; NO_CONFIG=0; NO_UPDATE=0; NO_CLEANUP=0
 for a in "$@"; do case "$a" in
-  --no-update) NO_UPDATE=1 ;; -y|--yes) YES=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
+  --no-update) NO_UPDATE=1 ;; --insecure-tls) INSECURE_TLS=1 ;; --ca-file=*) CA_FILE="${a#*=}" ;;
   --no-config) NO_CONFIG=1 ;;
-  --no-context-mode) NO_CTXMODE=1 ;;
-  --no-acli) NO_ACLI=1 ;;
   --no-cleanup) NO_CLEANUP=1 ;;
-  -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+  # Accepted for parity with the other per-plugin installers (the repo-root
+  # install.sh passes it through) — nothing in here prompts any more, so it is
+  # deliberately a no-op rather than a variable nobody reads.
+  -y|--yes) ;;
+  -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
   *) echo "unknown arg: $a" >&2; exit 2 ;;
 esac; done
 
@@ -65,9 +70,10 @@ case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$P
 # --- Clean up obsolete predecessors on (re)install --------------------------
 # Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
 # then codebase-memory-mcp), before ctx-wire, RTK, and a csharp-ls LSP for C#
-# semantics. Those are gone now — the symbolic C# code intelligence AND precise
-# C# semantics (rename, exact references, diagnostics, hover) moved to the
-# dev-team plugin's Serena-backed serena-forge integration, and ctx-wire
+# semantics. Those are gone now — C# navigation and semantics (definition,
+# references, hover, symbols, rename, code actions) go through OMP's native
+# `lsp` tool, which ships `omnisharp` as a built-in default for `.cs`/`.csx`
+# (omp packages/coding-agent/src/lsp/defaults.json), and ctx-wire
 # replaced RTK. But an upgrade/uninstall does NOT remove what a past install
 # left on the machine (an OMP mcp.json entry + a leftover binary that keeps a
 # dead MCP server wired, or a global csharp-ls dotnet tool + lsp.json entry).
@@ -124,8 +130,8 @@ PY
   done
 
   # 4) Uninstall the obsolete csharp-ls dotnet tool + its lsp.json entry —
-  # precise C# semantics now live in the dev-team plugin's serena-forge
-  # integration (Serena's Roslyn backend), not token-diet.
+  # C# semantics now come from OMP's native `lsp` tool + omnisharp, so a stale
+  # csharp-ls entry in lsp.json only competes with it.
   if have dotnet && dotnet tool list -g 2>/dev/null | grep -qi '^csharp-ls\b'; then
     run "dotnet tool uninstall -g csharp-ls || true"
     say "  uninstalled csharp-ls (dotnet tool)"; removed=1
@@ -180,7 +186,12 @@ CTXW_FILTERS="$CTXW_DIR/filters.toml"
 BLOCK_BEGIN="# >>> token-diet multilingual filters (managed) >>>"
 BLOCK_END="# <<< token-diet multilingual filters (managed) <<<"
 if [ -d "$PACK_DIR" ]; then
-  say "Installing multilingual ctx-wire filters (EN+FR: git-status + dotnet build/test/restore/run/tool)"
+  # Four filters only. git status / dotnet build / test / restore are covered by
+  # OMP's own Rust shellMinimizer (crates/pi-shell/src/minimizer/filters/git.rs
+  # and dotnet.rs, on by default), so shipping our own would be duplicate work
+  # on the same bytes. publish / pack / run / tool are NOT in dotnet.rs's
+  # `supports()` list — those are the ones left to us.
+  say "Installing ctx-wire filters (EN+FR: dotnet publish/pack/run/tool)"
   mkdir -p "$CTXW_DIR"
   blk="$(mktemp)"; tmp="$(mktemp)"
   printf '%s\n' "$BLOCK_BEGIN" > "$blk"
@@ -196,162 +207,6 @@ if [ -d "$PACK_DIR" ]; then
   elif have python3; then run "python3 '$HERE/ctx-wire/scripts/verify-filters.py' '$PACK_DIR' || true"; fi
 fi
 
-# --- Patch helpers (idempotent; re-applied after each context-mode / OMP update) ---
-
-# Fix: OMP plugin onLoad interceptor forces the 'js' loader on ALL deps including
-# .json files, which Bun's JS parser rejects (7 parse errors). Proxy the JSON
-# catalog as a valid ESM module and patch the import in pricing.js.
-patch_context_mode() {
-  local CM_DIR="${OMP_HOME:-$HOME/.omp}/plugins/node_modules/context-mode"
-  local PRICING="$CM_DIR/build/session/pricing.js"
-  local JSON_SRC="$CM_DIR/build/session/model-prices.json"
-  local JS_PROXY="$CM_DIR/build/session/model-prices-catalog.js"
-  [ -f "$PRICING" ] && [ -f "$JSON_SRC" ] || return 0
-  grep -q 'model-prices-catalog' "$PRICING" 2>/dev/null && return 0   # already patched
-  if have python3; then
-    python3 - "$JSON_SRC" "$JS_PROXY" <<'PYEOF'
-import json, sys
-data = json.load(open(sys.argv[1]))
-open(sys.argv[2], 'w').write(
-  '// OMP plugin onLoad forces js loader on all deps — proxy JSON as valid ESM.\n'
-  'export default ' + json.dumps(data, indent=2) + ';\n')
-PYEOF
-  elif have node; then
-    node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
-fs.writeFileSync(process.argv[2],'// OMP plugin onLoad forces js loader on all deps — proxy JSON as valid ESM.\nexport default '+JSON.stringify(d,null,2)+';\n');" \
-      "$JSON_SRC" "$JS_PROXY"
-  else warn "context-mode patch: need python3 or node — skip"; return 0; fi
-  sed -i 's|import catalog from "./model-prices.json" with { type: "json" };|import catalog from "./model-prices-catalog.js";|' "$PRICING"
-  say "context-mode: patched JSON loader compatibility (model-prices-catalog.js)"
-}
-
-# Fix: OMP renders hook statuses (ctx.ui.setStatus) as a separate line below the
-# status bar. Patch StatusLineComponent to include them inline in the top border.
-patch_omp_status_line() {
-  local OMP_PKG="$HOME/.bun/install/global/node_modules/@oh-my-pi/pi-coding-agent"
-  local COMPONENT="$OMP_PKG/src/modes/components/status-line/component.ts"
-  [ -f "$COMPONENT" ] || { warn "OMP status-line patch: component.ts not found — skip"; return 0; }
-  grep -q 'hookText' "$COMPONENT" 2>/dev/null && return 0   # already patched
-  python3 - "$COMPONENT" <<'PYEOF'
-import sys, re
-src = open(sys.argv[1]).read()
-# 1. Inject hook statuses into rightParts right after the subagentBadge block.
-ANCHOR = '\t\tif (subagentBadge) {\n\t\t\trightParts.unshift(subagentBadge);\n\t\t}'
-INJECT = (
-  '\n\t\tconst showHooks = this.#settings.showHookStatus ?? true;\n'
-  '\t\tif (showHooks && this.#hookStatuses.size > 0) {\n'
-  '\t\t\tconst hookText = Array.from(this.#hookStatuses.entries())\n'
-  '\t\t\t\t.sort(([a], [b]) => a.localeCompare(b))\n'
-  '\t\t\t\t.map(([, text]) => sanitizeStatusText(text))\n'
-  '\t\t\t\t.join(" ")\n'
-  '\t\t\t\t.trim();\n'
-  '\t\t\tif (hookText) rightParts.push(theme.fg("muted", hookText));\n'
-  '\t\t}'
-)
-if ANCHOR not in src:
-  print('ERROR: anchor not found in component.ts', file=sys.stderr); sys.exit(1)
-src = src.replace(ANCHOR, ANCHOR + INJECT, 1)
-# 2. Replace render() body — drop the separate hook line.
-OLD_RENDER = (
-  '\trender(width: number): readonly string[] {\n'
-  '\t\t// Only render hook statuses - main status is in editor\'s top border\n'
-  '\t\tconst showHooks = this.#settings.showHookStatus ?? true;\n'
-  '\t\tif (!showHooks || this.#hookStatuses.size === 0) {\n'
-  '\t\t\treturn [];\n'
-  '\t\t}\n\n'
-  '\t\tconst sortedStatuses = Array.from(this.#hookStatuses.entries())\n'
-  '\t\t\t.sort(([a], [b]) => a.localeCompare(b))\n'
-  '\t\t\t.map(([, text]) => sanitizeStatusText(text));\n'
-  '\t\tconst hookLine = sortedStatuses.join(" ");\n'
-  '\t\treturn [truncateToWidth(hookLine, width)];\n'
-  '\t}'
-)
-NEW_RENDER = (
-  '\trender(_width: number): readonly string[] {\n'
-  '\t\t// Hook statuses are rendered inline in the top-border status line.\n'
-  '\t\treturn [];\n'
-  '\t}'
-)
-if OLD_RENDER not in src:
-  print('ERROR: render() original body not found in component.ts', file=sys.stderr); sys.exit(1)
-src = src.replace(OLD_RENDER, NEW_RENDER, 1)
-open(sys.argv[1], 'w').write(src)
-print('patched')
-PYEOF
-  [ $? -ne 0 ] && { warn "OMP status-line patch: python script failed — skip rebuild"; return 0; }
-  # Rebuild dist/cli.js with the same flags used by bundle-dist.ts
-  say "OMP status-line: rebuilding dist/cli.js…"
-  (cd "$OMP_PKG" && bun build \
-    --target=bun --outdir dist --minify --keep-names \
-    --external mupdf --external @oh-my-pi/pi-natives \
-    --external "@huggingface/transformers" --external fastembed \
-    --external onnxruntime-node --external puppeteer-core \
-    --external "@puppeteer/browsers" --external "@babel/parser" \
-    --external "@xterm/headless" --external turndown \
-    --external turndown-plugin-gfm --external "@mozilla/readability" \
-    --external linkedom --external "@agentclientprotocol/sdk" \
-    --define 'process.env.PI_BUNDLED="true"' \
-    ./src/cli.ts 2>/dev/null) \
-  && say "OMP status-line: hook statuses now inline in top-border (rebuilt dist/cli.js)" \
-  || warn "OMP status-line: bun build failed — OMP may need a manual reinstall"
-}
-
-# --- context-mode (locale-agnostic output sandbox; complements ctx-wire) ------
-if [ "$NO_CTXMODE" = 0 ]; then
-  if have omp; then
-    say "Installing context-mode OMP plugin (locale-agnostic output sandbox + session continuity)"
-    if ! run "omp plugin install context-mode"; then
-      warn "omp plugin install failed (not in registry yet?) — falling back to ~/.omp/plugins"
-      OMP_PLUGINS="${OMP_HOME:-$HOME/.omp}/plugins"
-      mkdir -p "$OMP_PLUGINS"
-      [ -f "$OMP_PLUGINS/package.json" ] || printf '{\n  "dependencies": {}\n}\n' > "$OMP_PLUGINS/package.json"
-      if have bun;   then run "(cd '$OMP_PLUGINS' && bun add context-mode) || true"
-      elif have npm; then run "(cd '$OMP_PLUGINS' && npm install context-mode) || true"
-      else warn "need bun or npm to install context-mode — see https://github.com/mksglu/context-mode"; fi
-    fi
-  else
-    warn "omp CLI not found — skip context-mode (run later: omp plugin install context-mode)"
-  fi
-fi
-patch_context_mode
-
-# --- acli (official Atlassian CLI: Jira / Confluence / Bitbucket) -------------
-# acli is our GO-TO for Atlassian — not an MCP. The URL serves the LATEST build,
-# so re-running updates it. Installs to ~/.local/bin (no sudo). When interactive
-# (and not already authenticated) it offers to run `acli jira auth login`.
-if [ "$NO_ACLI" = 0 ]; then
-  if have acli && [ "$NO_UPDATE" = 1 ]; then
-    say "acli present"
-  else
-    say "Installing Atlassian CLI (acli)"
-    if have curl; then
-      ACLI_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"   # linux | darwin
-      case "$(uname -m)" in x86_64|amd64) ACLI_ARCH=amd64 ;; arm64|aarch64) ACLI_ARCH=arm64 ;; *) ACLI_ARCH=amd64 ;; esac
-      ACLI_URL="https://acli.atlassian.com/${ACLI_OS}/latest/acli_${ACLI_OS}_${ACLI_ARCH}/acli"
-      run "mkdir -p \"$HOME/.local/bin\" && curl -fsSL -o \"$HOME/.local/bin/acli\" \"$ACLI_URL\" && chmod +x \"$HOME/.local/bin/acli\" || true"
-    else warn "need curl to install acli — see https://developer.atlassian.com/cloud/acli/"; fi
-  fi
-  # Authenticate (Jira) when not already logged in — runs automatically (no
-  # Y/n gate); non-interactive installs can supply ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN.
-  if have acli && ! acli jira auth status >/dev/null 2>&1; then
-    if [ -n "${ACLI_SITE:-}" ] && [ -n "${ACLI_EMAIL:-}" ] && [ -n "${ACLI_TOKEN:-}" ]; then
-      printf '%s' "$ACLI_TOKEN" | acli jira auth login --site "$ACLI_SITE" --email "$ACLI_EMAIL" --token >/dev/null 2>&1 \
-        && echo "  acli authenticated ($ACLI_SITE)" || warn "acli auth failed — run 'acli jira auth login' manually."
-    elif [ "$YES" = 0 ] && [ -r /dev/tty ]; then
-      say "Authenticating acli (Jira/Confluence)"
-      printf '    Atlassian site (e.g. mysite.atlassian.net): '; read -r ACLI_SITE </dev/tty || ACLI_SITE=""
-      printf '    Email: '; read -r ACLI_EMAIL </dev/tty || ACLI_EMAIL=""
-      printf '    API token (hidden; id.atlassian.com -> Security -> API tokens): '; read -r -s ACLI_TOKEN </dev/tty || ACLI_TOKEN=""; echo
-      if [ -n "$ACLI_SITE" ] && [ -n "$ACLI_EMAIL" ] && [ -n "$ACLI_TOKEN" ]; then
-        printf '%s' "$ACLI_TOKEN" | acli jira auth login --site "$ACLI_SITE" --email "$ACLI_EMAIL" --token >/dev/null 2>&1 \
-          && echo "  acli authenticated ($ACLI_SITE)" || warn "acli auth failed — run 'acli jira auth login' manually."
-      else warn "incomplete input — run 'acli jira auth login' manually."; fi
-    else
-      warn "acli not authenticated — set ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN, or run 'acli jira auth login' manually."
-    fi
-  fi
-fi
-
 # --- ast-grep (structural search/rewrite) -----------------------------------
 if have ast-grep && [ "$NO_UPDATE" = 1 ]; then
   say "ast-grep present"
@@ -361,14 +216,6 @@ elif have npm; then
   say "Installing ast-grep (npm @ast-grep/cli)"; run "npm install -g @ast-grep/cli || true"
 else
   warn "need npm or brew to install ast-grep — see https://ast-grep.github.io"
-fi
-
-# --- ctx7 CLI (context7 library documentation) ------------------------------
-if have npm; then
-  if have ctx7 && [ "$NO_UPDATE" = 1 ]; then say "ctx7 CLI present"
-  else say "Installing ctx7 CLI (context7 library documentation)"; run "npm install -g ctx7 || true"; fi
-else
-  warn "npm not found — ctx7 unavailable (install Node.js to enable library docs)"
 fi
 
 # --- OMP config: skills, provider isolation ---------------------------------
@@ -384,7 +231,7 @@ if [ -d "$HERE/extensions" ]; then
   DEST="$HOME/.omp/agent/extensions/token-diet"
   rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
   [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
-  say "read-dedup + context-dedup + context-compress (safe) loaded"
+  say "extensions loaded: path-inject (always on) + context-compress (OFF unless TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full)"
 fi
 
 # --- Load the always-on OMP-native rule (ctx-wire token-tool routing) ---
@@ -416,19 +263,35 @@ if [ "$NO_CONFIG" = 0 ] && [ -f "$HOME/.claude/CLAUDE.md" ] && [ ! -f "$HOME/.om
   warn "no ~/.omp/agent/AGENTS.md — OMP falls back to reading ~/.claude/CLAUDE.md verbatim, including any Claude-Code-only guidance (e.g. 'prefer shell over built-in tools'). Consider a native AGENTS.md with just the conventions that apply to OMP."
 fi
 
-patch_omp_status_line
+# --- Cost / cache visibility: use OMP's own statusline, not a harness fork ----
+# v1.x patched OMP's own status-line component.ts and re-ran `bun build` on
+# dist/cli.js to inline a cost/cache footer. That fork is gone: its render()
+# anchor stopped matching current OMP, the embedded python then exited 1, and
+# under `set -euo pipefail` that aborted this whole installer. OMP ships the
+# same numbers as first-class statusline segments — verified in
+# omp packages/coding-agent/src/modes/components/status-line/segments.ts
+# (`cost` :433, `context_pct` :454, `cache_read` :541, `cache_write` :553,
+# `cache_hit` :565, `usage` :635) — so this is config, not a patch.
+say "Cost + prompt-cache visibility is native. In ~/.omp/agent/config.yml:"
+cat <<'HINT'
+    statusLine:
+      preset: custom
+      rightSegments: [cost, cache_hit, cache_write, context_pct, usage]
+HINT
+
 # OMP's bash tool caches a shell session's PATH for the life of the OMP
 # process (the failure mode that broke the old RTK integration): a
 # ~/.local/bin binary is only as good as the PATH the
 # consuming process was started with. Detect staleness now, for every tool
 # this installer can newly land, from a FRESH login shell (bash -l) — the
 # same invocation OMP's bash tool uses — rather than trusting this script's
-# own already-exported PATH.
+# own already-exported PATH. (extensions/path-inject.ts closes the same gap
+# from inside the OMP process; this probe is the user-facing warning.)
 STALE_TOOLS=""
-for t in ctx-wire acli ast-grep ctx7; do
+for t in ctx-wire ast-grep; do
   have "$t" && ! bash -lc "command -v $t" >/dev/null 2>&1 && STALE_TOOLS="$STALE_TOOLS $t"
 done
 if [ -n "$STALE_TOOLS" ]; then
   warn "installed but NOT visible in a fresh shell yet:$STALE_TOOLS. An already-running OMP process keeps missing them until you RESTART OMP — re-running this script again will not fix it."
 fi
-say "token-diet active: ctx-wire shims, EN+FR filters, context-mode, ast-grep, ctx7, acli, provider isolation, /caveman + /yagni. Restart omp."
+say "token-diet active: ctx-wire shims, dotnet publish/pack/run/tool filters (EN+FR), ast-grep, provider isolation, /caveman. Restart omp."

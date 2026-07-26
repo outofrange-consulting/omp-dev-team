@@ -26,6 +26,8 @@ Confidence: high=mechanical fix (add missing attribute, swap element); medium=di
 Model tier: mid
 Context needs: full-file
 
+`Model tier` stays `mid` because the field's vocabulary is closed to small/mid/frontier (`skill://code-review/output-format.md`). The frontmatter routes to `@designer` — a real OMP role that resolves to a vision-capable model — because contrast ratios, focus-visible state and reading order are judged from rendered output, not from markup alone. `@plan` is the fallback if `modelRoles.designer` is unset.
+
 ## Skip
 
 Return `{"status": "skip", "issues": [], "summary": "No UI component files found"}` when:

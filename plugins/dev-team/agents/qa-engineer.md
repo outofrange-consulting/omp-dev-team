@@ -11,17 +11,7 @@ thinking-level: medium
 autoload-skills:
   - quality-gate-pipeline
   - testing-discipline
-  - test-design-advisor
   - test-design
-  - cd-test-architecture
-  - systematic-debugging
-  - specs
-  - legacy-code
-  - mutation-testing
-  - code-review
-  - browser-testing
-  - test-health
-  - exploratory-testing
 ---
 
 # QA/SQA Engineer Agent

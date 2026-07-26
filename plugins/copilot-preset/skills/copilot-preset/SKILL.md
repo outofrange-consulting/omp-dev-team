@@ -15,7 +15,9 @@ so a team uses its Copilot license instead of direct provider billing.
 ## Auth
 
 OAuth: run `omp`, then `/login` → **GitHub Copilot**. Or set a token:
-`COPILOT_GITHUB_TOKEN` (falls back to `GH_TOKEN`, then `GITHUB_TOKEN`).
+`COPILOT_GITHUB_TOKEN`. (It does **not** fall back to `GH_TOKEN`/`GITHUB_TOKEN` —
+OMP's Copilot descriptor declares a single-element `envVars` list. Upstream's own
+`packages/ai/README.md` still claims the fallback; it is stale.)
 
 List what YOUR plan exposes (catalog is fetched live from your Copilot account):
 `omp --list-models | grep github-copilot`.
@@ -36,8 +38,18 @@ The cheap end is **split by workload shape** (dev-team's `nano` + `code` tiers):
 |---|---|---|---|
 | `smol` | nano (lexical/scan) | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
 | `task` | code (coding/tool-use) | `github-copilot/mai-code-1-flash-picker` | $0.75 / $4.50 |
-| `default`/`plan` | balanced (+ archi/domain design) | `github-copilot/claude-sonnet-5` | $3.00 / $15.00 |
-| `slow` | deep (security verdicts) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
+| `default`/`plan` | balanced | `github-copilot/claude-sonnet-5` | **$2.00 / $10.00 promo through 2026-08-31**, then unpublished |
+| `slow` | deep (design synthesis + security verdicts) | `github-copilot/claude-opus-4.8` | $5.00 / $25.00 |
+| `designer` | UI/UX + a11y | `github-copilot/gemini-3.1-pro-preview` | $2.00 / $12.00 |
+| `vision` | image input | `github-copilot/gpt-5-mini` | $0.25 / $2.00 |
+| `advisor` | second-opinion turn review | `github-copilot/gpt-5.3-codex` | $1.75 / $14.00 |
+
+`vision` is **not optional**: `inspect_image` hard-errors on a text-only model
+after falling back `@vision → @default → active`, and MAI-Code-1-Flash is one of
+the only text-only entries in the catalog. `advisor` deliberately picks a
+different vendor from `slow` — a second opinion from the same family is worth
+less. `tiny` and `commit` are left unset on purpose: OMP already aliases `tiny` to
+`smol` and resolves `commit` via `["commit","smol",…]`, so setting them is a no-op.
 
 `smol` (**nano**) drops to **gpt-5-mini** because the lexical/checklist reviewers
 it runs (naming, complexity, token-efficiency, a11y, progress-guardian) need no
@@ -48,16 +60,16 @@ autonomous tasks only.
 
 ## Claude Sonnet 5 (balanced + design synthesis)
 
-`default`/`plan` move from Sonnet 4.6 to **`github-copilot/claude-sonnet-5`** —
-same $3/$15 Sonnet price, but near-Opus quality on coding/agentic work and the
-first Sonnet with `xhigh` effort. Because of that quality jump, three
-design-synthesis agents drop from the **deep** tier to **balanced**:
-`architect`, `arch-review`, `domain-review`. The **deep** tier (`slow` →
-`claude-opus-4.8`) is now reserved for high-stakes **security** verdicts
-(`security-review`, `security-engineer`), where Opus still leads Sonnet 5 and a
-wrong verdict is most expensive. Routing security to Sonnet 5 too would save
-~40% in/out but bets it matches Opus on exactly that class of task — left on
-Opus by default.
+`default`/`plan` run **`github-copilot/claude-sonnet-5`**, currently at a
+promotional **$2.00 / $10.00 through 2026-08-31**. The post-promo rate is
+unpublished; if it reverts to $3/$15, `github-copilot/gpt-5.6-terra`
+($2.50/$15, 1.05M context, GitHub's "balanced default") becomes the better
+`default`. Re-check this in September.
+
+`slow` stays **`claude-opus-4.8`**, not Opus 5, despite identical $5/$25: Opus 5
+is `pro=false` (it breaks Pro users) and its own changelog warns of "enhanced
+safeguards for high-harm cyber content… may block some cyber-related or
+security-adjacent requests" — which is exactly what this tier exists to run.
 
 ## MAI-Code-1-Flash ("MIA Coding")
 
@@ -69,12 +81,13 @@ up to 60% fewer tokens, and it's cheaper than Haiku ($1/$5). So this preset now
 runs the **cheap tiers (`smol`/`task`) on `github-copilot/mai-code-1-flash-picker`** —
 a strict Pareto win over Haiku.
 
-**Known issue (2026-07):** GitHub can still gate MAI-Code-1-Flash to
-VS-Code-only OAuth clients on some tenants past its published GA dates —
-CLI/API calls 400 with `unsupported_api_for_model` until your tenant's access
-lands. `config.snippet.yml` ships a `retry.fallbackChains.task` entry
-(`gpt-5.4-mini` → `claude-haiku-4.5`) so `task` stays productive meanwhile,
-reverting to MAI automatically once it responds.
+**On the `unsupported_api_for_model` 400s:** these were widely reported as tenant
+gating, but OMP's own `packages/catalog/CHANGELOG.md` shows **17.0.1
+(2026-07-16)** fixed `mai-*` models to route through `/responses` instead of
+`/chat/completions`, "which rejected them with `400 unsupported_api_for_model`".
+It was an OMP-side endpoint bug, not a Copilot entitlement. On OMP ≥ 17.0.1 you
+should not see it. `config.snippet.yml` keeps a `retry.fallbackChains.task` entry
+anyway, which costs nothing and covers a genuine outage.
 
 It runs the **`task`/code tier** (post-plan implementation + structural code
 review). It is *not* set as the `default`/`plan` (orchestration) model: at 71.6
@@ -85,9 +98,22 @@ output.
 
 ## Running the dev-team on Copilot
 
-- The dev-team **nano tier** uses the `pi/smol` role and the **code tier** uses
-  `pi/task` → both follow `modelRoles.smol`/`modelRoles.task` here automatically
-  (highest-volume tiers, biggest savings).
-- The **balanced/deep** dev-team agents pin Anthropic ids in frontmatter. To run
-  them on Copilot too, either set your interactive default to a `github-copilot`
-  model, or change those agents' `model:` to `github-copilot/...`.
+- **No dev-team agent pins a vendor model id.** Every agent declares a list of
+  OMP role aliases (`"@smol, @default"`, `"@plan, @default"`, …) and OMP takes the
+  first resolvable one, so setting `modelRoles` here routes the *entire* team
+  through Copilot — nothing to edit per agent. (Earlier versions of this file said
+  the balanced/deep agents pinned Anthropic ids. That was true then; it is not now.)
+- Two OMP resolution facts worth knowing: `@task` is **session-inheriting**, not a
+  cheap tier, and only `smol`/`slow`/`designer` inherit from `default` — so
+  `modelRoles.plan` and `modelRoles.task` must be set explicitly or they silently
+  follow your session model. The shipped snippet sets both.
+
+## Open-weight option
+
+**`github-copilot/kimi-k2.7-code`** is the only open-weight model in the Copilot
+catalog (GitHub groups it under a literal `# Open-weight models` heading in its
+own release-status manifest). Cheaper on output than MAI ($4.00 vs $4.50) and
+vision-capable. It ships here as a **commented opt-in**, not the default, for two
+reasons: `maxTokens` is 32K against MAI's 128K, so a large single-shot
+implementation slice can truncate on the *build* tier; and it is off by default on
+Business/Enterprise tenants. Uncomment the block in `config.snippet.yml` to use it.

@@ -3,7 +3,10 @@ name: orchestrator
 description: Central dispatcher that routes tasks to specialized agents and coordinates multi-agent collaboration
 tools: read, search, find, task
 spawns: "*"
-model: pi/plan
+# `@plan` is the balanced tier; `@default` is the fallback so dispatch still
+# resolves for a user who never pasted the config snippet (parseModelList takes
+# the first RESOLVABLE pattern, so an unset role is skipped, not fatal).
+model: "@plan, @default"
 thinking-level: medium
 ---
 
@@ -26,52 +29,62 @@ thinking-level: medium
 - Task classification algorithm
 - Load balancing logic
 
-## Resolution Procedure (floor tier + effort band)
+## Resolution Procedure (native: frontmatter floor + per-call effort)
 
-Each agent's `model:` frontmatter declares its **floor tier**. The cheap end is split by **workload shape**: `pi/smol` (**nano** — lexical/scan), `pi/task` (**code** — coding/tool-use), `pi/plan` (**balanced**), `pi/slow` (**deep**). Tier resolution is **native OMP**: `.omp/config.yml` `modelRoles` (and, with the copilot-preset plugin, the Copilot remap) turn the tier into a concrete model. The source of truth for tiers is `skill://dev-team-knowledge/model-routing.json`.
+**There is no plugin-side resolver.** The effort-band extension that used to sit between an agent's frontmatter and its model is retired (upstream ADT deleted the equivalent machinery in ADR-0026; ours additionally branched on the literal strings `"opus"`/`"sonnet"` — an Anthropic-name dependency inside a provider-open port — read plan-gate state from a hook, which ADR-0019 forbids, and shipped as default behaviour with no measured win, which ADR-0022 forbids). Nothing this plugin owns now stands between the frontmatter and what the harness runs.
 
-On top of the floor, the `model-routing` extension applies **phase-aware effort-band routing (bump-from-floor)**. The effort goes into **spec/plan**, not the build: the **task size** (recorded at `/scope` → plan-gate state; classifier `skill://dev-team-knowledge/task-size-classifier.md`) raises the band **only while planning** (`stage = needs-plan`, i.e. `/scope` → `/specs` → `/plan`):
+**Two surfaces, and only two:**
 
-- During planning, target band: `trivial` → `code`, `standard` → `balanced`, `complex` → `deep`; effective = the **higher of the agent's floor and that target**. So a `complex` plan runs the architect and plan-review critics at `deep`.
-- Once the plan is **approved** (`stage = plan-approved`, the build/review phase), there is **no bump** — implementers and reviewers run at their **floor**. A solid plan makes the build routine, so don't spend `deep` on mechanical implementation.
-- An agent is **never routed below its floor** by default (high-stakes deep agents — security/domain/arch-review, architect, security-engineer, codebase-recon — always hold at deep). No signal / trivial / unscoped → the floor (static, backward-compatible). *(Opt-in: `effortBand.trivialDownshift` routes non-deep agents one band below floor on a trivial fast-path task — extra saving; off by default.)*
+1. **The frontmatter declares the FLOOR.** Each agent's `model:` is a CSV of role patterns, first *resolvable* one wins (`@smol` / `@plan` / `@slow` / `@designer`, then `@default` as the safety fallback). OMP resolves the role through `.omp/config.yml` → `modelRoles`; with the copilot-preset plugin the same roles resolve to `github-copilot/*` ids. Per-agent depth is `thinking-level:` — **never** a `:level` suffix on `model:`, which would silently outrank it. Do not override an agent's declared `model:` when you dispatch it.
+2. **The task size sets the PER-CALL effort.** The `task` tool takes `effort: "lo" | "med" | "hi"`. It outranks both the frontmatter and any model suffix, and it maps onto whatever ladder the *actually resolved* model supports — so it degrades gracefully on Copilot and open-weight models with no Anthropic-style effort ladder, instead of naming a model that does not exist there.
 
-So when you spawn a subagent via `task`, **pass the effort-band tier** = `(stage in bumpStages) ? max(floor, sizeBand[size]) : floor` (data in `model-routing.json` → `effortBand`). The extension logs every dispatch to `.omp/state/model-routing.log` and, by default (`advisory`), **warns** when the dispatched tier ≠ the band tier. `DEV_TEAM_EFFORT_ROUTING=enforce` upgrades the warning to a **block** naming the model to use; `=off` disables the band (floor tier only).
+**The rule you apply.** The task size recorded by `/scope` (objective classifier, `skill://dev-team-knowledge/task-size-classifier.md`) maps to the per-call effort:
 
-For triage, run `/routing` (read-only): the tier map plus, per floor, the effective band for the current stage + task size.
+| task size | `effort:` |
+|---|---|
+| `trivial` | `lo` |
+| `standard` | `med` |
+| `complex` | `hi` |
+
+Pass it **only while planning** — the `/scope` → `/specs` → `/plan` leg. **Build and review pass nothing** and therefore run at the agent's floor: a solid plan makes the build routine, and the alternative (bumping every lexical reviewer because the *task* is complex) buys nothing. No recorded size, or an unscoped task → pass nothing.
+
+**Caveat, worth knowing before you trust it.** Every Copilot model served over the `openai-completions` API is built with `compat.supportsReasoningEffort: false`, so `effort:` is a **no-op on the wire** for Gemini / Kimi / Grok / Raptor via Copilot — the call still succeeds, it just doesn't change the thinking budget. It *does* take effect on Copilot's Claude models (`anthropic-messages`) and GPT-5.x (`openai-responses`), and on direct-provider Anthropic/OpenAI. Treat effort as a hint, never as a guarantee, and never as a substitute for picking the right role.
 
 ### Tier guidance (informational)
 
-Each agent's `model:` frontmatter is the authoritative routing input. Tiers are **workload-shaped** — pick by the *shape* of the work, not only its difficulty. Below is the rationale by tier, so new agents have a guide for which to declare:
+Each agent's `model:` frontmatter is the authoritative routing input, and the per-agent roster lives in `skill://dev-team-knowledge/agent-registry.md` — do not restate it here, it drifts. Roles are **workload-shaped**: pick by the *shape* of the work, not only its difficulty. The rationale per role, so a new agent has a guide for which to declare:
 
-- `nano` (`pi/smol`) — **pure lexical/structural pattern matching and checklist verification, no code-semantics or tool-use** (naming-review, complexity-review, token-efficiency-review, a11y-review, progress-guardian). Also the cheapest tier for input-bound scan work. Highest volume → cheapest capable model.
-- `code` (`pi/task`) — **cheap work that needs code semantics or agentic tool-use, where the plan + review gates protect quality**: post-plan implementation (software-engineer build floor), build-phase test generation (qa-engineer), structural code-semantic review (js-fp-review, svelte-review), and **codebase-recon** (script-driven enumeration + grep scan; a *floor*, so the effort-band makes recon size-proportional during planning — code/balanced/deep by task size — and the agents that *judge* its output run at deep). Coding-tuned cheap model.
-- `balanced` (`pi/plan`) — semantic / cross-file analysis with balanced cost/quality (spec-compliance-review, test-review, test-smell-review, structure-review, concurrency-review, doc-review, refactor-opportunity-review, data-flow-tracer, performance-review, orchestrator, tech-writer, platform-engineer, product-manager, ui-ux-designer, adr-author).
-- `deep` (`pi/slow`) — high-stakes cross-file reasoning, design synthesis, threat modeling where a wrong verdict is expensive (security-review, domain-review, arch-review, architect, security-engineer).
+- `@smol` — highest-volume work where cheapness compounds: lexical/structural pattern matching and checklist verification with no code semantics (e.g. token-efficiency-review, progress-guardian), *and* cheap coding / agentic tool-use where the plan + review gates already protect quality — post-plan implementation, build-phase test generation, script-driven enumeration and grep scans.
+- `@plan` — semantic, cross-file analysis at balanced cost/quality. The default for a reviewer that has to hold several files in mind at once, and for the orchestrator itself.
+- `@slow` — high-stakes cross-file reasoning, design synthesis and threat modeling, where a wrong verdict is expensive (security, domain, architecture).
+- `@designer` — judgement made from *rendered* output rather than markup (UI/UX, accessibility). A real OMP role; resolve it to a vision-capable model.
+
+**Do not use `@task`.** It is deliberately session-inheriting in OMP (`isSessionInheritedAgentPattern`), so it is not a cheap tier — an agent declaring it silently follows the parent session model.
 
 ## Command Delegation
 
-All review commands are executed under orchestrator direction. When a user triggers a review command, the orchestrator applies model routing and inline review logic before delegating execution.
+All review commands are executed under orchestrator direction. When a user triggers a review command, the orchestrator applies the Resolution Procedure above and the inline review logic before delegating execution.
+
+`/code-review` and `/review-agent` are registered commands. The rest are **skills**, invoked as `/skill:<name>` — OMP does not register a skill as a bare slash command, so writing `/apply-fixes` gets you "unknown command".
 
 | Command | Delegated workflow | When orchestrator triggers it |
 |---|---|---|
 | `/code-review` | Full suite review with pre-flight gates | End of Phase 3, or user request |
 | `/review-agent` | Single-agent review | Inline checkpoint during Phase 3 |
-| `/add-agent` | Scaffold new review agent | When a new review capability is needed |
-| `/apply-fixes` | Apply correction prompts | After `/code-review` generates corrections |
-| `/review-summary` | Persist session summary | At phase transitions |
-| `/semgrep-analyze` | Static analysis | As pre-flight context for security-review |
+| `/skill:apply-fixes` | Apply correction prompts | After `/code-review` generates corrections |
+| `/skill:review-summary` | Persist session summary | At phase transitions |
+| `/skill:semgrep-analyze` | Static analysis | As pre-flight context for security-review |
 
 ## Knowledge index — consumer usage pattern
 
-Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `skill://dev-team-knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `skill://dev-team-knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `skill://dev-team-knowledge/X.md` or `skill://Y` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. For routing, `/routing` is the diagnostic command (the `model-routing` extension's tier map + effective band per floor for the current stage and task size).
+Knowledge references in this file and any agent that consumes them cite a section anchor (e.g. `skill://dev-team-knowledge/owasp-detection.md#a03-injection`). Resolve the anchor via `skill://dev-team-knowledge/index.json` — the section's `summary` describes what's in it — then `read` the file with `offset` and `limit` for just that section. Bare `skill://dev-team-knowledge/<file>.md` or `skill://<skill-name>` references are valid only when followed in the same paragraph by `Whole-file load:` and a one-sentence rationale. There is no routing diagnostic to run: model resolution is native, so OMP's own `/model` and `/agents` are where you inspect it.
 
 ## Skills
 
 Whole-file load: each linked skill is loaded in full when invoked; per-section anchors don't apply to skill bodies because the skill machinery consumes the whole file.
 
 - [Context Loading Protocol](skill://context-loading-protocol) - invoke at the start of every task to decide which agents and skills to load, and at phase transitions to unload/swap
-- [Context Summarization](skill://context-summarization) - invoke when context utilization signals are present (high turn count, degraded output quality) or at phase transitions
+- [Context Summarization](skill://handoff-policy) - invoke when context utilization signals are present (high turn count, degraded output quality) or at phase transitions
 - [Feedback & Learning](skill://feedback-learning) - invoke when user uses amend/learn/remember/forget keywords, or during learning loop at task completion
 - [Human Oversight Protocol](skill://human-oversight-protocol) - invoke when approval gates fire, when user issues override/pause/stop, or when escalating decisions
 - [Performance Metrics](skill://performance-metrics) - invoke at task completion to log metrics, and during learning loop to review trends
@@ -101,7 +114,7 @@ source before the plan step. Sequence: **pre-analysis → (trivial | plan) → b
    (or `/trivial`): the no-plan fast path — skip the Research/Plan ceremony and go
    straight to the fix (review + `/impl-verify` gates still apply). **`standard`/
    `complex`** → `/scope` marks it needs-a-plan and it enters the three phases
-   below (`complex` also escalates review to the opus-tier agents). Log the
+   below (`complex` also escalates review to the `@slow`-role agents). Log the
    classification to `memory/decisions.md`.
 2. **Plan approved** → `/plan-approve` (after the human signs off) unlocks the
    build; `/plan-reset` re-arms the gate for the next task.
@@ -132,13 +145,15 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
 - **Output**: An implementation plan with explicit file changes, test expectations, and acceptance criteria
 - **Automated plan review**: Before the human gate, dispatch **five plan review personas in parallel** as sub-agents via the `task` tool. Each reviewer independently challenges the plan from a different critical perspective:
 
-  | Reviewer | Template | Model | What it challenges |
-  |----------|----------|-------|--------------------|
-  | Acceptance Test Critic | `prompts/plan-review-acceptance.md` | `sonnet` | Criteria verifiability, scenario completeness, error paths, test traceability |
-  | Design & Architecture Critic | `prompts/plan-review-design.md` | `sonnet` | Coupling, abstraction quality, structural risks, pattern consistency |
-  | UX Critic | `prompts/plan-review-ux.md` | `sonnet` | User journey, error experience, cognitive load, accessibility |
-  | Strategic Critic | `prompts/plan-review-strategic.md` | `sonnet` | Problem-solution fit, scope, risk, opportunity cost |
-  | Parallelization Critic | `prompts/plan-review-parallelization.md` | `sonnet` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition |
+  | Reviewer | Template | What it challenges |
+  |----------|----------|--------------------|
+  | Acceptance Test Critic | `prompts/plan-review-acceptance.md` | Criteria verifiability, scenario completeness, error paths, test traceability |
+  | Design & Architecture Critic | `prompts/plan-review-design.md` | Coupling, abstraction quality, structural risks, pattern consistency |
+  | UX Critic | `prompts/plan-review-ux.md` | User journey, error experience, cognitive load, accessibility |
+  | Strategic Critic | `prompts/plan-review-strategic.md` | Problem-solution fit, scope, risk, opportunity cost |
+  | Parallelization Critic | `prompts/plan-review-parallelization.md` | Same-wave independence: file-overlap collisions, disjoint-file behavioral coupling, residual cycles/mis-layering, over-/under-decomposition |
+
+  There is no `Model` column on purpose: naming a concrete model here would reintroduce the Anthropic-name dependency the Resolution Procedure exists to remove. All five critics run at the balanced role; because this is the *planning* leg, pass the per-call `effort:` for the task size (`trivial`→`lo`, `standard`→`med`, `complex`→`hi`).
 
   Each returns a `verdict` of `approve` or `needs-revision`. If **any** reviewer returns `needs-revision`, address the blocker issues before presenting to the human. Aggregate all findings (including warnings from approving reviewers) into the plan review summary.
 
@@ -151,14 +166,14 @@ Every non-trivial task follows three explicit phases. Each phase runs in minimal
 - **Goal**: Execute the plan. Write code, run its tests, verify, and refactor at each step (test-after with refactoring).
 - **Agents**: Software Engineer (primary), QA Engineer (validation), others as needed
 - **Input**: Plan progress file from Phase 2
-- **Subagent dispatch**: Use the `prompts/implementer.md` template when dispatching implementation subagents via the `task` tool. For parallel implementation of independent units, use `isolation: "worktree"` on the `task` tool to give each subagent its own git worktree — this prevents file conflicts when multiple units are implemented concurrently.
+- **Subagent dispatch**: dispatch the **`software-engineer`** agent directly via the `task` tool — one call per plan step, carrying the step and its slice's Gherkin scenario(s). There is no `implementer` prompt template any more (upstream ADR-0029: the template restated what the agent already knows and was a second place to keep the cadence in sync); the per-step contract now lives in `skill://build` § *Per-step contract for the implementation subagent*. Pass no `effort:` — build runs at the floor. For parallel implementation of independent units, use `isolation: "worktree"` on the `task` tool to give each subagent its own git worktree — this prevents file conflicts when multiple units are implemented concurrently.
 - **Tests required (not test-first)**: every behavior change ships with tests, written in whatever order fits — order is not enforced. A unit is done only when `/impl-verify` reports its strict build + tests green; the orchestrator requires that verdict as evidence (`tests-required` rule).
 - **Refactor after green (every unit)**: once a unit's tests pass, take a deliberate refactor pass — structure, naming, duplication, use-the-platform (the `refactor-opportunity-review` lens) — keeping `/impl-verify` green, before the inline review. This is the *refactoring* half of test-after-with-refactoring; the pass is always taken, changes are made only when there's a real opportunity.
 - **Output**: Working code that passes all tests, acceptance criteria, and code review
 - **Three-stage inline review**: After each discrete unit of work completes, run spec-compliance first, then quality, then browser verification for UI changes:
   1. **Stage 1 — Spec compliance**: Run `spec-compliance-review` using the `prompts/spec-reviewer.md` template. Does the code match the spec? If fail → fix before proceeding to Stage 2.
   2. **Stage 2 — Code quality**: Run the standard **Inline Review Checkpoint** (see below) using the `prompts/quality-reviewer.md` template. Is the code high quality?
-  3. **Stage 3 — Browser verification (UI changes only)**: If the plan step involves UI components, run `/browse` in automated smoke test mode against the running dev server. Capture screenshots, verify rendering, and check basic interaction. If the dev server is not running, skip with a warning (do not fail). Timeout: 30 seconds. Failures enter the review loop (max 2 iterations). This stage is skipped for non-UI changes.
+  3. **Stage 3 — Browser verification (UI changes only)**: If the plan step involves UI components, run `/skill:browse` in automated smoke test mode against the running dev server. Capture screenshots, verify rendering, and check basic interaction. If the dev server is not running, skip with a warning (do not fail). Timeout: 30 seconds. Failures enter the review loop (max 2 iterations). This stage is skipped for non-UI changes.
 - **Final verify**: After all units complete and tests pass, run `/code-review` on all modified files:
   - `fail` → Software Engineer addresses critical issues, re-run review
   - `warn` → include findings in human gate summary
@@ -179,7 +194,7 @@ Each plan step includes a **Complexity** classification that controls review dep
 |------------|----------------------|
 | `trivial` | Skip inline review entirely. The final `/code-review` covers all files. |
 | `standard` | Run spec-compliance + quality agents relevant to the change type (see table below). |
-| `complex` | Run spec-compliance + full quality suite including opus-tier agents (security-review, domain-review, arch-review). |
+| `complex` | Run spec-compliance + full quality suite including the `@slow`-role agents (security-review, domain-review, arch-review). |
 
 If a step has no complexity annotation, default to `standard`.
 
@@ -203,7 +218,7 @@ After each discrete unit of work classified as **standard** or **complex** (a fu
 | All changes | structure-review as a baseline |
 | All changes (before quality review) | spec-compliance-review as first gate |
 
-**Step 2 — Run selected agents in parallel** via the `task` tool. Pass each agent's tier alias as `model:` — OMP extension `model-routing` + `.omp/config.yml` `modelRoles` resolves it to the right snapshot per the Resolution Procedure above.
+**Step 2 — Run selected agents in parallel** via the `task` tool. Do **not** pass `model:` — each agent's own frontmatter declares its floor and OMP resolves it natively (Resolution Procedure above). This is the review leg, so pass no `effort:` either.
 
 **Step 3 — Aggregate findings and apply Review Loop:**
 
@@ -247,7 +262,7 @@ Significant decisions are appended to `memory/decisions.md` so they persist acro
 
 - Routing to a non-default agent for a non-obvious reason
 - Choosing between two valid architectural or implementation approaches
-- Overriding a routing table default or established convention
+- Overriding an agent's declared model role or an established convention
 - Resolving a conflict between agent recommendations
 - Making a scope call that constrains future phases
 

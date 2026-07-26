@@ -14,15 +14,21 @@ You are not reviewing the plan yourself. The critics review the plan; you orches
 
 ### 1. Dispatch the critics in parallel
 
-Spawn all critics in a **single message** using the `task` tool. Each runs on `sonnet`. Each receives the plan and spec artifacts and returns its own JSON verdict per its template. Also pass the Parallelization Critic the derived `## Parallelization` waves so it can intersect same-wave `Files`.
+Spawn all critics in a **single message** using the `task` tool. Each receives the plan and spec artifacts and returns its own JSON verdict per its template. Also pass the Parallelization Critic the derived `## Parallelization` waves so it can intersect same-wave `Files`.
 
-| Critic | Template | Model | What it challenges |
-|---|---|---|---|
-| Acceptance Test Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-acceptance.md` | `sonnet` | Per-slice Gherkin quality, criteria verifiability, error paths, test traceability |
-| Design & Architecture Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-design.md` | `sonnet` | Coupling, abstractions, structural risks, pattern adherence |
-| UX Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-ux.md` | `sonnet` | User journey, error UX, cognitive load, accessibility |
-| Strategic Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-strategic.md` | `sonnet` | Problem fit, scope, slice boundaries, risk |
-| Parallelization Critic | `${CLAUDE_PLUGIN_ROOT}/prompts/plan-review-parallelization.md` | `sonnet` | Same-wave independence: file-overlap, behavioral coupling, cycles, decomposition |
+The templates are the **siblings of this file**, in the same `prompts/` directory:
+
+| Critic | Template (sibling of this file) | What it challenges |
+|---|---|---|
+| Acceptance Test Critic | `plan-review-acceptance.md` | Per-slice Gherkin quality, criteria verifiability, error paths, test traceability |
+| Design & Architecture Critic | `plan-review-design.md` | Coupling, abstractions, structural risks, pattern adherence |
+| UX Critic | `plan-review-ux.md` | User journey, error UX, cognitive load, accessibility |
+| Strategic Critic | `plan-review-strategic.md` | Problem fit, scope, slice boundaries, risk |
+| Parallelization Critic | `plan-review-parallelization.md` | Same-wave independence: file-overlap, behavioral coupling, cycles, decomposition |
+
+Resolve them against the directory this coordinator prompt was loaded from. Do **not** expect a plugin-root variable to expand — OMP substitutes it only in discovery configs (MCP `command`/`cwd`/`args`/`env`), never inside a prompt body, so it arrives as literal text and every path dead-ends.
+
+**No `Model` column, on purpose.** Naming a concrete model would reintroduce the vendor-name dependency the orchestrator's Resolution Procedure exists to remove, and the `task` tool has no `model` parameter — its knobs are `agent`, `task`, and an optional per-call `effort`. All five critics run at the balanced role. Plan review is on the *planning* leg, so pass the `effort` matching the recorded task size (`trivial`→`lo`, `standard`→`med`, `complex`→`hi`), or nothing if the task was never scoped.
 
 **UX Critic self-skips** when the plan has no user-facing changes. **The Parallelization Critic approves trivially** when every wave has one slice. The remaining three always run.
 

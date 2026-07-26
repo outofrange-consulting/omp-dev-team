@@ -40,7 +40,9 @@ export function isGatedSource(p: string): boolean {
 //   trivial     — scoped trivial; source edits allowed
 //   plan-approved — a plan was approved; source edits allowed
 export type Stage = "needs-plan" | "trivial" | "plan-approved";
-// Task size from the pre-analysis, also consumed by model-routing (effort-band).
+// Task size from the pre-analysis. Consumed by the orchestrator, which maps it to
+// the `task` tool's per-call effort during spec/plan (see agents/orchestrator.md
+// § Resolution Procedure). The plugin-side effort-band resolver is retired.
 export type Size = "trivial" | "standard" | "complex";
 interface PlanGateState {
 	stage?: Stage;

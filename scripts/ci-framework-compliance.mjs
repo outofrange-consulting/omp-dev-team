@@ -113,6 +113,10 @@ const ALLOW_TDD = new Set([
   "plugins/dev-team/README.md",                          // rationale: test-first not enforced
   "plugins/dev-team/README.fr.md",
   "docs/plan-gate-over-tdd.md",                          // the rationale document itself
+  "docs/extract-from-cde-dotnetcc.md",                   // historical extraction records:
+  "docs/upstream-v7.7-7.9-extraction.md",                // they name what was retired
+  "docs/upstream-v7-extraction.md",
+  "docs/upstream-v8-v10.md",
 ]);
 for (const f of walk(ROOT, [".md", ".ts"]).concat(walk("docs", [".md"]))) {
   if (ALLOW_TDD.has(norm(f))) continue;
@@ -229,7 +233,14 @@ for (const f of ALL_MD)
 // ---- K. No leftovers from the Claude Code hook era ----
 // This plugin's hooks were reimplemented as TypeScript extensions; there is no
 // hooks/ directory and no .claude/ runtime here.
-const HOOK_ERA = [/plugins\/dev-team\/hooks\//, /(?<![\w-])\.claude\/(?!plugin)/];
+// Only plugin-owned Claude Code RUNTIME state counts. OMP genuinely does
+// discover `.claude/` as a cross-harness provider, so a doc explaining that
+// is correct — what must not survive is this plugin writing or reading its
+// own state there, or under a hooks/ dir that no longer exists.
+const HOOK_ERA = [
+  /plugins\/dev-team\/hooks\//,
+  /\.claude\/(rules|settings\.json|review-summaries|project-stack|memory|metrics|state|CLAUDE\.md)/,
+];
 const ALLOW_HOOK_ERA = new Set([
   "docs/extract-from-cde-dotnetcc.md",   // historical extraction record
   "docs/upstream-v7-extraction.md",
@@ -255,7 +266,9 @@ for (const f of ALL_MD.concat(walk("scripts", [".sh", ".mjs"]), ["install.sh", "
     // A file may legitimately NAME a removed setting in order to say it is
     // removed (docs, migration notes, installer comments). Accept that; only
     // flag a mention with no such marker anywhere in the file.
-    if (t.includes(s) && !/REMOVED|no longer written|dead keys|deleted from (the )?config/i.test(t))
+    // This repo ships every doc in EN and FR, so the removal marker must be
+    // recognised in both languages.
+    if (t.includes(s) && !/REMOVED|no longer written|dead keys|deleted from (the )?config|supprimé|effacé|n'existe plus/i.test(t))
       fail("dead-setting", `${f} — mentions the removed setting "${s}" without marking it removed`);
 }
 
@@ -295,20 +308,23 @@ const counts = {
   extensions: (exists(join(ROOT, "extensions")) ? readdirSync(join(ROOT, "extensions")).filter((f) => f.endsWith(".ts")) : []).length,
   plugins: PLUGINS.length,
 };
+// `offset` accounts for phrasings that exclude the orchestrator from the count
+// ("orchestrator + N specialist/critic agents" means N = agents - 1).
 const CLAIMS = [
-  [/(\d+)[ ]+specialist\/critic agents/g, "agents"],
-  [/orchestrator \+ (\d+)[ ]+specialist/g, "agents"],
-  [/~(\d+)[ ]+skills/g, "skills"],
-  [/(?:the[ ]+)?(\d+)[ ]+extensions/g, "extensions"],
+  [/(\d+)[ ]+specialist\/critic agents/g, "agents", 1],
+  [/orchestrator \+ (\d+)[ ]+specialist/g, "agents", 1],
+  [/~?(\d+)[ ]+skills/g, "skills", 0],
+  [/(?:the[ ]+)?(\d+)[ ]+extensions/g, "extensions", 0],
 ];
 for (const f of ["README.md", "README.fr.md", join(ROOT, "README.md"), join(ROOT, "README.fr.md")].filter(exists)) {
   const t = read(f);
-  for (const [re, key] of CLAIMS) {
+  for (const [re, key, offset] of CLAIMS) {
     re.lastIndex = 0; let m;
     while ((m = re.exec(t))) {
       const claimed = Number(m[1]);
-      if (claimed !== counts[key])
-        fail("counts", `${f} — claims ${claimed} ${key}, filesystem has ${counts[key]} ("${m[0].trim()}")`);
+      const expected = counts[key] - offset;
+      if (claimed !== expected)
+        fail("counts", `${f} — claims ${claimed} ${key}, filesystem has ${expected} ("${m[0].trim()}")`);
     }
   }
 }

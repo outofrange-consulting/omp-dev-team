@@ -39,7 +39,8 @@ Also check:
 
 - `plans/` directory for active plan files
 - `docs/specs/` for design documents without corresponding implementation
-- `.claude/review-summaries/` for recent review results
+- `memory/review-summaries/` for recent review results (written by
+  `/skill:review-summary`; the Claude-Code-era harness dot-dir is not used here)
 - `corrections/` for unapplied code review fixes
 
 ### 2. Check git state

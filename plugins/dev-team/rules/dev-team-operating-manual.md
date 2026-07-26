@@ -24,16 +24,13 @@ cannot name the friction it removes does not ship.
   five plan-review personas, the three-stage inline review, acceptance scenarios, and the
   decision log: owned by the **orchestrator** agent prompt (`## Three-Phase
   Workflow` / `## Decision Log`). Don't restate it in always-loaded context.
-- **Model routing** (tier → model) — source of truth is
-  `skill://dev-team-knowledge/model-routing.json`, enforced by the
-  `model-routing` extension; inspect with `/routing`.
-  Tiers (cheap end split by workload shape): `pi/smol` (**nano** — lexical/
-  checklist review + input-bound scan), `pi/task` (**code** — cheap coding &
-  tool-use; build-phase impl/QA + recon sit here, size-proportional via the
-  effort-band), `pi/plan` (**balanced** = claude-sonnet-5; most reviewers +
-  orchestrator + architecture/domain design synthesis), `pi/slow` (**deep** =
-  claude-opus-4-8; reserved for high-stakes security verdicts). Keep `smol`/`task`
-  on the cheapest capable model for their shape.
+- **Model resolution** — **native, no plugin resolver.** Each agent's `model:`
+  frontmatter declares a role floor (`@smol` / `@plan` / `@slow` / `@designer`,
+  with `@default` last as a fallback); OMP resolves it through `modelRoles`.
+  Depth per agent is `thinking-level:`. Per *call*, the `task` tool's
+  `effort: lo|med|hi` carries the task size — passed during spec/plan only,
+  never during build/review. Full rule: orchestrator agent, **§ Resolution
+  Procedure**. No concrete model id belongs in a prompt.
 - **Output discipline** — the `output-discipline` rule (always loaded): artifacts
   to files, no narration, plan-only means plan-only, name your evidence.
 - **Verification / quality gates** — the `no-disable-analyzers` and

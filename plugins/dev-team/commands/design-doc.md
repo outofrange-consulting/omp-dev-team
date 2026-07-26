@@ -12,4 +12,4 @@ Arguments: `$ARGUMENTS` (feature name / problem statement).
 3. Optionally stress-test with `skill://design-interrogation` or generate
    parallel interfaces with `skill://design-it-twice`.
 
-Get human approval before `/plan`.
+Get human approval before `/dt-plan`.

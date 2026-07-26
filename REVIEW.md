@@ -1,148 +1,147 @@
-# Mega review — omp-dev-team
+# Review — omp-dev-team
 
-Revue multi-agents (6 agents parallèles), read-only, sur l'ensemble du dépôt
-(6 plugins, ~5 500 lignes TS/sh/ps1/py + manifests + docs). Chaque zone a été
-compilée/testée quand c'était possible.
+Revue complète du dépôt (6 plugins), menée contre deux sources amont clonées et
+lues, pas contre des notes de version :
 
-**Statut de build / tests (vérifiés sur cette machine) :**
+- `bdfinst/agentic-dev-team` **v10.20.0** (HEAD `37aa6a5`, 2026-07-26)
+- `can1357/oh-my-pi` **17.1.4**
+
+> **La version précédente de ce fichier est périmée et a été remplacée.** Elle
+> affirmait 32 agents, ~79 skills, 8 extensions, 106 clés d'index mortes et
+> 9 agents fantômes — tout cela était déjà faux au moment de la relire. Onze de
+> ses constats étaient corrigés dans l'arbre. Un document de revue qui décrit le
+> dépôt moins fidèlement que le dépôt lui-même est exactement le défaut que cette
+> passe existe pour attraper, d'où sa réécriture plutôt que sa mise à jour.
+
+## Vérifié sur cette machine
 
 | Vérification | Résultat |
 |---|---|
-| `bun build` des extensions dev-team (8), token-diet (11 modules), ado.ts (9 modules) | ✅ compile, 0 erreur |
-| `bun test` token-diet `extensions.test.ts` | ✅ 54 checks pass |
-| `python3 verify-filters.py` (ctx-wire) | ✅ 40/40 |
-| `bash -n` sur les 7 `install.sh` | ✅ pass |
-| `node scripts/ci-validate-json.mjs` | ✅ 23 JSON, 0 invalide |
-| PowerShell (`.ps1`) | ⚠️ non vérifiable ici (pas de `pwsh`) — findings par lecture |
+| `tsc --noEmit` contre les types publiés d'OMP 17.1.4 | ✅ 0 erreur |
+| `bun build` de toutes les extensions (tous plugins) | ✅ 0 erreur |
+| `bun` tests dev-team + token-diet | ✅ tous passent |
+| `verify-filters.py` (ctx-wire) | ✅ 23/23 |
+| `shellcheck --severity=warning` + `bash -n` | ✅ propre |
+| `ci-framework-compliance.mjs` (checks A→N) | ✅ 0 violation |
+| générateurs registres + index `--check` | ✅ à jour |
+| merge de config (global puis par plugin) | ✅ aucune clé YAML dupliquée |
+| `install.ps1` | ⚠️ non vérifiable ici (pas de `pwsh`) — le CI le parse |
 
-**Le code compile et tourne. Les problèmes sont logiques, de sécurité, et de
-cohérence docs/registres — pas des cassures de build.**
+## Ce que la passe a changé, et pourquoi
 
----
+### 1. 60 % de la grille de modèles était inerte
 
-## Les 4 thèmes majeurs
+`model-resolver.ts:946` : seuls `smol`, `slow` et `designer` héritent de
+`default`. Sans `modelRoles.plan`, la résolution **retombe silencieusement sur le
+modèle de session** — et 18 de nos agents déclaraient `pi/plan`. Pire, `@task` est
+*délibérément* session-héritant (`:936-943`), donc les 5 agents du « tier code pas
+cher » ne l'étaient pas non plus.
 
-### 1. Les « guards » de sécurité sont du théâtre de sécurité (le plus important)
+Corrigé : `plan` et `task` posés explicitement, chaque agent porte une **liste de
+rôles** terminée par `@default` (OMP prend le premier motif résoluble, donc un
+agent route même sans le snippet de config), et le préfixe legacy `pi/` passe à la
+forme canonique `@`.
 
-Les 6 guards de `dev-team` (destructive, path, freeze, spec, review-gate,
-careful) sont des hooks *PreToolUse consultatifs* basés sur du matching de
-sous-chaîne / glob. Ils donnent une **fausse confiance** : ils sont
-contournables trivialement, par accident comme volontairement.
+Rôles auparavant morts et désormais câblés : `designer` (UI/UX + a11y), `vision`
+(obligatoire — `inspect_image` échoue en dur sur un modèle texte seul) et
+`advisor` (volontairement d'un autre fournisseur que `slow`).
 
-| Guard | Prétend bloquer | Contournement trivial | Efficacité |
-|---|---|---|---|
-| destructive-guard | `rm -rf`, drop/truncate, force-push, kill… | `find -delete`, `git clean -fdx`, `> f`, `truncate -s0`, `bash -c …`, obfuscation par variable ; **warn-only hors `/careful on`** ; la SAFE-list court-circuite tout (`rm -rf node_modules/../../etc`) | Très faible |
-| path-guard | édition de `.env`/`*.pem`/`*.key`/`id_rsa`… | aucune couverture `bash` (`tee`/`>`/`sed -i`) ; regex **sensible à la casse** → `ID_RSA`/`.PEM` passent ; lectures non gardées ; pass silencieux si le shape d'edit ne matche pas | Faible |
-| freeze-guard | écriture sur globs gelés | **aucune branche `bash`** ; écraser `.omp/state/freeze.json` suffit | Faible |
-| spec-guard (.feature) | modif de specs BDD | `BASH_WRITE_RE` étroit (rate `python -c`/`ed`/heredoc) ; opt-out `OMP_ALLOW_FEATURE_EDITS=1` | Faible–moyenne |
-| review-gate | `git commit` avant approve | `--no-verify` **explicitement autorisé** ; `bash -c 'git commit'` ; le `--no-verify` est détecté par `includes` donc un message de commit le déclenche | Faible |
-| careful-mode | active le blocage | fichier d'état modifiable par l'agent ; **OFF par défaut** | Faible |
+### 2. Le résolveur de bandes d'effort dupliquait ce que le harness fait déjà
 
-**Cause racine structurelle :** l'état des guards (`careful.json`, `freeze.json`,
-`review-gate.json`) vit dans `.omp/state/*.json`, **modifiable par l'acteur même
-qu'ils contraignent** (`echo '{"globs":[]}' > .omp/state/freeze.json`).
+L'ADT amont a supprimé la machinerie équivalente (ADR-0026) : *« Zéro code du
+plugin ne se tient entre le frontmatter d'un agent et le modèle que le harness
+exécute réellement. »* Trois défauts propres à notre version ont confirmé le
+retrait : elle branchait sur les chaînes littérales `"opus"`/`"sonnet"` — une
+dépendance à des noms Anthropic **dans un portage ouvert sur les fournisseurs** ;
+un hook lisait l'état de l'orchestrateur (`plan-gate.json`), ce qu'ADR-0019
+interdit ; et elle était activée par défaut sans gain mesuré, ce qu'ADR-0022
+interdit. Supprimée, remplacée par la résolution native + l'`effort` par appel de
+l'outil `task`.
 
-Bugs concrets confirmés sur pièce :
-- **CRITIQUE** `destructive-guard.ts:50` — `if (SAFE.some(s => lower.includes(s))) return;` court-circuite **toute** la vérification. `rm -rf node_modules && rm -rf /etc` → AUTORISÉ.
-- **HAUTE** `shared.ts:116` `globToRegExp` — pas de flag `i` → bypass par casse (macOS/Windows = mêmes fichiers).
-- **HAUTE** `destructive-guard.ts:8-25` — patterns sous-chaîne ratent `rm   -rf` (espaces), `rm --recursive --force`, `rm -r -f`.
-- **HAUTE** `review-gate.ts:76` — `cmd.includes("--no-verify")` matche dans le message de commit.
+### 3. Le réglage vedette de token-diet n'existe plus
 
-**Recommandation :** soit reformuler honnêtement ces guards comme *advisory*
-(anti-footgun pour agent coopératif) et déplacer leur état hors d'un espace
-modifiable par l'agent ; soit les durcir (tokenisation/AST, résolution de
-`bash -c`, casse-insensible, couverture `bash` pour path/freeze, défaut
-block-with-confirm). Ne pas les présenter comme une *barrière* de sécurité.
+`tools.discoveryMode` et `tools.essentialOverride` ont été **supprimés dans OMP
+17.0.0** et sont désormais effacés de la config au chargement
+(`config/settings.ts`). C'était l'argument de vente n°1 du plugin (« ~29K → ~20K,
+−31 % »), répété dans 9 fichiers, et `install.sh` les écrivait dans la config
+globale de chaque utilisateur. Le remplaçant, `tools.xdev`, ne demande aucune
+configuration.
 
-### 2. La fusion de config à l'install peut corrompre le YAML utilisateur
+Plus largement, OMP 17 a absorbé la couche runtime du plugin :
+`compaction.supersedeReads` (défaut `true`) remplace read-dedup et context-dedup ;
+les segments natifs coût/cache de la statusline remplacent cache-meter ;
+`secrets.enabled` remplace le « scrub » in-process qui, vérification faite, ne
+redactait rien. Le plugin est donc réduit à ce qu'OMP ne fait pas : des filtres
+ctx-wire *sémantiques* (OMP tronque mécaniquement : 50 Ko de queue, colonnes à
+768 octets) et le skill `caveman`, qui vise les tokens de **sortie**.
 
-Le README promet une fusion « sans clobber » de `~/.omp/agent/config.yml` et
-`mcp.json`. En réalité :
-- **CRITIQUE** `scripts/merge-json.mjs` est **JSON-only** (`JSON.parse`). Le `config.yml` (YAML) n'y passe pas — il est « fusionné » par un grep/append shell (`install.sh:218-223` `cfg_add` : ajoute un bloc si `^key:` absent). Un `config.yml` formaté différemment → **2e bloc top-level `modelRoles:`** dupliqué → la plupart des parseurs YAML clobberent ou erreurent. L'inverse de la garantie annoncée.
-- **RÉSOLU** `plugins/cliproxy/install.sh:84-85` — injection awk dans `models.yml` sans garantie de format : **remplacée** par `plugins/openai-compatible/` qui conserve la même logique awk + backup + validation PyYAML.
-- **MOYENNE** `merge-json.mjs` dédupe les tableaux par `JSON.stringify` → deux entrées sémantiquement égales mais d'ordre de clés différent sont gardées en double (serveur MCP / rôle dupliqué).
-- **MOYENNE** double `disabledProviders:` : token-diet en écrit un (incluant `github`), le global en écrit un autre (sans) → comportement dépend de l'ordre, et casse copilot-preset qui a besoin de `github`.
+### 4. Bugs réels trouvés par le typecheck
 
-### 3. Chaîne d'appro : `curl|bash` non épinglé, sans checksum
+`bun build` empaquette et **efface les types** : une erreur de type compile
+proprement. L'ajout de `tsc --noEmit` contre les vrais types publiés d'OMP a
+immédiatement révélé :
 
-~12 points de fetch-and-execute (bun, OMP, Node, ctx-wire, **Serena (dev-team) —
-lancé par `uvx` depuis git, non épinglé**, acli, .NET, npm `@latest`, pup, az) tous en
-`curl|bash`/`irm|iex` **sans aucune vérification d'intégrité** (aucun sha256
-dans le repo). Couplé au switch `--insecure-tls` (qui désactive la vérif TLS
-pour tout le run et se propage à chaque sous-installateur), un MITM — le
-scénario corporate visé — obtient une RCE.
+- **15 sites** appelant `ctx.ui.notify(msg, "warn")` alors que l'API prend
+  `"info" | "warning" | "error"` — toutes les notifications de garde portaient une
+  sévérité invalide, dans 9 fichiers d'extension ;
+- le handler de commande d'`impl-verify` retournait des chaînes qu'OMP jette (le
+  contrat est `Promise<void>`) ;
+- `azure-devops-fs` passait `signal` à `execFileSync`, qui n'a pas cette option —
+  l'annulation n'atteignait donc jamais le sous-processus `az`.
 
-*Bonne nouvelle vérifiée :* `--insecure-tls` est **scopé au run** (pas persisté
-dans le profil — seul `--ca-file` l'est, ce qui est le bon choix). Mais il peut
-être **armé silencieusement** par un `OMP_INSECURE_TLS=1` resté dans
-l'environnement (warn seulement sur stderr).
+### 5. Les installeurs
 
-### 4. Gestion des secrets : trous réels
+- `${YES:+-y}` s'expansait **toujours** (`YES=0` est une chaîne non vide) : chaque
+  installeur de plugin recevait `-y` à chaque exécution, sautant silencieusement
+  tous les prompts de credentials. `install.ps1` faisait correctement — d'où une
+  divergence de comportement Unix/Windows.
+- `ask()` était défini ~50 lignes **après** le bloc TLS qui l'appelle.
+- `local name="$1" dest=".../$name"` : `local` développe tous ses arguments avant
+  la moindre affectation, donc `$name` lisait la portée externe. Ça ne marchait
+  que parce que l'appelant utilisait le même nom de variable.
+- Chaque installeur de plugin greppait **sa propre** bannière puis réappendait son
+  snippet entier : la séquence recommandée par le README produisait des clés
+  YAML top-level dupliquées, que les parseurs résolvent en last-wins — l'inverse
+  de la garantie affichée. `scripts/lib/cfg.sh` merge désormais clé par clé.
 
-- **HAUTE** GitHub PAT : le prompt global `prompt()` (`install.sh:105`) utilise `read -r` **sans `-s`** → le PAT est **affiché à l'écran**. Puis embarqué en clair dans `mcp.json`. Sur Linux `chmod 600` suit ; sur **Windows (`install.ps1`) aucun durcissement d'ACL**. Incohérent avec les autres prompts (Azure/Datadog/acli utilisent bien `-s`/`-AsSecureString`).
-- **CRITIQUE/HAUTE** `azure-devops-fs/lib/worktree.ts:31` — le PAT est passé en **argument de ligne de commande** `git -c http.extraheader=Authorization: …` → lisible via `/proc/<pid>/cmdline` & `ps` par tout process local (contredit le `ado-pat-safety.md` du plugin). Fix : passer par `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_0…` (env, pas argv).
-- **HAUTE** token-diet vend du « secret scrub » : les extensions **in-process** (`protect.ts`/`messages.ts`) **ne redactent rien** — elles *préservent* les spans haute-entropie à l'identique. Le seul scrub réel est le binaire externe ctx-wire + un `replace` ATATT dans `acli.toml`. Un secret entré par un autre chemin (`read .env`, résultat MCP, echo `az`/`gh`) est conservé tel quel.
-- **MOYENNE** `acli.toml:20` — regex `ATATT…` seul → rate `ATCTT…` (Confluence/Bitbucket) et tout autre préfixe Atlassian.
-- **MOYENNE** `azure cache.ts` — `ado-cache.db` (SQLite) stocke les corps de réponse ADO (diffs, contenus de fichiers, logs) **en clair, sans `chmod 600`**, jamais nettoyé. (Le PAT lui-même n'est pas stocké.)
-- **RÉSOLU** openai-compatible : la clé API n'est **plus jamais exportée** dans `.profile` ni dans `User env` Windows — seules `OAI_PROVIDER_URL` et `OAI_PROVIDER_NAME` le sont. La clé reste dans `~/.omp/<name>.key` (chmod 600) uniquement.
-- **MOYENNE** datadog : clés exportées dans **tous** les shells (`.profile`) ou en **User env Windows en clair** → surface d'exposition large.
+### 6. Le préchargement de skills coûtait plus qu'il ne rapportait
 
-*Bon point vérifié :* la télémétrie (`telemetry.ts`) et le cost-metering sont
-**100 % locaux**, aucun phone-home, aucun endpoint en dur.
+Le portage du mécanisme `skills:` amont vers `autoload-skills:` d'OMP injecte les
+corps **en entier** avant le premier tour. Mesuré : qa-engineer ~25K tokens,
+software-engineer ~16K, architect ~12,5K, à **chaque** dispatch. Listes ramenées
+aux skills réellement ouverts à chaque run (~41K tokens économisés par cycle
+complet) ; le reste reste à un `/skill:<name>` près.
 
----
+## Décisions d'arbitrage
 
-## Bugs de correction notables (hors sécurité)
+| Sujet | Décision |
+|---|---|
+| Tier `task` sur Copilot | MAI-Code-1-Flash reste **primaire**. Kimi K2.7 (seul open-weight du catalogue Copilot) livré en **option commentée** : sortie moins chère mais `maxTokens` 32K contre 128K, sur le tier *build*, et désactivé par défaut sur les tenants Business/Enterprise. |
+| Serena / Roslyn | **Coupé.** OMP expose un outil `lsp` natif (definition/references/symbols/hover/rename/code_actions) et détecte `omnisharp` seul. 3 skills, 1 extension, une entrée `.mcp.json` et une dépendance d'install uvx + .NET 10 en moins. `serena-build-net.ts` reste : rien de natif ne bloque la fin de session sur un build rouge. |
+| Atlassian / Context7 | **Repassés sur leurs MCP officiels** (`mcp.atlassian.com/v1/mcp/authv2` en OAuth 2.1, `mcp.context7.com/mcp`). Les enrobages CLI existaient au motif que les schémas MCP entrent dans chaque system prompt ; `tools.xdev` a rendu l'argument caduc. |
+| `yagni` | Supprimé. |
+| `enabledModels: [github-copilot/*]` | **Commenté.** Un tableau est remplacé en bloc par toute couche supérieure, un motif sans correspondance donne une liste de modèles **vide sans repli**, et cela ferme la porte aux fournisseurs open-weight qu'OMP sert déjà nativement. |
+| `effort: high` uniforme (amont) | **Non adopté.** ADR-0026 le qualifie lui-même de remise à zéro non calibrée. Notre `thinking-level:` par agent est l'artefact mieux calibré. |
+| `color:` / `memory:` (ADR-0027/0028 amont) | **Non portables.** Inertes dans OMP — sa doc indique que le pipeline mémoire est ignoré pour les sous-agents. Le check M du CI échoue si l'un d'eux réapparaît. |
 
-**token-diet :**
-- **CRITIQUE** `protect.ts:36-88` — collision de sentinelle : si le texte d'origine contient déjà `NUL<digits>NUL`, `restore()` le parse comme placeholder, ne trouve pas de span, et `?? ""` **le supprime silencieusement**. Round-trip **non lossless**. Reproduit. Fix : bail-out si `text.includes(NUL)` ; renvoyer le littéral matché plutôt que `""`.
-- **HAUTE** `protect.ts:134` — le niveau `safe` (défaut) collapse les espaces internes (`\S {2,}\S → \S \S`) → **détruit l'alignement** des tableaux/diffs/ASCII. Reproduit (`NAME    VALUE` → `NAME VALUE`). Contredit le « near-lossless » annoncé.
-- **MOYENNE** `messages.ts:108` — la fenêtre de récence compte les messages user/system, donc les messages assistant/tool « récents » peuvent quand même être compressés.
+## Reste ouvert
 
-**azure-devops-fs :**
-- **HAUTE** injection de flags argv : repo/branche/ref commençant par `-` sont interprétés comme flags `az` (pas RCE — pas d'injection shell, tout passe par `execFileSync` argv, bon point — mais peut altérer le comportement `az`).
-- **HAUTE** `cache.ts:34-40` — fingerprint PAT = hash 32-bit non-crypto, dégénère en `"0"` quand l'auth vient d'un fallback → cache partagé entre identités (fuite de confidentialité). Fix : sha256 sur le credential effectif, inclure org+project.
-- **HAUTE** `ado.ts:315/344` — `pr_diff` : fichier introuvable renvoie « 0 files » sans erreur ; chemins affichés `a`/`b` au lieu des vrais.
-- **MOYENNE** `mkdtempSync` jamais nettoyé (`ado.ts:334`, `az.ts:119`) → fuite disque (les temp `pr_diff` contiennent des contenus de fichiers).
-- **BASSE** `rest.ts` est du **code mort** (transport REST parallèle non utilisé, avec sa propre logique auth/erreur subtilement différente) → supprimer ou câbler.
+Suivi dans `docs/upstream-v8-v10.md` § « Still open » : portage de `/ship`,
+réconciliation des skills `build` (290 lignes de diff) et `plan` (259, dans les
+deux sens), `co-evolution-audit`, `test-audit-disable`, `agent-readiness`,
+les reviewers de réactivité React/Vue/Angular, et un `omp-setup-review`.
 
----
-
-## Manifests, registres & docs
-
-- **HAUTE** `dev-team-knowledge/index.json` — les 106 clés utilisent le préfixe `plugins/dev-team/knowledge/` **qui n'existe pas** (les fichiers sont sous `skills/dev-team-knowledge/`). 28 entrées knowledge `.md` pointent dans le vide.
-- **HAUTE** `agent-registry.md` — référence **9 agents fantômes** (`angular-testing`, `csharp-quality`, `esm-enforcer`, `front-end-testing`, `go-quality`, `python-quality`, `react-testing`, `ts-enforcer`, `twelve-factor-audit`) et **oublie** `session-analysis`. L'orchestrateur route là-dessus.
-- **HAUTE** « all five plugins » (Tested, EN) / « les cinq plugins » (FR) contredit « Six … plugins » dans le même README — il y en a **6**.
-- **MOYENNE** token-diet `config.snippet.yml:5` mentionne un MCP `context7` qui n'existe pas (le README dit correctement : CLI+skill, pas MCP).
-- **MOYENNE** README « les 8 extensions compilent sous bun » — **aucun step `bun build`/typecheck dans le workflow CI**. README EN « Verified on Linux » sous-estime le CI réel (multi-OS), le FR est juste.
-- **BASSE** `package.json` racine décrit encore « Two independent plugins ».
-
-*Vérifié OK :* 23 JSON valides, marketplace ↔ plugins ↔ plugin.json cohérent
-(noms/versions/licences), 32 agents réels, ~79 skills, `omp.extensions` pointent
-tous vers des fichiers existants, mcp.json = `github` only, debug/eval désactivés,
-`discoveryMode: all` + `essentialOverride` présents.
-
----
-
-## Priorités recommandées
-
-**P0 — sécurité / corruption (à faire avant release)**
-1. Reformuler/durcir les guards + sortir l'état de l'espace agent-writable (thème 1).
-2. Fusion config YAML sans corruption : merge YAML structuré ou détection de clé YAML-aware + dédup (C1/C2 installer).
-3. PAT GitHub : prompt masqué (`-s`) + ACL/owner-only Windows, idéalement `${GITHUB_TOKEN}` au lieu de baker le token.
-4. PAT Azure hors argv `git` (via env `GIT_CONFIG_*`).
-
-**P1 — correction / fuite**
-5. token-diet : NUL bail-out + `safe` ne casse plus l'alignement.
-6. Épingler/checksum les installeurs distants ; découpler insecure-TLS de l'exécution non épinglée.
-7. Ne plus annoncer un « secret scrub » in-process ; élargir ATATT→ATCTT.
-8. azure : fingerprint sha256, nettoyage temp, pr_diff (fichier introuvable), supprimer `rest.ts`.
-
-**P2 — docs / propreté**
-9. Régénérer `index.json` (bon préfixe) + réconcilier `agent-registry.md` aux 32 agents réels.
-10. README : « six » partout, corriger la claim « compile sous bun » (ou ajouter le step CI), retirer `context7` du snippet, MAJ `package.json` racine.
+Deux points de posture non résolus, honnêtement documentés plutôt que corrigés :
+les gardes restent **consultatives** (leur couverture `bash` repose sur des regex,
+pas sur un parse shell — `bash -c`, heredocs et `python -c` passent), et rien ne
+prouve à l'exécution que les 12 extensions ont bien enregistré leurs handlers.
+L'amont a rencontré exactement ce mode de panne : sa couche PreToolUse est restée
+**inerte pendant des mois** sans que personne ne le remarque.
 
 ---
 
-*Revue générée par 6 agents spécialisés (dev-team, token-diet, azure-devops-fs,
-installeurs/CI, manifests/docs, sécurité cross-cutting).*
+*Le CI applique désormais ces constats : `ci-framework-compliance.mjs` (checks
+A→N) échoue sur une référence `skill://` morte, un chemin `plugins/...` inexistant,
+une collision avec une commande native d'OMP, un `${CLAUDE_PLUGIN_ROOT}` en prose,
+une clé de frontmatter qu'OMP ignore, un réglage supprimé, ou un compteur de
+README qui ment.*

@@ -31,4 +31,4 @@ if ($ApplyConfig) {
   }
 }
 
-Say "copilot-preset ready. Authenticate: run omp -> /login -> GitHub Copilot (or set COPILOT_GITHUB_TOKEN / GH_TOKEN / GITHUB_TOKEN). See pricing.md."
+Say "copilot-preset ready. Authenticate: run omp -> /login -> GitHub Copilot (or set COPILOT_GITHUB_TOKEN - that exact name only; there is no GH_TOKEN/GITHUB_TOKEN fallback). See pricing.md."

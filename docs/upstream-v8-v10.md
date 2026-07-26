@@ -77,9 +77,9 @@ what token-diet used to do, and drove that plugin's refocus.
 
 ## The frontmatter contract, translated
 
-Upstream's contract (`plugins/marketplace-dev/knowledge/agent-contract.json`, a
-verbatim capture of Anthropic's sub-agent docs) does not map field-for-field onto
-OMP. OMP's parser is `packages/coding-agent/src/discovery/helpers.ts`
+Upstream's contract — shipped by its `marketplace-dev` plugin as
+`knowledge/agent-contract.json`, a verbatim capture of Anthropic's sub-agent
+docs — does not map field-for-field onto OMP. OMP's parser is `packages/coding-agent/src/discovery/helpers.ts`
 (`parseAgentFields`). The translation this port uses:
 
 | upstream (Claude Code) | OMP equivalent | note |

@@ -1,6 +1,12 @@
-# /plan — decompose into vertical slices with Gherkin scenarios
+# /dt-plan — decompose into vertical slices with Gherkin scenarios
 
 Role: **orchestrator**. Phase 2 of the pipeline.
+
+> Named `dt-plan`, not `plan`: `/plan` is an **OMP builtin** (it toggles plan
+> mode). Native command providers outrank plugin providers and dedup is
+> first-wins, so a `plan.md` here would be permanently shadowed — the command
+> would resolve to plan mode and this phase would silently never run. Same
+> reason `setup` and `handoff` must never be promoted from skills to commands.
 
 Arguments: `$ARGUMENTS` (optional: path to the spec/design doc).
 

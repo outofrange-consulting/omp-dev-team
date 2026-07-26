@@ -1,9 +1,9 @@
 // path-inject.ts — ensure ~/.local/bin is on PATH at OMP process startup.
 //
 // OMP spawns bash in non-interactive / non-login mode, so .bashrc and
-// .profile are never sourced.  Tools installed to ~/.local/bin (ctx-wire, acli,
-// context-mode …) are therefore invisible unless the user opened a fresh login
-// shell after install.
+// .profile are never sourced.  Tools this plugin installs to ~/.local/bin (the
+// ctx-wire shims, ast-grep) are therefore invisible unless the user opened a
+// fresh login shell after install.
 //
 // This extension mutates process.env.PATH once, at load time, before any tool
 // call fires.  Every bash subprocess OMP spawns inherits the corrected PATH,

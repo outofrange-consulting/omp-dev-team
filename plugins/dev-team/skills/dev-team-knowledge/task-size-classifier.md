@@ -57,22 +57,30 @@ rework than the saved ceremony.
 - **`standard` → `/scope`** (needs-plan). Full Research → Plan → Build with the
   plan human gate and `/plan-approve` before any source edit.
 - **`complex` → `/scope`** (needs-plan), plus the orchestrator escalates review
-  depth to the opus-tier agents (security-review, domain-review, arch-review).
+  depth to the `@slow`-role agents (security-review, domain-review, arch-review).
 
 Expected saving on small tasks (upstream measurement): **~65% fewer turns,
 ~45% lower cost** vs the full pipeline.
 
-## Drives effort-band model routing
+## Drives the per-call effort
 
-The size is also the **effort signal for model routing** (phase-aware
-bump-from-floor). `/scope` records the size and stage in plan-gate state; the
-`model-routing` extension raises the band **only during planning**
-(`stage = needs-plan`): target `trivial`→code, `standard`→balanced,
-`complex`→deep, and each agent routes at **max(its floor tier, that target)** —
-never below its declared tier. **Once the plan is approved, there is no bump** —
-the build/review runs at the floor (a solid plan makes implementation routine).
-So a complex task spends `deep` on spec/plan, not on mechanical build. See
-`model-routing.json` → `effortBand`; inspect with `/routing`.
+The size is also the **effort signal**, and it feeds a native harness parameter,
+not a plugin resolver. `/scope` records the size in plan-gate state; the
+orchestrator maps it onto the `task` tool's per-call
+`effort: "lo" | "med" | "hi"` — `trivial`→`lo`, `standard`→`med`,
+`complex`→`hi`.
+
+Passed **only while planning** (`/scope` → `/specs` → `/plan`). Build and review
+pass nothing and therefore run at each agent's declared floor: a solid plan makes
+the build routine, and raising every lexical reviewer because the *task* is
+complex buys nothing. No recorded size → pass nothing.
+
+`effort:` outranks both an agent's frontmatter and any `:level` model suffix, and
+maps onto whatever ladder the actually-resolved model supports — so it degrades
+gracefully on Copilot and open-weight models. Caveat: Copilot models served over
+`openai-completions` are built with `supportsReasoningEffort: false`, so effort is
+a no-op on the wire there. Full rule: `agents/orchestrator.md` § Resolution
+Procedure.
 
 ## Decision logging
 

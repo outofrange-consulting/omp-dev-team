@@ -31,7 +31,7 @@ When processing a feedback keyword, determine the right destination:
 
 | Change type | Write to | Why |
 | --- | --- | --- |
-| Project convention or preference | **Project `CLAUDE.md`** (`.claude/CLAUDE.md` or repo-root `CLAUDE.md`) | Loaded every session, applies to all agents |
+| Project convention or preference | **Project context file** — `.omp/AGENTS.md` (native, highest discovery priority), or a repo-root `AGENTS.md`/`CLAUDE.md` | Loaded every session, applies to all agents |
 | Review context (domain knowledge, known issues, team norms) | **`REVIEW-CONTEXT.md`** in project root | Read by `/code-review` and passed to every review agent |
 | Agent behavior override for this project | **Project `CLAUDE.md`** under a `## Agent Overrides` section | Overrides plugin defaults without editing plugin files |
 | Cross-session memory (decisions, project state) | **`memory/`** files | Persists across context resets |
@@ -39,7 +39,7 @@ When processing a feedback keyword, determine the right destination:
 
 ### What NOT to do
 
-- Do not edit files inside the plugin cache (`~/.claude/plugins/cache/...`). Changes there are overwritten on plugin updates.
+- Do not edit files inside the plugin cache (`~/.omp/agent/plugins/...`). Changes there are overwritten on plugin updates — edit the marketplace checkout instead.
 - Do not create new agent or skill files in the project. Instead, add override instructions to project `CLAUDE.md`.
 
 ### Project CLAUDE.md structure for overrides

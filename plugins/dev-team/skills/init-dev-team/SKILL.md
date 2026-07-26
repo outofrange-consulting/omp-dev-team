@@ -10,7 +10,10 @@ user-invocable: true
 allowed-tools: read, bash, write
 ---
 
-> Note: ported from Claude Code; adapt the install/registration steps to OMP's `.omp/` layout and plugin model.
+> Note: ported from Claude Code. The install steps below are harness-neutral
+> (package managers and language toolchains); anything harness-specific has been
+> retargeted at OMP — config goes to `~/.omp/agent/config.yml`, project settings
+> to `.omp/`, and skills are invoked as `/skill:<name>`.
 
 # Init Dev Team
 
@@ -136,65 +139,43 @@ If missing, install:
 If either installation fails, stop and tell the user: "Could not install
 `<tool>`. Please install it manually and re-run `/init-dev-team`."
 
-## Step 2.5 — Offer Serena onboarding (symbolic C# navigation + enforced edits)
+## Step 2.5 — C# symbolic navigation (`omnisharp`, optional)
 
-dev-team bundles **Serena** (<https://github.com/oraios/serena>) as an MCP server
-(see `plugins/dev-team/.mcp.json`): a Roslyn-backed symbolic code layer for C#.
-The `serena-enforce` extension **blocks direct `write`/`edit`/`astEdit` on `.cs`
-files** and redirects them to Serena's symbol tools (`replace_symbol_body`,
-`rename_symbol`, `find_symbol`, …), so a C# repo must be onboarded with Serena
-before you can edit its `.cs` files. This step checks prerequisites and offers to
-onboard the current repo.
+C# navigation and refactoring go through OMP's **native `lsp` tool**. OMP ships a
+default server entry for `.cs`/`.csx` — command `omnisharp`, root markers
+`*.sln` / `*.csproj` / `omnisharp.json` / `.git` — so the only thing missing is
+the binary on `PATH`. There is no MCP server to wire and no repo onboarding step.
 
-> **Nothing to install into PATH.** Serena launches on demand via `uvx` straight
-> from git — there is no binary to install. The only prerequisites are `uvx`
-> (from [uv](https://github.com/astral-sh/uv)) and, for the C# backend,
-> **.NET 10+** (Serena's Roslyn language server is .NET 10-only).
+Skip this section entirely if the user selected no C# work.
 
-**Check prerequisites** (run both, record results):
+**Check:**
 
 ```bash
-command -v uvx > /dev/null 2>&1 && echo "uvx: present" || echo "uvx: MISSING"
-# Serena's Roslyn backend is .NET 10-only. Any .cs project targeting net9.0 or
-# lower cannot be onboarded (see the serena-setup skill for the full rule).
-grep -rEn '<TargetFrameworks?>' --include='*.csproj' . 2>/dev/null | head
+command -v omnisharp && echo "omnisharp: present" || echo "omnisharp: MISSING"
 ```
 
-- If `uvx` is **MISSING**: print
-  `Serena needs uvx (from https://github.com/astral-sh/uv). Install uv, then run /skill:serena-setup.`
-  and continue to Step 3. (Do not attempt to install uv here.)
-- If any `.cs` project you'd edit targets `net9.0` or lower: print
-  `Serena is .NET 10-only — this repo targets net9.0 or lower and cannot be onboarded. Skipping Serena.`
-  and continue to Step 3.
+If missing, tell the user: "C# language-server features (`lsp`) need `omnisharp`
+on PATH — install the OmniSharp-Roslyn release for your platform from
+<https://github.com/OmniSharp/omnisharp-roslyn/releases>, or the equivalent
+package for your distro." Then continue; it is optional, not a hard dependency.
 
-Read `.claude/init-state.json` if it exists (top-level `serena` key holds
-`onboard_accepted` / `onboard_declined`).
+Once present, `lsp` covers `definition`, `references`, `hover`, `symbols`,
+`type_definition`, `implementation`, `rename`, `rename_file`, `code_actions` and
+`diagnostics`, applying real `WorkspaceEdit`s. Whole-file `.cs` reads are already
+curbed by `read.summarize.enabled` (default `true`).
 
-**Branch on `.serena/` presence:**
+> This step used to offer to onboard the repo with **Serena**, a Roslyn-backed
+> MCP server, gated on `uvx` plus .NET 10, recording the answer in a
+> harness-owned init-state file. All of it is gone: the Serena skills, the
+> `serena-enforce` extension with its blanket deny on native `.cs` writes, and
+> that state file. The deny was an unconditional block on every native `.cs`
+> write in every repo, resting on an external MCP dependency — the opposite of
+> the use-the-platform posture, once the platform grew an equivalent.
+> `serena-build-net` stays: blocking session end on a red `dotnet build` has no
+> native equivalent.
 
-| `.serena/` present | Recorded state | Action |
-|---|---|---|
-| yes | any | Print `Serena: repo already onboarded ✓` and continue to Step 3. State file untouched. |
-| no  | `onboard_declined == true` | Print `Serena: previously declined onboarding (remove the serena key from .claude/init-state.json to re-prompt)` and continue. |
-| no  | otherwise | **Onboard prompt** (below). |
-
-### Onboard prompt (`.serena/` absent, not previously declined)
-
-Prompt: `Onboard this repo with Serena for symbolic C# navigation/edits? (y/N)`
-
-- On `y` or `Y`: invoke the `/skill:serena-setup` skill — it activates the
-  project (`activate_project`), runs Serena `onboarding`, waits for the first
-  Roslyn index (~30s), and smoke-tests the C# LSP with `get_symbols_overview`.
-  - On success (`.serena/` now present, LSP up): merge
-    `{"serena": {"onboard_accepted": true}}` into `.claude/init-state.json`.
-  - If serena-setup reports the repo can't be onboarded (.NET 9, LSP never comes
-    up, download error): print its message and do **not** modify the state file.
-- On any other response (including empty): merge
-  `{"serena": {"onboard_declined": true}}` and continue silently.
-
-`.claude/init-state.json` uses a top-level `serena` key so other plugins can
-claim sibling keys without collision. Always merge into existing JSON rather than
-overwriting it.
+For a language OMP has no default server for, add it under `lsp` in
+`~/.omp/agent/config.yml` rather than adding an MCP server here.
 
 ## Step 3 — Select languages
 
@@ -238,8 +219,11 @@ test -f package.json && echo "package.json found" || echo "no-package"
 
 If the result is `no-package`:
 
-1. Print: `No package.json found. Running /dev-team:js-project-init first to scaffold the project.`
-2. Invoke the `/dev-team:js-project-init` skill. It will scaffold a
+1. Print: `No package.json found. Running /skill:js-project-init first to scaffold the project.`
+2. Invoke the `/skill:js-project-init` skill — that is the form OMP uses for a
+   skill that is not also registered as a command; the Claude-Code
+   `/<plugin>:<skill>` namespace form is not supported and would simply not
+   resolve. It will scaffold a
    functional ES-module project with prettier, eslint, editorconfig, and
    vitest (see the skill's own documentation for the full default set).
 3. After the skill returns:
@@ -442,39 +426,34 @@ dotnet stryker --version 2>/dev/null || dotnet tool run dotnet-stryker --version
 
 ---
 
-## Step 4.5 — Probe model availability (opt-in)
+## Step 4.5 — Check the model roles resolve
 
-Present the following prompt **verbatim** to the user and read a single
-character from stdin:
+No probe, and nothing to write. OMP resolves an agent's `model:` frontmatter
+through `modelRoles` in `~/.omp/agent/config.yml`; every dev-team agent declares
+a CSV of role patterns whose last element is `@default`, so an unresolvable role
+is skipped rather than fatal.
 
-```
-Probe Anthropic's model list to detect which tiers are available?
-
-  What this does:    one GET request to $ANTHROPIC_BASE_URL/v1/models (5s timeout)
-  What it writes:    .claude/model-overrides.json (only if a default tier is missing)
-  What it skips:     Bedrock, Vertex, or non-Anthropic proxies (auto-detected)
-  Default is "n":    the resolver works without probing; this just makes the
-                     first dispatch faster for restricted endpoints.
-
-Probe model availability? [y/N]
-```
-
-If the user answers "y" or "Y", run:
+Verify and, if needed, fix:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/hooks/lib/model-probe.sh" <<<"y"
+omp models          # what the configured providers actually expose
 ```
 
-`${CLAUDE_PLUGIN_ROOT}` is set by Oh-My-Pi (OMP) when running plugin commands and resolves to the installed plugin directory. The repo-layout path `plugins/dev-team/hooks/lib/model-probe.sh` only works when running from the plugin source tree and must not be used here.
+- `/model` (or `omp models`) lists the resolved catalog. If a role you rely on
+  (`@smol`, `@plan`, `@slow`, `@designer`, `@vision`) resolves to nothing, the
+  agents that declare it silently fall through to the next pattern in their CSV.
+- The fix is config, not a probe: paste this plugin's `config.snippet.yml` into
+  `~/.omp/agent/config.yml` and adjust the ids to models your provider serves.
+  Set `plan` and `task` **explicitly** — neither inherits a default, so leaving
+  them unset makes those agents follow the parent session model instead of a
+  declared tier.
+- Per-agent overrides without editing any agent file: `task.agentModelOverrides`,
+  `task.disabledAgents`, or the `/agents` picker.
 
-The probe writes `.claude/model-overrides.json` only when a default
-tier is missing from the endpoint's `/v1/models` response. On any
-failure (timeout, HTTP 5xx, malformed JSON, non-Anthropic host) it
-emits a single explanatory line and continues — `/init-dev-team` exit
-status is unaffected.
-
-Skip the probe and continue to Step 5 if the user answers anything
-other than "y" or "Y" (including pressing Enter to accept the default).
+This replaces a Claude-Code-era probe that GET-ed one vendor's `/v1/models` and
+wrote a harness-owned model-overrides file. Both the script and that file are
+absent from this repo, the endpoint was vendor-specific in a provider-open port,
+and OMP's own resolver plus the per-agent fallback CSV make the probe redundant.
 
 ---
 

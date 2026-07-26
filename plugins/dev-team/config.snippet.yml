@@ -63,11 +63,11 @@ modelRoles:
   vision: [claude-sonnet-5, gemini-3.1-pro-preview]
   # advisor -> second-opinion reviewer. It aliases the `slow` chain but NEVER
   # inherits the primary (ROLE_PRIORITY_ALIAS + the doc comment at
-  # model-resolver.ts:950-962), so it stays a distinct strong model. `:medium`
+  # model-resolver.ts:950-963), so it stays a distinct strong model. `:medium`
   # keeps the passive reviewer from costing more than the turn it reviews.
   advisor: [claude-opus-4-8:medium, claude-opus-4.8:medium, gpt-5.5:medium]
   # tiny / commit: DELIBERATELY UNSET. ROLE_PRIORITY_ALIAS maps tiny -> smol
-  # (model-resolver.ts:959-962) and commit resolves via
+  # (model-resolver.ts:960-963) and commit resolves via
   # ["commit","smol",...MODEL_ROLE_IDS] (commit/model-selection.ts:46), so both
   # already land on our smol chain. Setting them is a no-op today — set them
   # ONLY to make them diverge from smol.
@@ -115,7 +115,7 @@ eval:
 # ---------------------------------------------------------------------------
 # EXTENSIONS (the "blocking scripts" — ported from the Claude Code shell hooks)
 # ---------------------------------------------------------------------------
-# Note: the guard/routing extensions load automatically from the plugin
+# Note: the guard extensions load automatically from the plugin
 # manifest (plugins/dev-team/package.json -> omp.extensions). You do NOT list
 # them here. (Only add an `extensions:` list if you run dev-team as a raw .omp
 # workspace instead of an installed plugin.)

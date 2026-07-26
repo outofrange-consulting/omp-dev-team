@@ -39,7 +39,7 @@ documentation/prose only — no extension behavior changed):
    `~/.omp/state/dev-team/<repoId>/freeze.json` (`OMP_DEVTEAM_STATE_DIR` to
    relocate), and enforces via the `tool_call` hook. The obsolete
    `hooks/freeze-state.json` + `pre-tool-guard.sh` flow was removed.
-3. **`plugins/dev-team/skills/context-summarization/SKILL.md`** — ✅ fixed. The
+3. **`plugins/dev-team/skills/handoff-policy/SKILL.md`** — ✅ fixed. The
    utilization measurement now prefers OMP's live `getContextUsage()` `percent`
    (already surfaced by `telemetry.ts` via `/cost-report`), with the manual
    `(input+output)/window` estimate kept as a fallback.

@@ -13,13 +13,6 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-// Resolve the package root (the `.omp` dir in workspace mode, or the plugin
-// cache root when installed via the marketplace) from this module's own
-// location, so agent/config lookups work regardless of the consuming
-// project's cwd. shared.ts lives at <pkg>/extensions/lib/shared.ts.
-const PKG_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 // --- Guard state location -------------------------------------------------
 // Enforcement guards (freeze, careful, review-gate) must not keep their state
@@ -126,88 +119,26 @@ export function pathsFromToolInput(
 	return [];
 }
 
-// Read an agent's `model:` frontmatter value from <pkg>/agents/<name>.md.
-export function agentModel(agentName: string): string | null {
-	try {
-		const file = join(PKG_ROOT, "agents", `${agentName}.md`);
-		if (!existsSync(file)) return null;
-		const text = readFileSync(file, "utf8");
-		const fm = text.match(/^---\n([\s\S]*?)\n---/);
-		if (!fm) return null;
-		const line = fm[1].split("\n").find((l) => /^model:\s*/.test(l));
-		return line ? line.replace(/^model:\s*/, "").trim() : null;
-	} catch {
-		return null;
-	}
-}
-
-export interface RoutingTier {
-	role?: string;
-	frontmatter: string;
-	intent: string;
-	rationale: string;
-}
-
-export interface EffortBandConfig {
-	ladder: string[];
-	// Task size -> target band (e.g. { trivial: "code", standard: "balanced", complex: "deep" }).
-	sizeBand: Record<string, string>;
-	// Pipeline stages where the size bump applies. The effort goes into spec/plan
-	// (`needs-plan`); once the plan is approved, implementation/review run at the
-	// floor — a solid plan makes the build routine. Default: ["needs-plan"].
-	bumpStages?: string[];
-	// Optional, off by default. When true, agents route ONE band BELOW their floor
-	// during a downshiftStages stage (default ["trivial"]) — extra token saving on
-	// the fast path — except a floor in protectDownshift (default ["deep"]), which
-	// holds. This is the only case an agent goes below its declared tier.
-	trivialDownshift?: boolean;
-	downshiftStages?: string[];
-	protectDownshift?: string[];
-	enforcement?: string;
-}
-
-export interface RoutingConfig {
-	tiers: Record<string, RoutingTier>;
-	effortBand?: EffortBandConfig;
-}
-
-// Resolve the effective band from the agent's FLOOR tier, the task size, and the
-// pipeline stage. Phase-aware bump-from-floor: the size raises the band ONLY
-// during the planning phase(s) (`bumpStages`, default ["needs-plan"]) — put the
-// effort into spec/plan; post-plan build/review runs at the floor. By default an
-// agent is never routed BELOW its tier (high-stakes deep agents hold). Pure, no I/O.
-//   - a floor outside the ladder (pinned/default) -> unchanged
-//   - opt-in trivialDownshift + a downshiftStages stage -> one band below floor
-//     (except protected floors) — the only case an agent goes below its tier
-//   - stage not in bumpStages (build, unscoped) -> the floor
-//   - else (planning) -> the higher of (floor, sizeBand[size]) on the ladder
-export function effectiveBand(
-	floor: string,
-	size: string | undefined,
-	stage: string | undefined,
-	cfg: EffortBandConfig | undefined,
-): string {
-	if (!cfg || !Array.isArray(cfg.ladder)) return floor;
-	const fi = cfg.ladder.indexOf(floor);
-	if (fi === -1) return floor; // pinned/default — not on the ladder
-	// Optional trivial downshift (off by default): one band below floor on the
-	// fast path, except protected (deep) floors.
-	if (cfg.trivialDownshift && stage && (cfg.downshiftStages ?? ["trivial"]).includes(stage)) {
-		if ((cfg.protectDownshift ?? ["deep"]).includes(floor)) return floor;
-		return cfg.ladder[Math.max(0, fi - 1)];
-	}
-	const bumpStages = cfg.bumpStages ?? ["needs-plan"];
-	if (!stage || !bumpStages.includes(stage)) return floor; // no bump outside planning
-	const target = size ? cfg.sizeBand?.[size] : undefined;
-	const ti = target ? cfg.ladder.indexOf(target) : -1;
-	if (ti === -1) return floor;
-	return cfg.ladder[Math.max(fi, ti)];
-}
-
-export function loadRouting(): RoutingConfig | null {
-	const p = join(PKG_ROOT, "skills", "dev-team-knowledge", "model-routing.json");
-	return readJSON<RoutingConfig | null>(p, null);
-}
+// --- Retired: the effort-band resolver -------------------------------------
+// `effectiveBand()` / `loadRouting()` / `agentModel()` / the Routing* interfaces
+// (and the PKG_ROOT anchor they needed) used to live here, feeding
+// `extensions/model-routing.ts` and its `/routing` command. All of it is gone.
+// Four independent reasons, any one sufficient:
+//   1. Upstream ADT deleted the equivalent machinery in ADR-0026 (hooks +
+//      knowledge/model-routing.json + the ladder) once the harness resolved
+//      model/effort itself. OMP resolves `modelRoles` + `@role` aliases +
+//      per-agent `thinking-level:` natively, so we were duplicating it too.
+//   2. The tier classifier branched on the literal strings "opus"/"sonnet" —
+//      an Anthropic-name dependency inside a provider-open port.
+//   3. It read plan-gate.json from a tool_call handler; ADR-0019 forbids a hook
+//      reaching into orchestrator state.
+//   4. ADR-0022 forbids shipping a dispatch mechanism as default behaviour with
+//      no measured win, and the design doc cited none.
+// The replacement is zero plugin code: the `task` tool's per-call
+// `effort: "lo" | "med" | "hi"` (thinking.ts:263), which outranks both the
+// frontmatter and any `:level` model suffix (executor.ts:2660-2664) and maps
+// onto whatever ladder the ACTUALLY RESOLVED model supports. The dispatch rule
+// now lives in `agents/orchestrator.md` § Resolution Procedure.
 
 // Simple glob -> RegExp (supports * and **, and a leading-dir match).
 // Case-insensitive on purpose: path/secret matching must treat `ID_RSA`,

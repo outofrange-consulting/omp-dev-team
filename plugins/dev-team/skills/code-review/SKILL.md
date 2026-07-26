@@ -12,16 +12,16 @@ argument-hint: >-
   [--init-risks] [--background]
 user-invocable: true
 allowed-tools: >-
-  read, edit, search, find, ask
-  bash(git diff *), bash(npx *), bash(npm run *)
-  bash(pnpm *), bash(yarn *), bash(tsc *), bash(eslint *)
-  bash(git log *), bash(gh run *), bash(semgrep *)
+  read, edit, search, find, ask,
+  bash(git diff *), bash(npx *), bash(npm run *),
+  bash(pnpm *), bash(yarn *), bash(tsc *), bash(eslint *),
+  bash(git log *), bash(gh run *), bash(semgrep *),
   bash(pylint *), skill(review-agent *)
 ---
 
 # Code Review
 
-Role: orchestrator. Route work to review agents; do not review code yourself. Pass each agent's tier alias (from its `model:` frontmatter) when dispatching — OMP resolves the tier natively (`modelRoles`) and the `model-routing` extension applies effort-band routing per the Resolution Procedure in `agents/orchestrator.md`.
+Role: orchestrator. Route work to review agents; do not review code yourself. Dispatch each agent by **name** through the `task` tool (`agent: "<name>"`) and let OMP resolve its model from the agent's own `model:` frontmatter against `modelRoles` — see the Resolution Procedure in `agents/orchestrator.md`. There is no plugin-side resolver to feed.
 
 Output templates and JSON schemas: [`code-review/output-format.md`](code-review/output-format.md). Example report: [`code-review/examples/sample-report.md`](code-review/examples/sample-report.md).
 
@@ -29,7 +29,7 @@ Output templates and JSON schemas: [`code-review/output-format.md`](code-review/
 
 1. **Do not review code yourself.** Delegate all semantic analysis to review agents.
 2. **Minimize context per agent.** Pass only what each agent's `Context needs` field requires.
-3. **Route to the right model tier.** Each agent's `model:` frontmatter declares its tier alias (`haiku`/`sonnet`/`opus`); OMP resolves the tier natively (`modelRoles`) and the `model-routing` extension applies effort-band routing per `agents/orchestrator.md` → Resolution Procedure. Do not override the frontmatter value.
+3. **Do not route models.** Each agent's `model:` frontmatter declares its own role floor (`@smol` / `@plan` / `@slow` / `@designer`, with `@default` as fallback) and OMP resolves it. Naming a concrete model when you dispatch would both override a deliberate floor and reintroduce a vendor-name dependency — the `task` tool has no `model` parameter for exactly that reason. The one per-call knob is `effort: "lo" | "med" | "hi"`, and **review passes none**: it runs at the floor (`agents/orchestrator.md` → Resolution Procedure).
 4. **Run deterministic gates first.** Lint, type-check, secret scan are cheaper than AI. Stop if they fail.
 5. **Return structured results.** Aggregate agent JSON; do not add your own findings.
 6. **Be concise.** Tables and JSON, no preambles, no filler.
@@ -94,12 +94,12 @@ Priority order:
 - any path under a `docs/` directory
 - a root doc: `README*`, `CHANGELOG*`, `CONTRIBUTING*`, `LICENSE*`, `NOTICE*`, `AUTHORS*`, `CODE_OF_CONDUCT*`
 
-…**except functional Claude-config markdown, which is never documentation** (it drives agent/skill/command behavior and must be reviewed): any path containing a `.claude/` segment, or under `agents/`, `skills/`, `prompts/`, `skill://dev-team-knowledge/`, or `templates/agents/`. Treat `CLAUDE.md` and `AGENTS.md` as functional config too, not documentation.
+…**except functional agent-harness markdown, which is never documentation** (it drives agent/skill/command/rule behavior and must be reviewed): anything under an `agents/`, `skills/`, `commands/`, `prompts/`, `rules/`, or `templates/agents/` directory, or under a harness config directory (`.omp/`, and the equivalent dot-directory of any other harness the repo carries). Treat `CLAUDE.md`, `AGENTS.md` and `OMP.md` as functional config too, not documentation.
 
 If **every** target file is documentation, short-circuit:
 
 1. Emit: `Documentation-only changeset ({N} files) — skipping code review. Re-run with --force --reason "<text>" to review anyway.`
-2. If the review was auto-scoped to uncommitted changes, write the `.review-passed` gate file (per step 9) so the pre-commit hook allows the commit.
+2. If the review was auto-scoped to uncommitted changes, clear the commit gate (per step 9) so the next commit is not blocked.
 3. In `--json` mode, emit `{"status": "skipped", "reason": "documentation-only", "files": [<list>]}` instead.
 4. **Stop.** Do not run pre-flight gates, static analysis, or any agent.
 
@@ -168,7 +168,7 @@ Spawn agents as parallel subagents in a single message using the `task` tool.
   - `full-file` → complete files
   - `project-structure` → full files + directory tree
   - When reviewing full repository (clean auto-scope, `--all`, or `--path`), always pass full files.
-- **Model**: pass each agent's declared tier alias (`haiku`/`sonnet`/`opus`) from its `model:` frontmatter. The PreToolUse hook the `model-routing` extension resolves the tier to the active snapshot per `agents/orchestrator.md` → Resolution Procedure.
+- **Model**: nothing to pass. `task` takes `agent`, `task`, and optionally `effort` / `name` / `isolated` — there is no `model` parameter. The agent's `model:` frontmatter is its floor and OMP resolves it (`agents/orchestrator.md` → Resolution Procedure). Review passes no `effort` either.
 - **Static analysis context**: if step 2b produced findings, inject into every agent's prompt using the format in `skill://static-analysis-integration`: "These issues were detected by static analysis. Do not re-report them. Focus on semantic concerns."
 - **Per-agent output**: `{"agentName": "<name>", "status": "pass|warn|fail", "issues": [], "summary": "..."}` (full schema in `output-format.md`).
 
@@ -258,14 +258,33 @@ Otherwise emit the prose summary using the Code Review Summary template in [`out
 
 For issues NOT auto-fixed (confidence: none, auto-fix failed, or suggestions), generate one correction prompt per issue using the Correction prompt schema in [`output-format.md`](code-review/output-format.md#correction-prompt-json). Save to `corrections/`. These can be addressed manually or via `/apply-fixes`.
 
-### 9. Write pre-commit gate file
+### 9. Clear the commit gate
 
-If the review was auto-scoped to uncommitted changes and the overall status is `pass` or `warn`, write `.review-passed` so the pre-commit hook allows the next commit. Use the **shared gate-hash helper** so the writer and the pre-commit hook compute the hash identically — it hashes the staged **content** (the cached patch), not just the file paths (#193), so any edit after review invalidates the gate:
+The commit gate is the **`review-gate` extension**, not a file in the working
+tree. It intercepts `git commit`, hashes `git diff --cached`, and blocks unless
+that exact hash was approved.
 
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/hooks/lib/review-gate-hash.sh > .review-passed
-```
+If the review was auto-scoped to uncommitted changes and the overall status is
+`pass` or `warn`:
 
-Stage the exact changes you reviewed (`git add` them) before writing the gate, so the staged content the hook hashes matches what was reviewed. If `git diff --cached` is empty (you reviewed unstaged changes), stage them first — the gate binds to the staged patch by design.
+1. **Stage exactly what you reviewed** (`git add …`). The gate binds to the
+   staged *content*, not to the file list, so any edit after approval
+   invalidates it — that is the point.
+2. Run **`/review-approve`**. It records the current staged hash to
+   `~/.omp/state/dev-team/<repoId>/review-gate.json` (out of tree, so the actor
+   being gated cannot forge an approval with a file write) and unlocks that one
+   commit.
 
-If overall status is `fail`, do **not** write the gate file — the pre-commit hook will keep blocking until issues are resolved and the review re-run.
+If `git diff --cached` is empty because you reviewed unstaged changes, stage them
+first — an empty index gives the gate nothing to approve.
+
+If overall status is `fail`, do **not** run `/review-approve`. The gate keeps
+blocking until the issues are resolved and the review re-run.
+
+There is no `.review-passed` file, no gate-hash shell helper, and no git
+pre-commit hook involved: this replaced the Claude-Code-era
+`pre-commit-review.sh` flow entirely. `--no-verify` still overrides git's own
+hooks and this gate, but not for free — it requires a non-empty
+`GATE_BYPASS_REASON` and appends a durable audit line to
+`review-gate-bypass.jsonl` beside the gate state (upstream ADR-0006 measured
+bypassed commits carrying ~2.6× the rework of reviewed ones).

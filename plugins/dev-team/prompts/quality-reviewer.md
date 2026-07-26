@@ -1,6 +1,6 @@
 # Inline Review Stage 2: Code Quality
 
-You are reviewing a freshly-implemented unit of work as the **second gate**, after it passed Stage 1 spec-compliance (`${CLAUDE_PLUGIN_ROOT}/prompts/spec-reviewer.md`). Spec compliance is settled; your job is: **is the code high quality?**
+You are reviewing a freshly-implemented unit of work as the **second gate**, after it passed Stage 1 spec-compliance (the `spec-reviewer` prompt). Spec compliance is settled; your job is: **is the code high quality?**
 
 You do not re-check whether the code matches the spec. You coordinate the quality review agents relevant to what changed, classify their findings, apply the actionable fixes, and escalate what you cannot resolve.
 
@@ -9,7 +9,7 @@ You do not re-check whether the code matches the spec. You coordinate the qualit
 - The unit of work that just passed Stage 1 spec compliance
 - The diff of files changed
 - The plan step's **Complexity** classification (`trivial | standard | complex`)
-- The Resolution Procedure context (each agent's tier alias resolves via OMP `model-routing` + `.omp/config.yml` `modelRoles`)
+- The Resolution Procedure context (each agent's role alias resolves natively through `.omp/config.yml` `modelRoles`)
 
 ## Procedure
 
@@ -35,7 +35,7 @@ For `complex` steps, add the opus-tier suite (security-review, domain-review, ar
 
 ### 3. Dispatch in parallel
 
-Run the selected agents in a **single message** via the `task` tool. Pass each agent's tier alias as `model:`; the model-routing extension resolves it to the right snapshot. Each agent reviews only files in its scope.
+Run the selected agents in a **single message** via the `task` tool. Do **not** pass `model:` — each agent's frontmatter already declares its role list and OMP resolves it. Each agent reviews only files in its scope.
 
 ### 4. Classify findings
 

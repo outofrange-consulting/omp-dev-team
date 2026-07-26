@@ -1,65 +1,75 @@
 ---
 name: token-diet
 description: >-
-  How this workspace minimizes LLM token spend. Use when the user asks how to
-  reduce tokens/cost, what ctx-wire / caveman / yagni are, how to set them up, or
-  whether OMP already does X natively.
+  What this workspace still does to cut LLM token spend, and what OMP already
+  does natively. Use when the user asks how to reduce tokens/cost, what ctx-wire
+  or caveman are, or whether OMP already covers X.
 ---
 
-# token-diet — aggressive token reduction for OMP
+# token-diet — what is left after OMP 17.x
 
-Three external layers on top of what OMP already does natively. Run
-`plugins/token-diet/install.sh` to install them.
+This plugin used to be a runtime layer: it deduped reads, collapsed repeated
+blocks, metered the prompt cache, and hid tool schemas. **OMP absorbed all of
+that.** What remains is the narrow set of things the harness does not do.
 
-## What OMP already does (don't reinvent)
+## What OMP already does — do not reinvent it
 
-- **Compaction & handoffs** — long sessions get summarized automatically
-  (`/compact`, auto-compaction). Keeps history cheap.
-- **AST tools** — native `astGrep`, `astEdit`, `summarizeCode`, `blockRangeAt`:
-  structural search/edit and file summaries without dumping whole files.
-- **Prompt/context caching** — stable system prompts & reused context are cached
-  by the provider (cached input is ~10× cheaper on Copilot/Anthropic).
-
-## What this plugin adds (the gaps)
-
-| Tool | Fills the gap of… | Win |
+| Native | Default | What it covers |
 |---|---|---|
-| **ctx-wire** | command **output** is dumped raw into context (and may leak secrets) | filtered + secret-scrubbed `git/build/test/lint` output (full logs kept on disk) |
-| **caveman** (skill) | agent **output** is verbose prose | ~65% fewer output tokens, on demand |
-| **yagni** (skill) | agent writes **too much code** (bloat/over-engineering) | ~80–94% less code → fewer output now + fewer input tokens every future turn |
-| **read-dedup** + **context-dedup** (extensions) | unchanged files re-read, and identical big blocks repeated, **inflate input** | LOSSLESS, on by default: re-reads return a stub; byte-identical repeated blocks collapsed before each call |
-| **context-compress** (extension) | old **prose** context stays verbose every turn | protect-masked prose shrink of OLD messages — code/paths/numbers kept byte-identical (`safe` on by default; `lite`/`full` lossy/opt-in; `off` to disable) |
+| `compaction.supersedeReads` | **on** | Re-reading a file prunes the OLDER result (`[Superseded by a newer read of this file]`), cache-aware, every turn. Note the direction: the **newest** bytes are the ones kept. |
+| `compaction.dropUseless` | **on** | Elides tool results flagged contextually useless (no matches, timed-out waits) once consumed. |
+| `pruneToolOutputs` | built in | Age-based blanking of old tool results to `[Output truncated - N tokens]`. |
+| `shellMinimizer` (Rust filters) | **on** | Per-command output filters, incl. `git` (status/diff/log/…) and `dotnet build\|test\|restore\|format`. |
+| bash output limits | built in | 50 KB tail window, per-line column cap, and artifact spill — the full payload stays at `artifact://<id>`. |
+| `secrets.enabled` + `secrets.yml` | off (turn it on) | Obfuscates matched secrets on **every** outbound message — including ones that arrived via `read .env` or an MCP result, which no command-output filter can see. |
+| statusline `cost` / `cache_read` / `cache_write` / `cache_hit` / `context_pct` / `usage` | segments | Live cost and prompt-cache health. No plugin, no meter, no `/cache-health`. |
+| `tools.xdev` | **on** | Rarely-used and MCP tools mount as `xd://` devices instead of shipping their schemas every request. Nothing to configure. |
+| `astGrep` / `astEdit` / `summarizeCode` / `blockRangeAt` | built in | Structural search and edit without dumping whole files. |
+| `/compact`, `/handoff`, auto-compaction | built in | History summarization. |
+
+Corollary: **do not build a plugin-side context transform.** Anything that
+rewrites *old* messages mutates the prefix the provider KV-caches, and cached
+input is ~10x cheaper than fresh input — a cache bust costs more than the bytes
+it saves.
+
+## What is genuinely left (and is what this plugin ships)
+
+1. **Semantic command-output filters.** OMP truncates *mechanically*: a tail
+   window and a column cap. It does not know that a 20 KB all-green
+   `dotnet publish` collapses to one artifact-path line. ctx-wire filters do,
+   and they know it **in French too**. We ship only the four `dotnet`
+   subcommands OMP's own `dotnet` filter does not claim — `publish`, `pack`,
+   `run`, `tool` — because duplicating `build`/`test`/`restore` would be two
+   passes over the same bytes. See `plugins/token-diet/ctx-wire/README.md`,
+   including the **locale trap**: OMP's `LANG=C.UTF-8` hardening is
+   Windows-only, so on Linux/macOS a French locale reaches git/dotnet and the
+   native English filters silently miss.
+2. **Output brevity.** Everything above shrinks *input*. Nothing in OMP (or in
+   upstream agentic-dev-team) targets the tokens the model *writes*. That is
+   `/caveman` — `skill://caveman`.
 
 ## Decision guide
 
-- Running shell commands? → output is transparently compressed + secret-scrubbed
-  by `ctx-wire` (no prefix; `ctx-wire gain` shows savings).
-- Editing one known file / reading docs/prose → plain `Read` + `astEdit`.
-- Want terse, fragment-style replies to save output tokens → `/caveman`
-  (`skill://caveman`).
-- Want the agent to **write minimal code** (YAGNI, no over-engineering) or to
-  review a diff for bloat → `/yagni` (`skill://yagni`).
-- Don't re-read an unchanged file to "refresh" — it's **deduped** (a stub is
-  returned; the earlier read is still in context). Same for re-pasting/echoing
-  the same large output: byte-identical repeated blocks are collapsed each call.
-- Want to *see* live cost / prompt-cache health — the read-only `cache-meter`
-  keeps a footer **statusline** (`td $cost cache N% churn N%`, ⚠ on risk) and
-  **`/cache-health`** prints the full breakdown (read-rate, churn, $, thinking
-  share, provider quota), incl. whether `lite`/`full` compression is busting the
-  cached prefix.
-- Verbose **old prose** context is already squeezed at `safe` by default
-  (near-lossless; code/paths/numbers byte-identical, recency window untouched).
-  For more, set `TOKEN_DIET_CONTEXT_COMPRESS=lite|full` (lossy — drops
-  filler/articles), or `off` to disable.
+- Running shell commands? Just run them. Output is filtered and secret-scrubbed
+  on the way in; `ctx-wire gain` shows the savings.
+- Reading or editing a known file? `read` + `astEdit`. Not `cat`/`sed` via bash.
+- Want terser replies to cut **output** tokens? `/caveman` (`skill://caveman`).
+- Want to see live cost / cache health? Native statusline segments:
+  `statusLine.preset: custom` with
+  `rightSegments: [cost, cache_hit, cache_write, context_pct, usage]`.
+- Worried about secrets reaching the provider? `secrets.enabled: true` plus
+  regex entries in `~/.omp/agent/secrets.yml`. Not a command-output filter.
+- Long, prose-heavy session and you have **measured** a healthy cache-read
+  ratio? Then, and only then, `TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full` opts
+  into the compressor. It is off by default on purpose.
 
-## Setup (once per machine / project)
+## Setup (once per machine)
 
 ```sh
-bash plugins/token-diet/install.sh   # active by default afterwards — restart omp
+bash plugins/token-diet/install.sh   # then restart omp
 ```
 
-Everything is on after that: ctx-wire PATH shims compress command output
-transparently (token-diet ships no MCP server — `.mcp.json` stays empty), and the
-skills (`/caveman`, `/yagni`) are enabled in `~/.omp/agent/config.yml`. Pass
-`--no-config` to skip the skills
-toggle; `--insecure-tls` / `--ca-file=…` for corporate proxies.
+Installs ctx-wire + its PATH shims, merges the four filters, mirrors the
+extensions and this rule into `~/.omp/agent`, and merges `config.snippet.yml`.
+`--no-config` skips the config merge; `--insecure-tls` / `--ca-file=…` are for
+corporate TLS-intercepting proxies.

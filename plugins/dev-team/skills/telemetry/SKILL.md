@@ -1,74 +1,79 @@
 ---
 name: telemetry
 description: >-
-  Manage and report the opt-in, privacy-clean usage telemetry beacon. Use when
-  the user asks to "enable/disable telemetry", "show telemetry", "usage stats",
-  "which commands do I use", or "how often is the commit gate bypassed".
-argument-hint: "[on|off|status|report]"
+  Explain what the dev-team telemetry extension actually records, where it puts
+  it, and which native Oh-My-Pi surface to use instead for cost, token and usage
+  numbers. Use when the user asks to "show telemetry", "usage stats", "which
+  tools am I burning turns on", "is anything being sent anywhere", or wants this
+  session's friction numbers.
+argument-hint: none
 user-invocable: true
-allowed-tools: >-
-  bash(python3 *, jq *, cat *, mkdir *, ls *), read, write
+allowed-tools: read, bash(omp usage *), bash(omp stats *)
 ---
 
-# Telemetry (#106)
+# Telemetry
 
-Role: worker. Manages consent for and reports the local, opt-in telemetry
-beacon. The beacon (`hooks/telemetry.sh`) records MINIMAL events — a command
-NAME, a skill NAME (including agent-/auto-invoked skills), a gate name +
-outcome, and the plugin version — to `metrics/telemetry.jsonl`. No prompts,
-paths, code, or payloads are ever recorded, and there is **no network egress**:
-everything stays local.
+The **`telemetry` extension** is a per-session *friction meter*, not a beacon.
+There is no consent file, no enable/disable switch, no env var, and **no network
+egress** — nothing to opt into, because nothing leaves the machine and nothing is
+written until you ask for it.
 
-Telemetry is **OFF by default**. It activates only when
-`.claude/telemetry.json` contains `{"enabled": true}` or the env var
-`DEV_TEAM_TELEMETRY=on` is set.
+## What it records
 
-## Scope — keep this small (#106)
+Three in-memory counters, reset on every `session_start`:
 
-This beacon is intentionally a **cheap, always-on local counter**: which
-commands/skills run, how often the commit gate is bypassed. It is **not** the
-self-improvement loop and must not grow into one. The self-improvement loop's
-digest already extracts a superset of these signals (token, rework,
-accuracy, utilization) from transcripts and routes suggestions to governed
-machinery. Cross-machine aggregation also belongs to the **session-digest**
-(Delta D / #178), not this beacon. If you find yourself adding analysis or
-network egress here, that work belongs in the self-improvement loop instead.
+| counter | source | meaning |
+|---|---|---|
+| `turns` | `turn_end` | assistant turns this session |
+| `toolCalls` | `tool_result`, keyed by tool name | how tool use is distributed |
+| `errors` | `tool_result` where `isError` | tool calls that **errored** — not policy blocks (the field is named `errors` precisely so neither the JSONL nor the report overstates it) |
 
-## Argument: $ARGUMENTS
+No prompt text, no paths, no code, no tool payloads, no model ids, no dollar
+amounts. The meter cannot see any of those.
 
-- `status` (default): report whether telemetry is enabled and what's collected.
-- `on`: enable by writing `.claude/telemetry.json` with `{"enabled": true}`
-  (confirm with the user first — this starts local recording).
-- `off`: disable by writing `{"enabled": false}` (recording stops; the existing
-  log is left in place for the user to inspect or delete).
-- `report`: print the usage summary.
+## Where it goes
 
-## Steps
+Running `/cost-report` prints one line and appends one JSON object to
+`~/.omp/state/dev-team/<repoId>/telemetry.jsonl` (`<repoId>` = sha256 of the git
+root, first 16 hex; relocate with `OMP_DEVTEAM_STATE_DIR`). Out of the working
+tree, so it can never be committed by accident.
 
-1. **status** — check `.claude/telemetry.json` and `DEV_TEAM_TELEMETRY`; state
-   on/off, and list exactly what is and isn't collected (events: command/skill
-   name, gate fired/bypassed, plugin version; never: prompt text, paths, code,
-   network).
+**Nothing is appended unless `/cost-report` runs.** That is the whole privacy
+story: recording is user-triggered, per invocation.
 
-2. **on / off** — write `.claude/telemetry.json`:
+## Use the native surfaces for anything about money or tokens
 
-   ```json
-   { "enabled": true }
-   ```
+This meter deliberately does not compute cost. OMP already does, with real
+provider numbers:
 
-   For `on`, confirm consent first. Recording is local-only; the event log
-   `metrics/telemetry.jsonl` is gitignored so it can never be committed.
+| you want | use |
+|---|---|
+| live cost / cache hit-rate / context fill | statusline segments `cost`, `cache_read`, `cache_write`, `cache_hit`, `context_pct`, `usage` |
+| spend and limits per account | `/usage`, or `omp usage --json` |
+| usage-limit trend over time | `omp usage --history --days 30` |
+| a stats dashboard, or a machine-readable dump | `/stats`, `omp stats --summary`, `omp stats --json` |
+| per-tool-call intent, to see *why* a tool ran | `tools.intentTracing` (default `true`) |
 
-3. **report** — summarize the event log:
+Report exactly what those emit. Do not invent counts.
 
-   ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/lib/telemetry_report.py \
-     --log metrics/telemetry.jsonl
-   ```
+## Scope — keep this small
 
-   Shows command usage, skill usage (including agent-/auto-invoked skills,
-   counted distinctly from user-typed commands), and the pre-commit review
-   gate's bypass rate. If the log doesn't exist, the report says telemetry is
-   off and nothing has left the machine.
+The meter is intentionally a **cheap local counter**: turns, tool churn, error
+rate. It is not the self-improvement loop and must not grow into one. If you find
+yourself adding cost math, cross-machine aggregation, or network egress here,
+that work belongs in the self-improvement loop, or in OMP's own usage stack —
+which already extracts a superset of these signals.
 
-Report exactly what the tool emits; do not invent counts.
+## Notes
+
+- **Known gap:** `/cost-report`'s `ctx=` field currently reports `n/a`. The
+  extension reads `percentage` off `getContextUsage()`, but OMP's `ContextUsage`
+  is `{ tokens, contextWindow, percent }` — there is no `percentage` key, so the
+  guard never matches. Use the statusline `context_pct` segment until the
+  extension is corrected.
+- Supersedes the Claude-Code-era design in which a `hooks/telemetry.sh` beacon
+  wrote `metrics/telemetry.jsonl`, consent lived in a JSON file under the
+  harness config directory, and a `telemetry_report.py` summarised it. None of
+  those files — nor a `hooks/` directory — exist in this repo. The extension
+  replaced all of them, and the `on|off|status|report` argument surface this
+  skill used to describe was never implemented.

@@ -72,7 +72,7 @@ if ($ApplyConfig) {
   }
 }
 
-# --- Load the guard/routing extensions --------------------------------------
+# --- Load the guard extensions ----------------------------------------------
 $src = Join-Path $Here 'extensions'
 if (Test-Path $src) {
   $dest = Join-Path $HOME ".omp\agent\extensions\dev-team"
@@ -80,7 +80,7 @@ if (Test-Path $src) {
   New-Item -ItemType Directory -Force -Path $dest | Out-Null
   Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
   $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
-  Say "guards + model-routing loaded into $dest"
+  Say "guards loaded into $dest"
 }
 
 Say "dev-team ready. Restart omp, then drive the workflow: /specs -> /plan -> /build -> /pr."

@@ -10,12 +10,6 @@ autoload-skills:
   - quality-gate-pipeline
   - testing-discipline
   - systematic-debugging
-  - hexagonal-architecture
-  - domain-driven-design
-  - api-design
-  - legacy-code
-  - mutation-testing
-  - code-review
 ---
 
 # Software Engineer Agent

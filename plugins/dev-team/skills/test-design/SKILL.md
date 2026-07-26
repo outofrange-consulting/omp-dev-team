@@ -20,7 +20,7 @@ does not review files itself — it coordinates.
 
 This command is executed under orchestrator direction. Dispatch each agent with
 its tier alias (from its `model:` frontmatter); the PreToolUse hook
-the `model-routing` extension resolves it to the active snapshot per the
+OMP resolves it natively through `modelRoles` per the
 Resolution Procedure in `agents/orchestrator.md`.
 
 ## Orchestrator constraints

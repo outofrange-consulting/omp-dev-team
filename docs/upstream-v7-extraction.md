@@ -44,9 +44,11 @@ version and have since evolved heavily), and what we pulled into our OMP port.
 ## Deliberately NOT ported (with rationale)
 
 - **Effort-band model routing (v7.0.0).** Breaking change that replaces tiers.
-  We intentionally keep the tier model (`pi/smol` nano / `pi/task` code / sonnet / opus) because it's wired
-  to `copilot-preset` and `model-routing.json` + the pre-dispatch routing
-  extension. Re-architecting to effort-bands would churn that and the Copilot
+  We intentionally kept the tier model at the time because it was wired to
+  `copilot-preset` and `model-routing.json` + the pre-dispatch routing
+  extension. **Superseded:** that resolver is retired (see
+  `docs/upstream-v8-v10.md`); tiers are now OMP roles (`@smol`/`@task`/`@plan`/
+  `@slow`) resolved by the harness. Re-architecting would have churned the Copilot
   cost story for little gain. Revisit only if we adopt per-call effort signals.
 - **security-assessment plugin (deterministic-first SAST).** Genuinely new and
   on-brand (run semgrep/gitleaks/trivy first, spend LLM tokens only to triage —

@@ -57,11 +57,11 @@ Context needs: full-file
 This agent is invoked in two distinct contexts:
 
 1. **`/code-review` inline checkpoint** — runs standalone as one of the review agents during active development. Single-file or changeset scope. Fast, opinionated, no downstream synthesis. Use for every commit.
-2. **`security-assessment` plugin Phase 1b** — invoked as a judgment-layer detector inside the full `/security-assessment` pipeline (see `plugins/security-assessment/skills/security-assessment-pipeline/SKILL.md:85-90`). Its findings feed FP-reduction, severity floors, narrative annotation, compliance mapping, and the executive report.
+2. **`security-assessment` Phase 1b** — invoked as a judgment-layer detector inside the full assessment pipeline, where its findings feed FP-reduction, severity floors, narrative annotation, compliance mapping, and the executive report. **That companion plugin is not shipped by this marketplace** (see `docs/upstream-v8-v10.md`), so context 2 is a contract obligation this agent honours, not a pipeline you can run here. The envelope it must emit is fixed by `skill://dev-team-knowledge/security-primitives-contract.md`.
 
-This agent does NOT do FP-reduction, reachability analysis, business-logic / fraud-domain review, compliance mapping, or executive-report synthesis. Those live in `plugins/security-assessment/`. If deeper analysis is required, escalate from `/code-review` to `/security-assessment`.
+This agent does NOT do FP-reduction, reachability analysis, business-logic / fraud-domain review, compliance mapping, or executive-report synthesis — all of which live downstream in that unported companion plugin. In this marketplace there is no deeper tier to escalate to: report the finding with its exploitability rationale and stop.
 
-When a vulnerability class is pattern-visible (single-line regex, stable AST shape, ≤10% false-positive rate), the authoritative detector is a semgrep rule in `plugins/security-assessment/knowledge/semgrep-rules/*.yaml` — not a grep pattern here. The class → surface boundary is encoded in `skill://dev-team-knowledge/security-review-rule-map.yaml`. This agent's value is judgment on cases that rules cannot reach: logic flaws, authz architecture gaps, business-layer leaks, and exploitability assessment over pre-existing tool findings.
+When a vulnerability class is pattern-visible (single-line regex, stable AST shape, ≤10% false-positive rate), the authoritative detector is a semgrep rule owned by the companion plugin — not a grep pattern here. The class → surface boundary is encoded in `skill://dev-team-knowledge/security-review-rule-map.yaml`, and the positive/negative code fixtures per class ship at `plugins/dev-team/skills/dev-team-knowledge/rule-fixtures/`. This agent's value is judgment on cases that rules cannot reach: logic flaws, authz architecture gaps, business-layer leaks, and exploitability assessment over pre-existing tool findings.
 
 ## Knowledge Files
 

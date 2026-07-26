@@ -98,15 +98,15 @@ if [ "$APPLY" = 1 ]; then
   cfg_add_snippet "$HERE/config.snippet.yml" dev-team
 fi
 
-# --- Load the guard/routing extensions --------------------------------------
+# --- Load the guard extensions ----------------------------------------------
 # OMP does NOT load extension modules (package.json `omp.extensions`) from
-# marketplace cache installs, so the blocking guards + model-routing would
+# marketplace cache installs, so the blocking guards would
 # otherwise never run. Mirror them into OMP's native user-extension dir.
 if [ -d "$HERE/extensions" ]; then
   DEST="$HOME/.omp/agent/extensions/dev-team"
   rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
   [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
-  say "guards + model-routing loaded into $DEST"
+  say "guards loaded into $DEST"
 fi
 
 say "dev-team ready. Restart omp, then drive the workflow: /specs -> /plan -> /build -> /pr."

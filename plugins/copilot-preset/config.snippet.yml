@@ -11,7 +11,7 @@
 #   export COPILOT_GITHUB_TOKEN=...
 # NOTE: COPILOT_GITHUB_TOKEN is the ONLY env var this provider reads. There is
 # no GH_TOKEN / GITHUB_TOKEN fallback — the descriptor declares a single-element
-# envVars array (packages/catalog/src/provider-models/descriptors.ts:161-166)
+# envVars array (packages/catalog/src/provider-models/descriptors.ts:162-166)
 # and the credential resolver builds a single-key lookup from it. (Upstream's
 # own packages/ai/README.md still claims a fallback; it is stale.)
 #
@@ -103,7 +103,7 @@ modelRoles:
   vision: github-copilot/gpt-5-mini                  # $0.25 / $2.00
   # advisor — second-opinion reviewer. OMP aliases it to the `slow` chain but it
   # NEVER inherits the primary's model, precisely so it stays a DISTINCT model
-  # (model-resolver.ts:950-962). A second opinion from the same vendor as `slow`
+  # (model-resolver.ts:950-963). A second opinion from the same vendor as `slow`
   # is worth less, so this is deliberately OpenAI against an Anthropic `slow`.
   # gpt-5.3-codex is also GitHub's designated base AND LTS model (support
   # committed for one year from 2026-03-18) — the most rollout-stable id in the
@@ -111,7 +111,7 @@ modelRoles:
   # NOT enable the advisor; see `advisor.enabled` below.
   advisor: github-copilot/gpt-5.3-codex              # $1.75 / $14.00
   # tiny / commit: DELIBERATELY UNSET. OMP aliases tiny -> the smol chain
-  # (ROLE_PRIORITY_ALIAS, model-resolver.ts:959-962) and resolves commit via
+  # (ROLE_PRIORITY_ALIAS, model-resolver.ts:960-963) and resolves commit via
   # ["commit","smol",...] (commit/model-selection.ts:46), so both already land on
   # gpt-5-mini. Setting them here would be a no-op — set them ONLY to diverge.
 

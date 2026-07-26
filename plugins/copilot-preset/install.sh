@@ -56,7 +56,8 @@ cat <<'EOF'
 
 ==> copilot-preset ready. Final steps:
     1) Authenticate Copilot:  run `omp`, then /login -> GitHub Copilot
-       (or: export COPILOT_GITHUB_TOKEN=...  /  GH_TOKEN  /  GITHUB_TOKEN)
+       (or: export COPILOT_GITHUB_TOKEN=...  — that exact name only; OMP's
+        Copilot descriptor declares no GH_TOKEN/GITHUB_TOKEN fallback)
     2) Confirm models on your plan:  omp --list-models | grep github-copilot
     3) If you didn't pass --apply-config, paste config.snippet.yml into
        ~/.omp/agent/config.yml. See pricing.md for the cheap-token mapping.

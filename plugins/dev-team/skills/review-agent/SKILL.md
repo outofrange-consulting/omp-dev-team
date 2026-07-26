@@ -19,10 +19,12 @@ definition as its specification.
 
 You have been invoked with the `/review-agent` skill. Run a single named review agent.
 
-This command is executed under orchestrator direction. Pass the named
-agent's tier alias (from its `model:` frontmatter) when dispatching —
-the PreToolUse hook the `model-routing` extension resolves it to the
-active snapshot per the Resolution Procedure in `.claude/agents/orchestrator.md`.
+This command is executed under orchestrator direction. Dispatch the named agent
+through the `task` tool as `agent: "<name>"` and pass **no model**: `task` has no
+`model` parameter, and OMP resolves the agent's own `model:` frontmatter against
+`modelRoles` (see the Resolution Procedure in `agents/orchestrator.md`). A single
+targeted review is a review-leg call, so pass no `effort` either — it runs at the
+agent's declared floor.
 
 ## Worker constraints
 
@@ -53,11 +55,21 @@ Optional:
 
 ## Steps
 
-### 1. Load agent definition
+### 1. Load the agent definition
 
-Read `.claude/agents/<name>.md`. If the file doesn't exist, list available
-review agents from `.claude/agents/` (those declaring `Model tier:`) and
-ask the user to pick one.
+Preferred path: dispatch the agent by name through the `task` tool
+(`agent: "<name>"`). OMP discovers agents itself and loads the definition as that
+subagent's system prompt — you never have to locate the file, and its instruction
+text stays out of your own context.
+
+Only when you are running the review inline (no subagent) do you need the file
+itself. Agents live in the dev-team plugin's `agents/` directory as
+`<name>.md`; the authoritative roster — name, role, model floor, scope — is
+`skill://dev-team-knowledge/agent-registry.md`.
+
+If the name doesn't resolve, do **not** guess a near-miss. List the review agents
+from the registry (or from `/agents`, which shows every agent OMP actually
+discovered) and ask the user to pick one.
 
 ### 2. Determine target files
 

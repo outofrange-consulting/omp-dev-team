@@ -43,7 +43,7 @@ Shipped in P2 Step 3b. Not part of the baseline.
 
 ### Tier 3 — bespoke JSON adapters
 
-Shipped in P2 Step 3b for tools without upstream SARIF. Each adapter ≤ 40 LOC. A thin adapter normalizes `security-review` agent output into the unified envelope (see `adapters/security-review-adapter.py`). Rule_id lookup is driven by `plugins/dev-team/knowledge/security-review-rule-map.yaml`; malformed categories hard-fail, well-formed-but-unmapped categories fall back to `security-review.*` with a WARN.
+Shipped in P2 Step 3b for tools without upstream SARIF. Each adapter ≤ 40 LOC. A thin adapter normalizes `security-review` agent output into the unified envelope (see `adapters/security-review-adapter.py`). Rule_id lookup is driven by `plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml`; malformed categories hard-fail, well-formed-but-unmapped categories fall back to `security-review.*` with a WARN.
 
 ### Tier 4 — legacy (pre-SARIF)
 
@@ -112,7 +112,7 @@ semgrep > gitleaks > trivy > hadolint > actionlint > (legacy ESLint > tsc > pyli
 
 ### 5. Consult ACCEPTED-RISKS.md
 
-If present at repo root, apply suppression per `plugins/dev-team/knowledge/accepted-risks-schema.md`. Suppressed findings are removed from the return value but logged to the audit trail.
+If present at repo root, apply suppression per `skill://dev-team-knowledge/accepted-risks-schema.md`. Suppressed findings are removed from the return value but logged to the audit trail.
 
 ### 6. Return structured result
 
@@ -173,8 +173,6 @@ This context goes to **all** review agents, not just security-review.
 
 - `references/tool-configs.md` — per-tool invocation commands, adapter scripts, install hints
 - `references/sarif-parser.md` — normalized mapping from SARIF `result` to unified finding envelope v1.0
-- `evals/static-analysis-tools/tier1-mocks/` — tier-1 mocked SARIF fixtures
-- `evals/static-analysis-tools/tier2-integration/` — tier-2 real-binary integration tests (nightly CI)
 - `skill://dev-team-knowledge/security-primitives-contract.md` — unified finding envelope v1.0
 - `skill://dev-team-knowledge/accepted-risks-schema.md` — per-project suppression policy
 - `maintenance.md` — adapter and ruleset lifecycle policies

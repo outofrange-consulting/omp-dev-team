@@ -1,6 +1,6 @@
 ---
 name: dev-team-knowledge
-description: Reference corpus for the dev-team agents and skills — registries, review rubrics/templates, OWASP detection map, design/test taxonomies, ADR criteria, and the model-routing config. Read individual files with skill://dev-team-knowledge/<file>; this is consulted by team/review agents, not invoked directly.
+description: Reference corpus for the dev-team agents and skills — registries, review rubrics/templates, OWASP detection map, design/test taxonomies, ADR criteria, and model pricing. Read individual files with skill://dev-team-knowledge/<file>; this is consulted by team/review agents, not invoked directly.
 ---
 
 # Dev-Team Knowledge Corpus
@@ -22,7 +22,7 @@ Resolve a section anchor through the index, then read just that file:
 - **Architecture / design**: `architecture-assessment.md`, `domain-modeling.md`, `design-smells.md`, `object-calisthenics.md`.
 - **Security**: `owasp-detection.md`, `security-review-rule-map.yaml`, `security-primitives-contract.md`, `rule-fixtures/`.
 - **Testing**: `test-strategy.md`, `test-pyramid.md`, `test-doubles.md`, `test-smells.md`, `testability-patterns.md`, `test-layer-gates.md`, `test-organization.md`, `result-verification.md`, `fixture-construction.md`, `test-refactoring.md`, `cd-test-architecture.md`, `component-test-patterns.md`, `microservice-testing.md`, `testing-quadrants.md`, `test-automation-maturity.md`, `exploratory-testing-field-guide.md`, `testing-techniques/`, `test-stack-profiles/`, `test-matrix-examples/`.
-- **Routing / cost**: `model-routing.json` (tier→backend source of truth; also read by the `model-routing` extension), `model-pricing.json`.
+- **Cost**: `model-pricing.json`. (There is no `model-routing.json` any more — the effort-band resolver it fed is retired; model resolution is OMP-native `modelRoles` + `@role` aliases, and the dispatch rule lives in `agents/orchestrator.md` § Resolution Procedure.)
 - **Schemas**: `schemas/` (recon envelope, unified finding, disposition register).
 
 Bare `skill://dev-team-knowledge/X.md` references in agent prompts are valid only when followed by a one-sentence "Whole-file load:" rationale; otherwise resolve the anchor via `index.json` first and read with `:offset-limit`.

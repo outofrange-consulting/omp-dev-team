@@ -48,28 +48,39 @@ bash plugins/dev-team/install.sh        # checks OMP/git/optional tools, install
 
 For complex work the **orchestrator** runs **Research → Plan → Implement** with a
 human gate between phases. Plus `/code-review` (`/review`), `/review-agent`,
-`/continue`, `/triage`, `/design-doc`, `/issues-from-plan`, and the `/routing`
-diagnostic. Every skill is also available as `/skill:<name>`.
+`/continue`, `/triage`, `/design-doc` and `/issues-from-plan`. Every skill is also
+available as `/skill:<name>`.
 
-## Model tiers (all cloud, workload-shaped)
+## Model tiers (all cloud, workload-shaped, provider-open)
 
-Agents declare a tier in `model:` frontmatter, resolved natively by your
-`modelRoles`. The cheap end is split by **workload shape** so neither half
-over-pays for the other's model:
+Agents declare a **role list** in `model:` frontmatter. OMP takes the **first
+resolvable** pattern, so every agent ends its list in `@default` and still routes
+even if you never pasted the config snippet. The cheap end is split by **workload
+shape** so neither half over-pays for the other's model:
 
 | Tier | Frontmatter | For |
 |---|---|---|
-| nano | `pi/smol` (cheapest cloud; Haiku, or gpt-5-mini on Copilot) | pure lexical/checklist review + input-bound scan — no code semantics, no tool-use; highest volume |
-| code | `pi/task` (cheap coding cloud; Haiku, or mai-code-1-flash-picker on Copilot) | cheap work needing code semantics or agentic tool-use: post-plan implementation (software-engineer, qa-engineer), structural code review (js-fp, svelte), codebase-recon (size-proportional via the effort-band) |
-| balanced | `pi/plan` → `claude-sonnet-5` | most review agents + orchestrator + non-build team agents + architecture/domain design synthesis (architect, arch-review, domain-review) |
-| deep | `pi/slow` → `claude-opus-4-8` | high-stakes security verdicts (security-review, security-engineer) where Opus still leads Sonnet 5 |
+| nano | `"@smol, @default"` | pure lexical/checklist review + input-bound scan — no code semantics, no tool-use; highest volume |
+| code | `"@smol, @default"` | cheap work needing code semantics or agentic tool-use: post-plan implementation (software-engineer, qa-engineer), structural code review (js-fp, svelte), codebase-recon |
+| balanced | `"@plan, @default"` | most review agents + orchestrator + non-build team agents |
+| design | `"@designer, @plan, @default"` | UI/UX and accessibility work — `designer` is a first-class OMP role we previously left dead |
+| deep | `"@slow, @plan, @default"` | architecture/domain design synthesis and high-stakes security verdicts |
 
-The high-volume **nano + code tiers** are where token spend concentrates — keep
-them cheap. On base Anthropic both resolve to Haiku; the **copilot-preset** plugin
-splits them (`smol` → `github-copilot/gpt-5-mini`, `task` →
-`github-copilot/mai-code-1-flash-picker`). Pair with **token-diet** to cut tokens
-further. Source of truth: `skills/dev-team-knowledge/model-routing.json`;
-diagnose with `/routing`.
+Two OMP facts drive this and are worth knowing:
+
+- **`@task` is *not* a cheap tier.** It is deliberately session-inheriting
+  (`model-resolver.ts:936-943`), so agents that declared it were running on the
+  session model, not on a cheap one. They now declare `@smol`.
+- **Only `smol`, `slow` and `designer` inherit from `default`**
+  (`model-resolver.ts:946`). An unset `modelRoles.plan` therefore falls through to
+  the session model **silently** — which is why the shipped snippet sets `plan`
+  and `task` explicitly rather than relying on inheritance.
+
+No agent pins a vendor model id. On base Anthropic the roles resolve to
+Haiku/Sonnet/Opus; the **copilot-preset** plugin overlays Copilot-served models,
+and any OpenAI-compatible provider works via **openai-compatible**. There is no
+plugin-side resolver: the harness resolves `modelRoles` itself (see
+`docs/upstream-v8-v10.md` for why the effort-band resolver was retired).
 
 ## Guardrails (extensions)
 
@@ -80,8 +91,7 @@ plan is approved** — enforces pre-analysis → plan → build → review; `/sc
 `spec-guard` (**blocks edits to existing `.feature` specs** — fix code, not the
 spec; `/allow-feature-edits` to override), `review-gate` (blocks `git commit`
 until `/code-review` + `/review-approve`), `impl-verify` (`/impl-verify` strict
-build + tests), `telemetry` + `/cost-report`, `model-routing` (dispatch tier log
-+ `/routing`). They intercept `tool_call` and block with a reason — OMP's native
+build + tests) and `telemetry` + `/cost-report`. They intercept `tool_call` and block with a reason — OMP's native
 blocking mechanism.
 
 ## Layout
@@ -89,6 +99,6 @@ blocking mechanism.
 ```
 .claude-plugin/plugin.json · package.json (omp.extensions)
 agents/  skills/  commands/  rules/  extensions/  .mcp.json
-skills/dev-team-knowledge/   # registries, rubrics, model-routing.json
+skills/dev-team-knowledge/   # registries (generated), rubrics, pricing
 config.snippet.yml  install.sh  install.ps1
 ```

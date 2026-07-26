@@ -7,15 +7,9 @@ model: "@slow, @plan, @default"
 thinking-level: high
 # Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
 autoload-skills:
-  - quality-gate-pipeline
-  - design-doc
   - design-it-twice
   - hexagonal-architecture
   - domain-driven-design
-  - specs
-  - threat-modeling
-  - api-design
-  - legacy-code
 ---
 
 # Architect Agent

@@ -1,6 +1,9 @@
 # Summary & Progress File Templates
 
-These templates structure output written to `memory/` during context summarization.
+These templates structure output written to `memory/` under the handoff-policy
+artifact contract — before a `/handoff`, at a phase boundary, or when a task is
+paused. `/continue` parses these shapes to find the resume point, so use them as
+written.
 
 - **Task Summary** -- general-purpose summary for any completed or paused task.
 - **Research Progress File** -- output of the Research phase; onboards the Planner.

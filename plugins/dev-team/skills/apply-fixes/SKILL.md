@@ -51,10 +51,13 @@ Optional:
 
 Detect and read rules from the target repository:
 
-- `CLAUDE.md`
-- `.clinerules`
-- `.claude/rules/index.md`
+- `.omp/AGENTS.md` and `.omp/RULES.md` (OMP's native project context; highest
+  discovery priority)
+- a repo-root `AGENTS.md` / `CLAUDE.md`
 - `CONTRIBUTING.md`
+
+OMP discovers these itself before the session starts, so they are usually already
+in context — re-read one only when you need a passage verbatim.
 
 These rules inform how fixes should be applied.
 

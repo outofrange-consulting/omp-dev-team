@@ -6,11 +6,12 @@ plugins/dev-team/agents/security-review.md for the agent-output
 schema) and emits one unified-finding envelope v1 (JSONL) per issue.
 
 Rule_id lookup is driven by the canonical mapping at
-plugins/dev-team/knowledge/security-review-rule-map.yaml. This
+plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml. This
 adapter contains NO inline rule_id literals beyond the
 ``security-review.`` namespace prefix constant used for the
-fallback path; the single-source-of-truth invariant is enforced by an
-AST-level test in evals/security-review-adapter/tests/.
+fallback path. Upstream enforces that invariant with an AST-level test
+under evals/; this port has no evals/ tree, so the invariant is
+review-enforced — do not add a rule_id literal below.
 
 Contract, error semantics, and failure modes are documented in
 plugins/dev-team/skills/static-analysis-integration/references/security-review-adapter.md.
@@ -51,11 +52,15 @@ _THIS_FILE = os.path.abspath(__file__)
 _ADAPTER_DIR = os.path.dirname(_THIS_FILE)
 # /plugins/dev-team/skills/static-analysis-integration/adapters -> /plugins/dev-team
 _PLUGIN_ROOT = os.path.abspath(os.path.join(_ADAPTER_DIR, "..", "..", ".."))
+# The corpus lives under skills/dev-team-knowledge/, NOT under a top-level
+# knowledge/ dir — there is no such dir in this port. The old
+# `_PLUGIN_ROOT/knowledge/...` default resolved to a missing file, so every
+# invocation without an explicit --mapping hard-failed.
 _DEFAULT_MAPPING_ABS = os.path.join(
-    _PLUGIN_ROOT, "knowledge", "security-review-rule-map.yaml"
+    _PLUGIN_ROOT, "skills", "dev-team-knowledge", "security-review-rule-map.yaml"
 )
 _DEFAULT_MAPPING_REL = (
-    "plugins/dev-team/knowledge/security-review-rule-map.yaml"
+    "plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml"
 )
 
 

@@ -1,113 +1,91 @@
 ---
 name: cost-report
 description: >-
-  Report actual token spend and dollar cost of dispatched work — per agent and
-  total — and flag cost regressions. Use when the user asks "how much did that
-  cost", "token spend", "cost of this run", "cost report", or wants to check for
-  a cost regression after /code-review or an orchestration run.
-argument-hint: "[--transcript <path>] [--tolerance <n>]"
+  Answer "how much did that cost" and "what is this session burning" using the
+  numbers that actually exist: the /cost-report friction line from the telemetry
+  extension, and Oh-My-Pi's own cost/usage surfaces. Use when the user asks for
+  token spend, cost of a run, a cost regression check after /code-review or an
+  orchestration run, or budget pace.
+argument-hint: none
 user-invocable: true
-allowed-tools: >-
-  bash(python3 *, jq *, tail *, cat *, ls *)
+allowed-tools: read, bash(omp usage *), bash(omp stats *)
 ---
 
-# Cost Report (#102)
+# Cost Report
 
-Role: worker. Reports runtime cost/token spend captured by the cost meter.
+Two things share this name. Keep them apart:
 
-Token cost is recoverable two ways, both converting tokens→dollars via
-`skill://dev-team-knowledge/model-pricing.json`:
+1. **`/cost-report`** — a command registered by the **`telemetry` extension**. It
+   prints one friction line for the current session and appends it to
+   `~/.omp/state/dev-team/<repoId>/telemetry.jsonl`:
 
-- **Live (current OMP).** Every assistant message carries per-turn `usage`
-  (input/output/**cacheRead/cacheWrite**/`cost`/`reasoningTokens`) on the
-  `turn_end`/`message_end` events, and provider rate-limit headers arrive on
-  `after_provider_response`. token-diet's read-only **`cache-meter`** extension
-  consumes this for **`/cache-health`** (prompt-cache read-rate, churn, cost,
-  thinking-share, quota). Prefer it for live numbers.
-- **Post-hoc (transcript).** A `Stop`/`SubagentStop` meter parses the session
-  transcript into `metrics/cost-metering.jsonl` for the per-agent/total report
-  below. **Caveat:** the `hooks/lib/cost_meter.py` this skill documents is **not
-  present in this repo**, so this path is aspirational until it (or a live port
-  over `turn_end.usage`) is implemented — use `/cache-health` meanwhile.
+   ```
+   turns=12 ctx=n/a errors=1 | read:31 bash:14 edit:9 task:3
+   ```
 
-> Historical note: this skill is a Claude-Code-era port that assumed "token usage
-> is not available to hooks." That is no longer true on current OMP (see the Live
-> path above and `docs/upstream-omp-runtime.md`).
+   Turns, per-tool call counts, and errored tool calls. **It does not know about
+   tokens, models, or dollars** — the extension never sees `usage` data.
+
+2. **Money and tokens** — those live in OMP, which meters every request itself.
+   Use the native surfaces below; do not reconstruct them here.
 
 ## Steps
 
-1. **Per-session breakdown.** If the user passes `--transcript <path>` (or you
-   know the current transcript path), run an exact per-agent report:
+1. Run `/cost-report` for this session's friction line. Report it verbatim.
 
-   ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/lib/cost_meter.py report --transcript <path>
-   ```
+2. For spend, tokens, and cache economics, use the native surfaces:
 
-   Otherwise show the most recently recorded session from the metrics log:
+   | question | surface |
+   |---|---|
+   | live cost, cache read/write, cache hit-rate, context fill | statusline segments `cost`, `cache_read`, `cache_write`, `cache_hit`, `context_pct`, `usage` |
+   | what has this account spent, and against which limits | `/usage`, or `omp usage --json` for parseable output |
+   | am I on pace / trending over a window | `omp usage --history --days 30` |
+   | full breakdown, dashboard or JSON dump | `/stats`, `omp stats --summary`, `omp stats --json` |
 
-   ```bash
-   tail -n 1 metrics/cost-metering.jsonl | python3 -m json.tool
-   ```
+3. **Cost-regression check.** There is no per-run regression detector in this
+   plugin. Compare the current run against a prior one with
+   `omp usage --history --days <n>` (or two `omp stats --json` snapshots) and say
+   plainly what moved. Name the window you compared; a "regression" with no
+   stated baseline is not a finding.
 
-2. **Regression check.** Compare the latest session's total cost against the
-   rolling mean of prior sessions (default tolerance +50%):
+4. **Budget pace.** `omp usage --history --days N` gives cumulative spend over a
+   window; divide by N for the daily rate and multiply by the billing period for
+   the projection. If the projection exceeds a budget the user stated, say so and
+   suggest dropping a *role* (e.g. move the reviewers that declare `@plan` down to
+   `@smol` in `modelRoles`) rather than naming a specific model — the model behind
+   each role is the user's config, not ours.
 
-   ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/lib/cost_meter.py regression \
-     --log metrics/cost-metering.jsonl --tolerance 0.5
-   ```
+Print exactly what the tools emit. **Do not invent numbers**, and do not multiply
+token counts by a price table to synthesise a cost: OMP already prices each
+request from the live catalog, and a second, staler price table would only
+disagree with it.
 
-3. Report the per-agent, per-command, and per-fix-loop-iteration tokens + cost,
-   the session total, and whether a cost regression was detected. Do not invent
-   numbers — print exactly what the meter emits. If `metrics/cost-metering.jsonl`
-   is absent, tell the user the meter hasn't recorded a session yet (the hook
-   records on turn end).
+## What this skill no longer claims
 
-   For a windowed cost-regression baseline (mean of only the N most recent prior
-   sessions instead of all-time), pass `--window N`:
+- There is **no** `cost_meter.py`, no `Stop`/`SubagentStop` meter, and no
+  `metrics/cost-metering.jsonl`. That whole path was a Claude-Code-era port that
+  documented a script this repo has never contained (there is no `hooks/`
+  directory at all), and it printed four runnable-looking command blocks for it.
+- There is **no** `/cache-health` command. It belonged to token-diet's
+  `cache-meter` extension, which was deleted once OMP's statusline shipped the
+  same cache-hit formula natively.
+- `DEV_TEAM_COST_METER` is read by nothing.
+- `skill://dev-team-knowledge/model-pricing.json` still ships, but nothing in the
+  runtime consumes it; treat it as reference data, not as the instrument behind
+  any number you report.
 
-   ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/lib/cost_meter.py regression \
-     --log metrics/cost-metering.jsonl --tolerance 0.5 --window 10
-   ```
+## Attribution — what is actually attributable
 
-## Attribution dimensions (#102, #170)
-
-`report` breaks spend down by **model** and by **thread** (main-loop vs
-subagent), plus the session **total**.
-
-Attribution is limited to what the Oh-My-Pi (OMP) harness actually records on
-transcript turns. Per-command, per-phase, and per-fix-loop-iteration buckets
-were **removed** (#170): they relied on `attributionSkill` / `orchestrationPhase`
-/ `fixLoopIteration` fields the harness never writes (verified 0/312 in a real
-transcript), and a plugin has no write-path into the transcript — so those
-dimensions were always empty. The main/subagent split uses the native
-`isSidechain` flag, which the harness does provide.
+OMP records usage per request and can split by account and provider. What a
+*plugin* cannot do is attribute spend to a command, an orchestration phase, or a
+fix-loop iteration: those fields were removed once it was verified the harness
+never writes them (0/312 turns in a real transcript) and that a plugin has no
+write path into the transcript. If the user wants per-phase cost, the honest
+answer is that it is not recorded — offer the session-level numbers instead.
 
 ## Privacy boundary
 
-The meter persists **only** token counts, dollar amounts, model identifiers, and
-the main/subagent thread flag — never prompt text, code, file paths, or tool
-payloads. `metrics/cost-metering.jsonl` is a metrics-only artifact by
-construction.
-
-1. **Account pace (optional, #142).** When the user asks "am I on track for my
-   budget", "how much have I burned this week", or "which model should I use for
-   the rest of the period", report account-level pace: cumulative spend over a
-   rolling window, the implied daily rate, and the projected spend for a billing
-   period — flagging when pace would exhaust a stated budget:
-
-   ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/lib/cost_meter.py pace \
-     --log metrics/cost-metering.jsonl --budget 100 --period-days 30 --window-days 7
-   ```
-
-   Without `--budget` it reports pace only (no flag). When it flags an
-   over-budget pace it suggests dropping a model tier (Opus→Sonnet) for the rest
-   of the window.
-
-## Notes
-
-- Disable the meter with `DEV_TEAM_COST_METER=off`.
-- Pricing lives in `skill://dev-team-knowledge/model-pricing.json` — update it when rates change
-  (it is the named instrument for every cost number this skill prints).
+`/cost-report` persists only turn counts, per-tool counts, and an error count —
+never prompt text, code, file paths, or tool payloads. It is written out of tree,
+so it cannot be committed by accident, and nothing is written unless the command
+is run.

@@ -1,15 +1,18 @@
 #requires -Version 5.1
 <#
-  token-diet installer (Windows) — installs the LATEST ctx-wire. caveman/yagni ship
-  as OMP skills. Also sets up acli (Atlassian CLI), ast-grep, and the ctx7 docs
-  CLI. Everything is refreshed to latest by default.
-  (Symbolic C# navigation/edit AND precise C# semantics — rename, exact
-  references, diagnostics, hover — are provided by the dev-team plugin's
-  Serena-backed serena-forge integration, not token-diet.)
-  Flags: -NoUpdate (keep tools already installed), -Yes (non-interactive), -NoConfig,
-         -NoCleanup (don't remove obsolete predecessors: codebase-memory-mcp, CodeGraph, RTK, csharp-ls).
-  Env (acli): ACLI_SITE / ACLI_EMAIL / ACLI_TOKEN — non-interactive acli auth,
-         auto-run on install when acli isn't already authenticated.
+  token-diet installer (Windows) — v2.0.0, refocused.
+  Installs the LATEST ctx-wire + the EN/FR filter pack for the four `dotnet`
+  commands OMP's native shellMinimizer does NOT cover (publish, pack, run,
+  tool), mirrors the extensions and the always-on rule into ~/.omp/agent, and
+  merges config.snippet.yml. caveman ships as an OMP skill.
+  NOT installed any more (OMP does it, or it moved):
+    acli / the atlassian skill -> official remote MCP server, wired by the
+                                  repo-root install.sh
+    ctx7 / the context7 skill  -> official remote MCP server, ditto
+  Flags: -NoUpdate (keep tools already installed), -NoConfig,
+         -NoCleanup (don't remove obsolete predecessors: codebase-memory-mcp,
+         CodeGraph, RTK, csharp-ls).
+         -Yes is accepted for parity with the other installers; nothing prompts.
 #>
 [CmdletBinding()]
 param([switch]$NoUpdate, [switch]$Yes, [switch]$NoConfig, [switch]$NoCleanup)
@@ -27,9 +30,9 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 # --- Clean up obsolete predecessors on (re)install --------------------------
 # Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
 # then codebase-memory-mcp), before ctx-wire, RTK, and a csharp-ls LSP for C#
-# semantics. Those are gone now (symbolic C# code intel AND precise C#
-# semantics moved to the dev-team plugin's Serena-backed serena-forge
-# integration; ctx-wire replaced RTK), but an upgrade/uninstall does NOT remove
+# semantics. Those are gone now (C# navigation and semantics go through OMP's
+# native `lsp` tool, which ships `omnisharp` as a built-in default for
+# `.cs`/`.csx`; ctx-wire replaced RTK), but an upgrade/uninstall does NOT remove
 # what a past install left on the machine. Unregister the dead MCP servers
 # from OMP's mcp.json, uninstall the obsolete csharp-ls dotnet tool + its
 # lsp.json entry, and remove the leftover binaries/dirs. Idempotent,
@@ -84,8 +87,8 @@ function Cleanup-Obsolete {
   }
 
   # 4) Uninstall the obsolete csharp-ls dotnet tool + its lsp.json entry —
-  # precise C# semantics now live in the dev-team plugin's serena-forge
-  # integration (Serena's Roslyn backend), not token-diet.
+  # C# semantics now come from OMP's native `lsp` tool + omnisharp, so a stale
+  # csharp-ls entry in lsp.json only competes with it.
   if ((Have dotnet) -and ((dotnet tool list -g 2>$null) -match '^csharp-ls\s')) {
     Run "dotnet tool uninstall -g csharp-ls"
     Say "  uninstalled csharp-ls (dotnet tool)"; $removed = $true
@@ -128,56 +131,50 @@ if (";$env:Path;" -notlike "*;$BinDir;*") {
   $env:Path = "$env:Path;$BinDir"
 }
 
-# --- acli (official Atlassian CLI — our go-to for Atlassian) -----------------
-if ((Have acli) -and $NoUpdate) { Say "acli present" }
-else {
-  Say "Installing Atlassian CLI (acli)"
-  try { Invoke-WebRequest -Uri 'https://acli.atlassian.com/windows/latest/acli_windows_amd64/acli.exe' -OutFile (Join-Path $BinDir 'acli.exe') }
-  catch { Warn "acli download failed — see https://developer.atlassian.com/cloud/acli/" }
-}
-
-# Authenticate (Jira) when not already logged in — runs automatically (no
-# Y/n gate); non-interactive installs can supply $env:ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN.
-if (Have acli) {
-  acli jira auth status *> $null
-  if ($LASTEXITCODE -ne 0) {
-    if ($env:ACLI_SITE -and $env:ACLI_EMAIL -and $env:ACLI_TOKEN) {
-      $env:ACLI_TOKEN | acli jira auth login --site $env:ACLI_SITE --email $env:ACLI_EMAIL --token *> $null
-      if ($LASTEXITCODE -eq 0) { Write-Host "  acli authenticated ($($env:ACLI_SITE))" } else { Warn "acli auth failed — run 'acli jira auth login' manually." }
-    } elseif (-not $Yes) {
-      Say "Authenticating acli (Jira/Confluence)"
-      $acliSite  = Read-Host "    Atlassian site (e.g. mysite.atlassian.net)"
-      $acliEmail = Read-Host "    Email"
-      $acliToken = Read-Host "    API token (id.atlassian.com -> Security -> API tokens)" -AsSecureString
-      $acliPlain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($acliToken))
-      if ($acliSite -and $acliEmail -and $acliPlain) {
-        $acliPlain | acli jira auth login --site $acliSite --email $acliEmail --token *> $null
-        if ($LASTEXITCODE -eq 0) { Write-Host "  acli authenticated ($acliSite)" } else { Warn "acli auth failed — run 'acli jira auth login' manually." }
-      } else { Warn "incomplete input — run 'acli jira auth login' manually." }
-    } else {
-      Warn "acli not authenticated — set ACLI_SITE/ACLI_EMAIL/ACLI_TOKEN env vars, or run 'acli jira auth login' manually."
-    }
-  }
-}
-
 # --- ast-grep (structural search/rewrite) -----------------------------------
 if ((Have ast-grep) -and $NoUpdate) { Say "ast-grep present" }
 elseif (Have winget) { Say "Installing ast-grep (winget)"; Run "winget install --id ast-grep.ast-grep -e --accept-source-agreements --accept-package-agreements" }
 elseif (Have npm) { Say "Installing ast-grep (npm)"; Run "npm install -g @ast-grep/cli" }
 else { Warn "need npm or winget to install ast-grep — see https://ast-grep.github.io" }
 
-# --- ctx7 CLI (context7 library documentation) ------------------------------
-if (Have npm) {
-  if ((Have ctx7) -and $NoUpdate) { Say "ctx7 CLI present" }
-  else { Say "Installing ctx7 CLI"; Run "npm install -g ctx7" }
-} else { Warn "npm not found — ctx7 unavailable (install Node.js)" }
+# NOTE (parity gap, deliberate): the EN+FR ctx-wire filter merge lives in
+# install.sh only. ctx-wire's Windows user-tier filter path is not pinned here,
+# so rather than guess at it we leave `ctx-wire` to its own defaults on Windows.
+# Run `ctx-wire verify` after adding filters/*.toml by hand if you need them.
 
-# --- Enable the bundled skills (caveman, yagni, token-diet) -
+# --- Merge config.snippet.yml into ~/.omp/agent/config.yml -------------------
+# Same contract as scripts/lib/cfg.sh on the Unix side: append ONLY the
+# top-level keys that are not already declared. The old behaviour (grep for one
+# banner, else append the WHOLE snippet) re-declared `skills:`, `commands:` and
+# `disabledProviders:` as second top-level keys whenever the repo-root installer
+# had already written them — and most YAML parsers silently last-wins on a
+# duplicate top-level key, which is the opposite of "your values are preserved".
 if (-not $NoConfig) {
   $cfg = Join-Path $HOME ".omp\agent\config.yml"
   New-Item -ItemType Directory -Force -Path (Split-Path $cfg) | Out-Null
-  if ((Test-Path $cfg) -and (Select-String -Path $cfg -Pattern 'token-diet skills' -Quiet)) { Say "Skills already enabled in $cfg" }
-  else { "`n" + (Get-Content -Raw (Join-Path $Here 'config.snippet.yml')) | Add-Content -Path $cfg; Say "Enabled token-diet skills in $cfg" }
+  if (-not (Test-Path $cfg)) { New-Item -ItemType File -Force -Path $cfg | Out-Null }
+
+  $existing = @(Select-String -Path $cfg -Pattern '^([A-Za-z_][A-Za-z0-9_.-]*):(\s|$)' -AllMatches |
+                ForEach-Object { $_.Matches[0].Groups[1].Value })
+  $blocks = [ordered]@{}   # top-level key -> its lines (preceding comments included)
+  $key = ''; $pending = @(); $buf = @()
+  foreach ($line in (Get-Content (Join-Path $Here 'config.snippet.yml'))) {
+    if ($line -match '^([A-Za-z_][A-Za-z0-9_.-]*):(\s|$)') {
+      if ($key -ne '') { $blocks[$key] = $buf }
+      $key = $Matches[1]; $buf = $pending + $line; $pending = @()
+    } elseif ($key -eq '') { $pending += $line }
+    else { $buf += $line }
+  }
+  if ($key -ne '') { $blocks[$key] = $buf }
+
+  $add = @()
+  foreach ($k in $blocks.Keys) { if ($existing -notcontains $k) { $add += $blocks[$k] } }
+  if ($add.Count -eq 0) { Say "token-diet config already present in $cfg (nothing to add)" }
+  else {
+    $stamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    ("`n# --- token-diet (merged $stamp) ---`n" + ($add -join "`n") + "`n") | Add-Content -Path $cfg
+    Say "token-diet config merged into $cfg"
+  }
 }
 
 # --- Load the context-transform extensions ----------------------------------
@@ -188,7 +185,7 @@ if (Test-Path $src) {
   New-Item -ItemType Directory -Force -Path $dest | Out-Null
   Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
   $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
-  Say "read-dedup + context-dedup + context-compress (safe) loaded into $dest"
+  Say "extensions loaded into $dest: path-inject (always on) + context-compress (OFF unless TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full)"
 }
 
 # --- Load the always-on OMP-native rule (ctx-wire token-tool routing) ---
@@ -225,6 +222,17 @@ if (-not $NoConfig -and (Test-Path $claudeMd) -and -not (Test-Path $agentsMd)) {
 # NOTE: unlike install.sh, we can't reliably probe an already-running OMP
 # process's inherited environment from here (no non-interactive-login-shell
 # equivalent) — so this warning is unconditional rather than detected.
-Warn "ctx-wire shims, acli, ast-grep, and ctx7 write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
+Warn "ctx-wire shims and ast-grep write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
 
-Say "token-diet active: ctx-wire shims, ast-grep, ctx7, acli, /caveman + /yagni. Restart omp."
+Say "token-diet active: ctx-wire shims, ast-grep, provider isolation, /caveman. Restart omp."
+
+# Cost + prompt-cache visibility is native — v1.x forked OMP's own status-line
+# renderer to inline it; OMP ships the numbers as first-class segments
+# (omp packages/coding-agent/src/modes/components/status-line/segments.ts:
+# cost, context_pct, cache_read, cache_write, cache_hit, usage).
+Say "For live cost/cache numbers, add to ~/.omp/agent/config.yml:"
+@'
+    statusLine:
+      preset: custom
+      rightSegments: [cost, cache_hit, cache_write, context_pct, usage]
+'@ | Write-Host

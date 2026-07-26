@@ -25,8 +25,15 @@ Produces a queryable per-concept glossary at `.plans/domain/`. Each concept gets
 Run the colocated gather script. It collects raw candidates; it does not decide what is domain language (that is Phase 3's job).
 
 ```bash
-bash .claude/skills/ubiquitous-language/scripts/collect-domain-signals.sh "$ARGUMENTS"
+bash scripts/collect-domain-signals.sh "$ARGUMENTS"
 ```
+
+`scripts/` is **relative to this skill's own directory**, not to the repo you are
+analysing. When a skill is user-invoked, OMP appends `[Skill directory: <abs
+path>]` to the loaded skill and instructs you to resolve relative paths like
+`scripts/foo.sh` against it — so prefix that absolute path when you actually run
+the command. (A plugin-root variable would *not* work here: OMP substitutes it
+only in discovery configs, never inside a skill body.)
 
 The script writes to `.plans/raw/domain-language/`:
 

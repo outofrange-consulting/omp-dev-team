@@ -31,7 +31,7 @@ two specific deepenings.
 `ci-validate-json` 23/23 · every `skill://` ref in the new files resolves ·
 extensions compile · unit suite green.
 
-## Noted for the model-routing follow-up
+## Noted for the model-resolution follow-up
 The `test-design` skill still references a stale `hooks/agent-model-resolve.sh`
-(we resolve via the `model-routing` OMP extension now) — to be cleaned up in the
+(model resolution is OMP-native now: `modelRoles` + `@role` aliases; the plugin-side resolver was retired — see `docs/upstream-v8-v10.md`) — to be cleaned up in the
 routing work.
