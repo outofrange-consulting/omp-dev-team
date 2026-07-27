@@ -1,24 +1,14 @@
 {
   "name": "@omp-dev-team/dev-team",
-  "version": "2.0.0",
-  "description": "Dev-team plugin manifest for Oh-My-Pi. Declares the blocking-guard extensions (plan-gate, review-gate, path/freeze/spec guards, the .NET build gate) so a marketplace install loads them; agents/skills/commands/.mcp.json are discovered by their conventional sibling directories.",
+  "version": "10.20.0",
+  "description": "Faithful port of bdfinst/agentic-dev-team's dev-team plugin (v10.20.0) to Oh-My-Pi. Agent prompts, skill bodies, the knowledge corpus and all 130 Python hooks/scripts are copied byte-for-byte; only the Claude Code -> OMP format conversion is applied.",
   "license": "MIT",
   "private": true,
   "omp": {
     "extensions": [
-      "./extensions/path-guard.ts",
-      "./extensions/destructive-guard.ts",
-      "./extensions/serena-build-net.ts",
-      "./extensions/careful-mode.ts",
-      "./extensions/freeze-guard.ts",
-      "./extensions/spec-guard.ts",
-      "./extensions/plan-gate.ts",
-      "./extensions/review-gate.ts",
-      "./extensions/impl-verify.ts",
-      "./extensions/telemetry.ts",
-      "./extensions/canary.ts",
-      "./extensions/domain-scope.ts"
+      "./extensions/plugin-root.ts",
+      "./extensions/hook-bridge.ts"
     ]
   },
-  "comment": "v2.0.0: model-routing.ts (the effort-band resolver) is retired - upstream ADT deleted the equivalent machinery in ADR-0026 in favour of the harness's own model/effort resolution, and OMP resolves modelRoles + role aliases natively. serena-enforce.ts is retired too: OMP ships an `lsp` tool with definition/references/symbols/hover/rename/code_actions and auto-detects omnisharp for C#, so an unconditional deny on native .cs writes bought nothing and hard-required an external MCP. serena-build-net.ts stays - nothing native blocks session end on a red build."
+  "comment": "Version tracks UPSTREAM's version deliberately, so `dev-team 10.20.0` means exactly upstream v10.20.0 plus the format conversion. Only two extensions: plugin-root exports $DEV_TEAM_ROOT (OMP does not substitute ${CLAUDE_PLUGIN_ROOT} in markdown bodies), and hook-bridge runs upstream's 38 Python hook invocations against their own stdin-JSON / exit-code contract, since OMP has no `type: command` hooks. Regenerate the whole plugin with `node scripts/port-upstream-dev-team.mjs --from <adt-clone>/plugins/dev-team`; CI runs it with --check so a hand edit to a ported file fails the build. REQUIRES python3 (upstream's hooks/py.sh resolves python3 / py -3 / python)."
 }

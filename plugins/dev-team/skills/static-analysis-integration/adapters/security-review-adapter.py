@@ -6,12 +6,11 @@ plugins/dev-team/agents/security-review.md for the agent-output
 schema) and emits one unified-finding envelope v1 (JSONL) per issue.
 
 Rule_id lookup is driven by the canonical mapping at
-plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml. This
+plugins/dev-team/knowledge/security-review-rule-map.yaml. This
 adapter contains NO inline rule_id literals beyond the
 ``security-review.`` namespace prefix constant used for the
-fallback path. Upstream enforces that invariant with an AST-level test
-under evals/; this port has no evals/ tree, so the invariant is
-review-enforced — do not add a rule_id literal below.
+fallback path; the single-source-of-truth invariant is enforced by an
+AST-level test in evals/security-review-adapter/tests/.
 
 Contract, error semantics, and failure modes are documented in
 plugins/dev-team/skills/static-analysis-integration/references/security-review-adapter.md.
@@ -24,7 +23,7 @@ import json
 import os
 import re
 import sys
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 # Resolved at startup; exposed via module-level for test inspection.
 _SCHEMA_PATH = os.path.abspath(
@@ -52,16 +51,14 @@ _THIS_FILE = os.path.abspath(__file__)
 _ADAPTER_DIR = os.path.dirname(_THIS_FILE)
 # /plugins/dev-team/skills/static-analysis-integration/adapters -> /plugins/dev-team
 _PLUGIN_ROOT = os.path.abspath(os.path.join(_ADAPTER_DIR, "..", "..", ".."))
-# The corpus lives under skills/dev-team-knowledge/, NOT under a top-level
-# knowledge/ dir — there is no such dir in this port. The old
-# `_PLUGIN_ROOT/knowledge/...` default resolved to a missing file, so every
-# invocation without an explicit --mapping hard-failed.
 _DEFAULT_MAPPING_ABS = os.path.join(
-    _PLUGIN_ROOT, "skills", "dev-team-knowledge", "security-review-rule-map.yaml"
+    _PLUGIN_ROOT, "knowledge", "security-review-rule-map.yaml"
 )
-_DEFAULT_MAPPING_REL = (
-    "plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml"
-)
+_DEFAULT_MAPPING_REL = "plugins/dev-team/knowledge/security-review-rule-map.yaml"
+
+# Stdlib-only YAML subset parser (ADR 0014/0015 — no third-party imports in
+# shipped plugins/dev-team/ code); lives at plugins/dev-team/hooks/lib/.
+sys.path.insert(0, os.path.join(_PLUGIN_ROOT, "hooks", "lib"))
 
 
 def _fail_mapping(path: str) -> None:
@@ -69,33 +66,29 @@ def _fail_mapping(path: str) -> None:
     sys.exit(1)
 
 
-def _load_mapping(path: str) -> Dict[str, str]:
+def _load_mapping(path: str) -> dict[str, str]:
     """Load the YAML mapping. Hard-fails with a specific ERROR on any issue."""
-    try:
-        import yaml  # local import so --help works without pyyaml
-    except ImportError as exc:  # pragma: no cover
-        print(
-            f"ERROR: pyyaml not installed; install with 'pip install pyyaml' ({exc})",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    from minimal_yaml import YamlError, parse_yaml  # local import; cheap, stdlib-only
+
     try:
         with open(path, "r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+            data = parse_yaml(fh.read())
     except FileNotFoundError:
         _fail_mapping(path)
-    except yaml.YAMLError:
+    except YamlError:
         _fail_mapping(path)
-    if not isinstance(data, dict) or "mappings" not in data or not isinstance(
-        data.get("mappings"), dict
+    if (
+        not isinstance(data, dict)
+        or "mappings" not in data
+        or not isinstance(data.get("mappings"), dict)
     ):
         _fail_mapping(path)
     return {str(k): str(v) for k, v in data["mappings"].items()}
 
 
 def resolve_rule_id(
-    category: str, mapping: Dict[str, str], mapping_path: str
-) -> Tuple[str, Optional[str]]:
+    category: str, mapping: dict[str, str], mapping_path: str
+) -> tuple[str, str | None]:
     """Resolve a category to a rule_id.
 
     Returns (rule_id, warning_or_none). The caller prints the warning to stderr
@@ -115,13 +108,12 @@ def resolve_rule_id(
         return mapping[category], None
     minted = _FALLBACK_NAMESPACE + category.lower()
     warning = (
-        f"WARN: category {category} not in mapping at {mapping_path}; "
-        f"minted {minted}"
+        f"WARN: category {category} not in mapping at {mapping_path}; minted {minted}"
     )
     return minted, warning
 
 
-def _build_finding(issue: Dict[str, Any], rule_id: str) -> Dict[str, Any]:
+def _build_finding(issue: dict[str, Any], rule_id: str) -> dict[str, Any]:
     """Map an agent issue to a unified-finding envelope."""
     return {
         "rule_id": rule_id,
@@ -196,9 +188,7 @@ def main(argv=None) -> int:
                     file=sys.stderr,
                 )
                 return 1
-            rule_id, warning = resolve_rule_id(
-                issue["category"], mapping, args.mapping
-            )
+            rule_id, warning = resolve_rule_id(issue["category"], mapping, args.mapping)
             if warning:
                 print(warning, file=sys.stderr)
             finding = _build_finding(issue, rule_id)

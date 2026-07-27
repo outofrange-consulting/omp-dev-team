@@ -1,17 +1,23 @@
 ---
+
 name: js-fp-review
 description: Array mutations, parameter mutations, global state, impure patterns in JS/TS
-tools: read, search, find
-# Was pi/task: @task is session-inheriting (model-resolver.ts:936-943), not a cheap tier.
+tools: read, grep, glob
 model: "@smol, @default"
-thinking-level: low
-blocking: true
-# Verbatim file bytes, not structural summaries: mutation is expression-level
-# (`arr.push`, `obj.x =`, a reassigned parameter). A signature-level summary shows none of it.
-read-summarize: false
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # JS FP Review
+
+Scope:
+- **/*.js
+- **/*.ts
+- **/*.jsx
+- **/*.tsx
+- **/*.mjs
+- **/*.cjs
+Cites: [adversarial-review-protocol]
 
 Scope: JavaScript and TypeScript files only (`.js`, `.ts`, `.jsx`, `.tsx`).
 Skip this agent entirely if the project has no JS/TS files.
@@ -25,7 +31,6 @@ Output JSON:
 Severity: error=external state mutation, warning=local mutation, suggestion=style
 Confidence: high=mechanical substitution (push→spread, let→const); medium=pattern clear but spread vs clone depends on usage; none=requires human judgment (intentional mutation for performance)
 
-Model tier: small
 Context needs: diff-only
 
 ## Skip
@@ -76,14 +81,18 @@ Impure patterns:
 - Functions depending on/modifying external state
 - `++`/`--` outside loop counters
 
+## Self-Challenge
+
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these js-fp-review-specific challenges:
+
+- Did you enumerate every declaration and call site in the diff, or stop after the first few mutations?
+- For each array-mutation finding, did you verify it mutates a shared/external reference, not a locally-constructed spread copy (`[...arr].sort()` is allowed)?
+- Did you respect the documented exceptions (`mut`/`mutable`/`_` prefixes, `this.property` in class methods) before flagging?
+- For each `let`→`const` finding, did you confirm the binding is never reassigned anywhere in scope?
+- Is there parameter or global mutation you walked past because it "looked intentional" without an exception marker?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
+
 ## Ignore
 
 Code structure, naming, tests, domain modeling, security (handled by other agents)
-
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
-## Self-Challenge
-
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#js-fp-review` (the shared challenger loop + the js-fp-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

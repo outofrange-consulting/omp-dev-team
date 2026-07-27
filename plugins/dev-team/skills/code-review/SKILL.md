@@ -8,28 +8,41 @@ description: >-
   before commits and pull requests.
 argument-hint: >-
   [--agent <name>] [--since <ref>] [--path <dir>] [--all] [--json]
-  [--force --reason "<text>"] [--static-analysis|--no-static-analysis]
-  [--init-risks] [--background]
+  [--internal] [--force --reason "<text>"]
+  [--static-analysis|--no-static-analysis] [--init-risks] [--background]
+  [--pdf]
 user-invocable: true
 allowed-tools: >-
-  read, edit, search, find, ask,
-  bash(git diff *), bash(npx *), bash(npm run *),
-  bash(pnpm *), bash(yarn *), bash(tsc *), bash(eslint *),
-  bash(git log *), bash(gh run *), bash(semgrep *),
-  bash(pylint *), skill(review-agent *)
+  Read, Write, Edit, Grep, Glob, AskUserQuestion, Agent,
+  Bash(git diff *), Bash(npx *), Bash(npm run *),
+  Bash(pnpm *), Bash(yarn *), Bash(tsc *), Bash(eslint *),
+  Bash(git log *), Bash(gh run *), Bash(semgrep *),
+  Bash(ruff *), Bash(mypy *), Skill(review-agent *)
 ---
 
 # Code Review
 
-Role: orchestrator. Route work to review agents; do not review code yourself. Dispatch each agent by **name** through the `task` tool (`agent: "<name>"`) and let OMP resolve its model from the agent's own `model:` frontmatter against `modelRoles` — see the Resolution Procedure in `agents/orchestrator.md`. There is no plugin-side resolver to feed.
+**The review-agent panel is the primary quality gate** (Rec 5,
+`docs/experiments/RECOMMENDATIONS.md`). The review-agent lens — SRP,
+complexity, coupling, duplication — was the only quality axis that separated
+workflow arms in the experiment line. Coverage and mutation scores saturate
+near-identically across every workflow shape and must **never** be used to
+rank workflow quality: the losing big-batch and split arms posted *higher*
+mutation scores (0.93–0.98) than the two winners (0.80–0.86). A higher
+coverage or mutation number is not evidence that code — or the workflow that
+produced it — is better. (The deterministic static-analysis pre-pass below is
+a different, complementary axis: mechanical findings cleared before the
+semantic panel runs, not a metric competing with it.)
 
-Output templates and JSON schemas: [`code-review/output-format.md`](code-review/output-format.md). Example report: [`code-review/examples/sample-report.md`](code-review/examples/sample-report.md).
+Role: orchestrator. Route work to review agents; do not review code yourself. Pass each agent's tier alias (from its `model:` frontmatter) when dispatching — the PreToolUse hook `hooks/agent_model_resolve.py` resolves it to the active snapshot per the Resolution Procedure in `agents/orchestrator.md`.
+
+Output templates and JSON schemas: [`output-format.md`](output-format.md). Example report: [`examples/sample-report.md`](examples/sample-report.md).
 
 ## Orchestrator constraints
 
 1. **Do not review code yourself.** Delegate all semantic analysis to review agents.
 2. **Minimize context per agent.** Pass only what each agent's `Context needs` field requires.
-3. **Do not route models.** Each agent's `model:` frontmatter declares its own role floor (`@smol` / `@plan` / `@slow` / `@designer`, with `@default` as fallback) and OMP resolves it. Naming a concrete model when you dispatch would both override a deliberate floor and reintroduce a vendor-name dependency — the `task` tool has no `model` parameter for exactly that reason. The one per-call knob is `effort: "lo" | "med" | "hi"`, and **review passes none**: it runs at the floor (`agents/orchestrator.md` → Resolution Procedure).
+3. **Route to the right model tier.** Each agent's `model:` frontmatter declares its tier alias (`haiku`/`sonnet`/`opus`); the PreToolUse hook `hooks/agent_model_resolve.py` resolves it to the active snapshot per `agents/orchestrator.md` → Resolution Procedure. Do not override the frontmatter value.
 4. **Run deterministic gates first.** Lint, type-check, secret scan are cheaper than AI. Stop if they fail.
 5. **Return structured results.** Aggregate agent JSON; do not add your own findings.
 6. **Be concise.** Tables and JSON, no preambles, no filler.
@@ -39,16 +52,21 @@ Output templates and JSON schemas: [`code-review/output-format.md`](code-review/
 Arguments: $ARGUMENTS
 
 | Flag | Behavior |
-|---|---|
+| --- | --- |
 | `--agent <name>` | Run only the named agent (delegates to `/review-agent`) |
 | `--since <ref>` | Review files changed since the ref (`git diff --name-only <ref>...HEAD`) |
 | `--path <dir>` | Review only files in this directory |
 | `--all` | Force full-repository review even when uncommitted changes exist |
-| `--json` | Output aggregated JSON instead of prose (for CI integration) |
-| `--init-risks` | Scaffold `ACCEPTED-RISKS.md` from `templates/ACCEPTED-RISKS.md.tmpl` if absent. Exits non-zero without overwriting if present. Schema: `skill://dev-team-knowledge/accepted-risks-schema.md`. |
-| `--force` | Skip pre-flight gates **and the documentation-only short-circuit** (forces a full review of doc-only changes). **Requires `--reason "<text>"`** — logged to `metrics/override-audit.jsonl`. |
+| `--slice <N>` | Engage sliced large-repo review explicitly, capping each slice at N files (module-aligned) at any repo size. `N` must be a positive integer. See [`sliced-mode.md`](sliced-mode.md). |
+| `--resume` | Resume a sliced run — skip slices whose section artifact already exists on disk. See [`sliced-mode.md`](sliced-mode.md). |
+| `--no-slice` | Escape hatch — force the legacy single-pass review even on a large full-repo scope that would otherwise auto-engage sliced mode. |
+| `--json` | Output aggregated JSON to **stdout** instead of prose. Contractually non-interactive (for CI): never prompts; defaults to report-only (no code modified). |
+| `--pdf` | After the durable report is written, also render it to a sibling PDF via `hooks/lib/report_pdf.py`. See `knowledge/report-pdf-integration.md`. No-op with a message when no report file is written (`--json` or `--internal`); under `--json`, that status goes to **stderr** so stdout stays pure JSON. Additive: never changes the review's own output or exit status. |
+| `--internal` | This is an orchestrator-internal dispatch (`/build`'s Step 6 backstop review, `/test-improve`'s Phase 4/5 end-of-phase review loop) — skip the `.dev-team-reports/code-review.md` report write in step 7. Orthogonal to `--json`: `--internal` alone still runs the prose/fix-loop path; both sanctioned callers use `--internal` without `--json` specifically to keep the fix loop. `/build` and `/test-improve` are the only sanctioned callers of this flag today — see `knowledge/report-output-location.md` for `/ship`'s deliberate exception (writes the report by default, no `--internal`). |
+| `--init-risks` | Scaffold `ACCEPTED-RISKS.md` from `templates/ACCEPTED-RISKS.md.tmpl` if absent. Exits non-zero without overwriting if present. Schema: `knowledge/accepted-risks-schema.md`. |
+| `--force` | Skip pre-flight gates **and the documentation-only short-circuit** (forces a full review of doc-only changes). **Requires `--reason "<text>"`** — logged to `.claude/metrics/override-audit.jsonl`. |
 | `--reason "<text>"` | Override justification (required with `--force`) |
-| `--static-analysis` / `--no-static-analysis` | Force on/off the static analysis pre-pass (Semgrep, ESLint, TypeScript, pylint). Auto-enabled when tools are detected. |
+| `--static-analysis` / `--no-static-analysis` | Force on/off the static analysis pre-pass (Semgrep, ESLint, TypeScript, Ruff, mypy). Auto-enabled when tools are detected. |
 | `--background` | Drift review mode — review default branch for documentation, naming, and structural drift. Runs doc-review, arch-review, naming-review, structure-review only. Skips pre-flight gates. |
 | (no flags) | **Auto-scope**: review uncommitted changes if any exist, otherwise full repository |
 
@@ -80,13 +98,26 @@ Priority order:
 3. `--all` — all source files
 4. **Auto-scope** (no flags): run `git diff --name-only` + `git diff --cached --name-only`, combine and dedupe. If non-empty, review those files. If empty, review the full repository.
 
+**Never `Read` a directory path directly to enumerate its contents** — `Read` on a directory throws `EISDIR` (the same hazard step 3 avoids for agent-roster enumeration). This applies to `--path <dir>`, `--all`, and the full-repository fallback alike: always list files with `Glob` (e.g. `Glob("<dir>/**/*")`), never a bare `Read` on the directory itself. See `skill://dev-team-knowledge/directory-enumeration.md` for the shared rule.
+
 **Scope validation** (full-repo paths only):
 
 | File count | Action |
-|---|---|
+| --- | --- |
 | ≤200 | Proceed |
 | 201–500 | Warn: "Reviewing {N} files — consider `--path` to narrow scope." Proceed. |
-| >500 | Warn + confirm: "Reviewing {N} files is expensive. Continue?" Wait. |
+| >500 | **Auto-engage sliced mode** (large-repo review) unless `--no-slice`. |
+
+**Sliced large-repo review.** On a full-repo scope exceeding the >500 tier (or
+whenever `--slice <N>` is passed), **auto-engage sliced mode**: run the sliced
+path in [`sliced-mode.md`](sliced-mode.md) instead of steps 4–9 below. That file
+owns the full activation precedence (via `scripts/activation.py`), partitioning,
+per-slice panels, persist-and-drop, `--resume`, and cross-slice consolidation —
+not restated here. `--no-slice` forces the legacy single-pass review (steps 2–9)
+even past the threshold; Exactly at 500 files does not auto-engage.
+**Non-full-repo scope** (`--path`, `--since`, auto-scoped uncommitted changes)
+**never** auto-engages, regardless of file count — the review proceeds exactly
+as before this feature. Sliced mode is **report-only** (no interactive fix loop).
 
 **Documentation-only short-circuit.** After the target set is known, classify each file. A file is **documentation** when it matches a doc type or path:
 
@@ -94,12 +125,12 @@ Priority order:
 - any path under a `docs/` directory
 - a root doc: `README*`, `CHANGELOG*`, `CONTRIBUTING*`, `LICENSE*`, `NOTICE*`, `AUTHORS*`, `CODE_OF_CONDUCT*`
 
-…**except functional agent-harness markdown, which is never documentation** (it drives agent/skill/command/rule behavior and must be reviewed): anything under an `agents/`, `skills/`, `commands/`, `prompts/`, `rules/`, or `templates/agents/` directory, or under a harness config directory (`.omp/`, and the equivalent dot-directory of any other harness the repo carries). Treat `CLAUDE.md`, `AGENTS.md` and `OMP.md` as functional config too, not documentation.
+…**except functional Claude-config markdown, which is never documentation** (it drives agent/skill/command behavior and must be reviewed): any path containing a `.claude/` segment, or under `agents/`, `skills/`, `prompts/`, `knowledge/`, or `templates/agents/`. Treat `CLAUDE.md` and `AGENTS.md` as functional config too, not documentation.
 
 If **every** target file is documentation, short-circuit:
 
 1. Emit: `Documentation-only changeset ({N} files) — skipping code review. Re-run with --force --reason "<text>" to review anyway.`
-2. If the review was auto-scoped to uncommitted changes, clear the commit gate (per step 9) so the next commit is not blocked.
+2. If the review was auto-scoped to uncommitted changes, write the `.review-passed` gate file (per step 9) so the pre-commit hook allows the commit.
 3. In `--json` mode, emit `{"status": "skipped", "reason": "documentation-only", "files": [<list>]}` instead.
 4. **Stop.** Do not run pre-flight gates, static analysis, or any agent.
 
@@ -112,13 +143,14 @@ If `REVIEW-CONTEXT.md` exists at the repo root, read it and pass its contents to
 ### 1c. Probe for optional MCP tools
 
 | Tool | Check | Use |
-|---|---|---|
+| --- | --- | --- |
 | RoslynMCP | `get_code_metrics` / `search_symbols` available | C# metrics, compiler diagnostics |
-| Code knowledge graph | `list_repos` available | Cross-repo dependency mapping |
+| CodeGraph | `.codegraph/` present / `mcp__codegraph__codegraph_explore` available | Verified structural skeletons, resolved callers/callees/impact |
+| Repowise | `get_context` / `get_symbol` / `search_codebase` / `get_risk` available | Verified file/symbol context + modification-risk lookups |
 | Documentation MCP | wiki/docs search available | Architecture docs |
 | Semgrep | `which semgrep` | SAST context for security-review |
 
-Pass availability info to each agent so they can use enhanced tools or fall back to Glob/Grep/Read. Include in the final report per `skill://dev-team-knowledge/review-template.md`.
+Pass availability info to each agent so they can use enhanced tools or fall back to Glob/Grep/Read. When CodeGraph or Repowise is available, instruct agents to **prefer `get_context` (verified skeleton) first, then `get_symbol`/`codegraph_explore` for bodies**, and use `Read`/`Grep` only to confirm a specific line or when the index can't serve a file — this cuts token cost and gives resolved call graphs instead of grep heuristics. All read-only review agents grant these MCP tools; the grant is inert (no error) when the server is absent. Include availability in the final report per `knowledge/review-template.md`.
 
 ### 2. Pre-flight gates
 
@@ -128,7 +160,7 @@ Skip entirely if `--background`. If `--force` without `--reason`, halt:
 ERROR: --force requires --reason "<justification>".
 ```
 
-If `--force` with `--reason`, append an entry to `metrics/override-audit.jsonl` per the schema in [`output-format.md`](code-review/output-format.md#override-audit-log-entry-step-2---force-path), then proceed to step 3.
+If `--force` with `--reason`, append an entry to `.claude/metrics/override-audit.jsonl` per the schema in [`output-format.md`](output-format.md#override-audit-log-entry-step-2---force-path), then proceed to step 3.
 
 Otherwise run these in sequence (stop on first failure):
 
@@ -144,7 +176,7 @@ Skip any gate silently if its tool is unavailable.
 
 Skip if `--no-static-analysis` or `--background`.
 
-Follow the detection, execution, and deduplication procedure in [`skill://static-analysis-integration`](../skill://static-analysis-integration). Output is structured findings injected into agent context in step 4. **This step does not gate execution** — it collects context only.
+Follow the detection, execution, and deduplication procedure in [`skills/static-analysis-integration/SKILL.md`](../static-analysis-integration/SKILL.md). Output is structured findings injected into agent context in step 4. **This step does not gate execution** — it collects context only.
 
 If Semgrep already ran in the pre-flight gate, reuse those findings. Do not run Semgrep twice.
 
@@ -152,11 +184,90 @@ If Semgrep already ran in the pre-flight gate, reuse those findings. Do not run 
 
 If `--background`: run only `doc-review`, `arch-review`, `naming-review`, `structure-review`. Skip all others.
 
-Otherwise enumerate review agents from `agents/*.md` (identified by a `Model tier:` field in body). All are enabled by default.
+Otherwise read the roster from the **Review Agents** section of `knowledge/agent-registry.md` — each row names an agent and its `agents/<name>.md` file. **Never `Read` the bare `agents/` directory** (it throws `EISDIR`); if you must confirm files on disk, list them with `Glob("agents/*.md")`, never a directory `Read` (see `skill://dev-team-knowledge/directory-enumeration.md`). All are enabled by default.
 
-**Language-agnostic agents always run** regardless of tech stack: `doc-review`, `arch-review`, `token-efficiency-review`.
+**Agent eligibility is self-declared via a `Scope:` body declaration.** `Scope:` is not part of the official sub-agent frontmatter contract (`agent-contract.json`), so it lives in the agent's body, not its frontmatter. For each agent in the roster, read its `agents/<name>.md` body and apply this rule:
+
+- `Scope: always` → agent is eligible regardless of tech stack or file types in scope.
+- `Scope:` (list of glob patterns) → agent is eligible only when at least one target file matches at least one of the declared globs (e.g. `**/*.svelte` matches any `.svelte` file). Skip the agent entirely if no target file matches.
+- Agent has no `Scope:` declaration → treat as `Scope: always` and emit a warning that the agent is missing its `Scope:` declaration.
+
+This replaces any hardcoded per-agent dispatch rules. Adding or changing a review agent's trigger scope requires only editing that agent's own body — zero edits to this skill.
+
+**Framework-specific reactivity review** — dispatch based on the project's dependency manifest (`package.json` etc.):
+
+- React (`react` / `react-dom` in deps): include `react-reactivity-review` scoped to `.jsx`/`.tsx` and React-importing `.js`/`.ts` files
+- Vue (`vue` in deps): include `vue-reactivity-review` scoped to `.vue` and Vue-importing `.js`/`.ts` files
+- Angular (`@angular/core` in deps): include `angular-reactivity-review` scoped to `*.component.ts`, `*.component.html`, `*.service.ts`, and general `.ts` files
+- Svelte (`.svelte`/`.svelte.ts`/`.svelte.js` files present): include `svelte-review` scoped to those files (Svelte projects do not require a manifest entry — file presence is sufficient)
+
+**AI-provenance review**: include `ai-provenance-review` whenever test files or production code are in scope. It audits AI-authored assertions and non-obvious decisions for verification debt and regeneration risk.
 
 If `review-config.json` exists at the repo root, honor its per-agent `"enabled": false` flags.
+
+**Change-shape gate for low-yield lenses (#1254).** After the eligible roster is
+known, drop the two low-yield code lenses (`performance-review`,
+`correctness-review`) when the changeset has **no runtime surface** — every
+target file is documentation or config, so those lenses would only no-op. Decide
+deterministically with the shared helper (not by eyeballing the file list):
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/skills/code-review/scripts/change_shape.py" --files <target files>
+```
+
+It prints `{"hasRuntimeSurface": <bool>, "skipLenses": [...]}`. When `skipLenses`
+is non-empty, exclude those agents from this run and note the skip in the report
+(they were gated by change shape, not by `Scope:`). The gate is **fail-safe**: any
+file it cannot prove is doc/config (source, an unknown extension, or functional
+Claude-config markdown under `agents/`, `skills/`, `knowledge/`, `.claude/`, …)
+counts as runtime surface and keeps every lens. This never fires on a pure-docs
+changeset — that is already handled earlier by the documentation-only
+short-circuit; this gate covers the doc/config-**mixed** and config-only diffs
+the short-circuit does not. Bypassed by `--force` and by `--agent <name>` (an
+explicit single-agent request always runs that agent).
+
+**Change-size gate for small changesets (#1339).** After `Scope:` eligibility
+and the change-shape gate above have both been applied, apply this gate —
+never before, and never in a way that re-adds an agent either already removed.
+It narrows the `Scope: always` roster by diff *size* rather than file *type*:
+the pre-commit hook (`hooks/pre_commit_review.py`) only checks that a
+`.review-passed` hash matches the staged diff — it has no coupling to which or
+how many agents ran — so unconditionally dispatching the full panel on every
+review, down to a 2-line change, is this step's decision to make, not the
+hook's.
+
+**Applies only to diff-scoped reviews** — auto-scoped uncommitted changes, or
+`--since <ref>`. `--path`, `--all`, and the full-repository fallback review
+complete files, not a diff, so this gate never engages for those scopes
+(existing eligibility unchanged).
+
+Compute the numstat lines and feed them to the shared helper — for auto-scope,
+union unstaged and staged the same way step 1 unions `--name-only`:
+
+```bash
+# Auto-scope (uncommitted changes):
+{ git diff --numstat; git diff --cached --numstat; } | python3 "$CLAUDE_PLUGIN_ROOT/skills/code-review/scripts/change_size.py" --numstat-from -
+
+# --since <ref>:
+git diff --numstat <ref>...HEAD | python3 "$CLAUDE_PLUGIN_ROOT/skills/code-review/scripts/change_size.py" --numstat-from -
+```
+
+It prints `{"filesChanged": <int>, "addedLines": <int>, "qualifiesForFastPath":
+<bool>, "keepAgents": [...]}`. When `qualifiesForFastPath` is `true`, drop
+every `Scope: always` agent **not** in `keepAgents` (today: `security-review`,
+`correctness-review`, `spec-compliance-review`, `doc-review` — the four lenses
+that stay meaningful at any diff size; the rest are code-quality-at-scale
+concerns a diff this small essentially cannot exhibit meaningfully) and note
+the drop in the report (gated by change size, not by `Scope:`).
+`Scope:`-glob-matched agents are unaffected — they already run only against
+matching file types, so a diff this small already narrows their incremental
+cost to near-zero. The gate is **fail-safe**: any `git diff --numstat` error,
+binary-file marker, or unparseable line disqualifies the run (full panel), as
+does any file under `hooks/` or `skills/code-review/` (the enforcement
+machinery and this gate's own orchestration) — a change there is exactly the
+case where a cheap, self-certifying review is a problem, so it never qualifies
+for the shortcut it defines, regardless of size. Bypassed by `--force` and by
+`--agent <name>`, matching the change-shape gate's bypass list.
 
 ### 4. Run each enabled agent
 
@@ -168,9 +279,11 @@ Spawn agents as parallel subagents in a single message using the `task` tool.
   - `full-file` → complete files
   - `project-structure` → full files + directory tree
   - When reviewing full repository (clean auto-scope, `--all`, or `--path`), always pass full files.
-- **Model**: nothing to pass. `task` takes `agent`, `task`, and optionally `effort` / `name` / `isolated` — there is no `model` parameter. The agent's `model:` frontmatter is its floor and OMP resolves it (`agents/orchestrator.md` → Resolution Procedure). Review passes no `effort` either.
-- **Static analysis context**: if step 2b produced findings, inject into every agent's prompt using the format in `skill://static-analysis-integration`: "These issues were detected by static analysis. Do not re-report them. Focus on semantic concerns."
+- **Model**: pass each agent's declared tier alias (`haiku`/`sonnet`/`opus`) from its `model:` frontmatter. The PreToolUse hook `hooks/agent_model_resolve.py` resolves the tier to the active snapshot per `agents/orchestrator.md` → Resolution Procedure.
+- **Static analysis context**: if step 2b produced findings, inject into every agent's prompt using the format in `skills/static-analysis-integration/SKILL.md`: "These issues were detected by static analysis. Do not re-report them. Focus on semantic concerns."
 - **Per-agent output**: `{"agentName": "<name>", "status": "pass|warn|fail", "issues": [], "summary": "..."}` (full schema in `output-format.md`).
+
+**Graph-assisted review**: if the target repo has `.codegraph/` (CodeGraph MCP server, `mcp__codegraph__codegraph_explore` — fast callers/callees/impact lookups), a Repowise MCP server (`get_context`/`get_symbol`/`search_codebase`/`get_risk` — verified context + modification risk), and/or `graphify-out/graph.json` (Graphify CLI — `graphify query`/`path`/`explain` — architecture and cross-artifact questions), pass availability to **all read-only review agents** — the structural lenses (`arch-review`, `component-architecture-review`, `structure-review`, `domain-review`) benefit most from resolved call graphs, but every lens gains cheaper verified reads — so they may consult the index for impact/dependency context before flagging findings. When CodeGraph or Repowise is present, prefer `get_context` for a verified skeleton, then `get_symbol`/`codegraph_explore` for bodies, using `Read`/`Grep` only to confirm a specific line or when the index can't serve a file. See `knowledge/codegraph-vs-graphify.md` for when to use which. Never assume any tool exists — agents fall back to Read/Grep/Glob when absent, and the granted MCP tools are simply unavailable (no error) on repos without an index.
 
 Wait for all agents to complete before aggregating.
 
@@ -178,7 +291,7 @@ Wait for all agents to complete before aggregating.
 
 #### 5a. Apply ACCEPTED-RISKS.md
 
-If `ACCEPTED-RISKS.md` exists at the repo root, parse its `rules:` YAML frontmatter per `skill://dev-team-knowledge/accepted-risks-schema.md`. For each finding, check rules in declaration order; the first match suppresses and emits one audit entry:
+If `ACCEPTED-RISKS.md` exists at the repo root, parse its `rules:` YAML frontmatter per `knowledge/accepted-risks-schema.md`. For each finding, check rules in declaration order; the first match suppresses and emits one audit entry:
 
 ```
 SUPPRESSED: <file>:<line> [<rule_id>] by ACCEPTED-RISKS rule <rule.id>
@@ -192,28 +305,35 @@ Suppressed findings are removed from scoring, listed under "Suppressed by ACCEPT
 
 #### 5b. Health scoring
 
-Read `skill://dev-team-knowledge/review-rubric.md` for the formula. Compute the overall health score; security failures auto-escalate to 🔴.
+Read `knowledge/review-rubric.md` for the formula. Compute the overall health score; security failures auto-escalate to 🔴.
 
 Classify each issue by actionability:
 
 | Severity | Confidence | Actionable? |
-|---|---|---|
+| --- | --- | --- |
 | error or warning | high or medium | **Yes** — auto-apply |
 | error or warning | none | No — report only (human judgment) |
 | suggestion | any | No — report only |
 
 **Actionable issues** drive the fix loop.
 
+#### 5c. Consolidate cross-agent findings
+
+When multiple agents flag the same `file:line`, emit one `topFindings` entry: `severity` = the single **highest** enum for that finding, `agents` = an array of the reporting agents (e.g. `["structure-review", "complexity-review"]`). Never pack multiple values into `severity` or any agent scalar — no slash- or comma-joined strings. Every scalar field stays single-valued; multi-agent attribution lives only in the `agents: []` array. Schema: [`output-format.md`](output-format.md#aggregated-json-result---json-flag).
+
 ### 6. Present findings and ask for direction
 
 If zero actionable issues, skip to step 7.
 
-Otherwise present the Review Findings prompt (template: [`output-format.md`](code-review/output-format.md#review-findings-prompt-interactive--step-6)) and ask: **"Fix these issues automatically, or save as report only?"**
+Otherwise present the Review Findings prompt (template: [`output-format.md`](output-format.md#review-findings-prompt-interactive--step-6)) and ask: **"Fix these issues automatically, or save as report only?"**
 
 - "Fix" / "apply" / "yes" → step 6a
 - "Report" / "no" / "don't fix" → step 7 (no code modified)
 
-**Exception — non-interactive mode**: if running inside `/build` or `/pr`, skip this prompt and proceed to the fix loop. The caller owns the human gate (the orchestrator's Phase 3 approval for `/build`; the pre-PR confirmation for `/pr`).
+**Exception — non-interactive mode**: skip this prompt when the run is non-interactive.
+
+- (a) If `--json` (or `--yes`), **default to report only** — proceed to step 7 and emit the aggregated JSON; **never modify code** without an explicit caller opt-in. `--json` is contractually non-interactive (CI-safe): it never blocks on this prompt.
+- (b) If running inside `/build`, `/pr`, or `/test-improve`, proceed to the fix loop. The caller owns the human gate (the orchestrator's Phase 3 approval for `/build`; the pre-PR confirmation for `/pr`; for `/test-improve`, the Phase 3 Story-set approval gating entry to Phase 4 and the `[r]evise/[w]aive/[q]uit` prompt raised after 2 failed iterations of its own end-of-phase review loop — see `../test-improve/SKILL.md`'s Phase 4/5 "End-of-phase review loop" sections).
 
 ### 6a. Review-fix loop
 
@@ -238,53 +358,75 @@ if iteration > MAX_ITERATIONS AND actionable_issues > 0:
 **Exit conditions**:
 
 | Condition | Action |
-|---|---|
+| --- | --- |
 | Zero actionable issues | Exit → step 7 |
 | Iteration limit (5) | Exit → escalate |
 | Same issues persist | Exit — not converging |
 | Tests fail after fix and revert | Mark issue human-required; continue |
 
-Track each iteration for the report — template in [`output-format.md`](code-review/output-format.md#review-fix-loop-iteration-log-step-6a-iv).
+Track each iteration for the report — template in [`output-format.md`](output-format.md#review-fix-loop-iteration-log-step-6a-iv).
 
 ### 7. Generate report
 
-Read `skill://dev-team-knowledge/review-template.md` for the structure.
+**Output paths.** All file artifacts (`./corrections/*.json`, `./.review-passed`) are repo-relative to the target repository's working directory (the cwd `/code-review` was invoked in). Never prepend a scratchpad, sandbox, or session root onto an already-absolute path, and never join two absolute paths. `--json` prints to **stdout** and writes no file.
 
-If `--json`, emit the aggregated JSON object per the schema in [`output-format.md`](code-review/output-format.md#aggregated-json-result---json-flag) and stop.
+Read `knowledge/review-template.md` for the structure.
 
-Otherwise emit the prose summary using the Code Review Summary template in [`output-format.md`](code-review/output-format.md#code-review-summary-report-step-7-prose-mode). Append the iteration table.
+**If `--json`: the JSON object is the ONLY output for this run — non-negotiable, not model discretion.** Emit the aggregated JSON object per the schema in [`output-format.md`](output-format.md#aggregated-json-result---json-flag) to **stdout**, write no file, and **stop: do not proceed to step 8 or step 9 in this run, regardless of how many issues were found or whether any are actionable.** There is no fallback to prose, and no `corrections/`/`.review-passed` persistence, in `--json` mode — ever. (`/pr`'s `--json` call already only reads this JSON object's `overall`/`status` field, so this loses nothing a caller depends on.)
+
+**A sentence describing the JSON is not the JSON.** A completed run whose final text reads like "Aggregated JSON emitted to stdout per `--json` contract; run stops here" — with no `{...}` object actually present anywhere in that text — is a contract violation, not compliance, even though it correctly stopped rather than proceeding further. The literal final output of the turn must be the JSON object itself, not a narration of having produced it. If the next action being considered is a summary sentence announcing that the JSON was (or is about to be) emitted, that is the signal to emit the actual object instead — there is no valid end state for a `--json` run that consists of prose alone.
+
+Otherwise (no `--json`): emit the prose summary using the Code Review Summary template in [`output-format.md`](output-format.md#code-review-summary-report-step-7-prose-mode). Append the iteration table.
+
+**Write the durable report (skip when `--internal`).** See
+`knowledge/report-output-location.md` for the shared write-scope convention
+this step follows. When `--internal`
+was **not** passed, write the identical prose summary to
+`.dev-team-reports/code-review.md` in the target repository's working
+directory (creating the directory if absent), overwriting any existing
+file at that path — write it even when the review found zero issues. Print
+one confirmation line: `Report written: .dev-team-reports/code-review.md`,
+or `Report written: .dev-team-reports/code-review.md (replaced previous
+run)` when a file already existed at that path. If the write fails
+(permission/read-only): report `Cannot write
+.dev-team-reports/code-review.md: <error>` to chat and continue unaffected —
+the write failure is non-fatal. When `--internal` **was** passed, skip this
+write entirely (the fix loop and every other prose-mode behavior above are
+unaffected — `--internal` only suppresses this one write). Then continue to
+step 8.
+
+**`--pdf` (additive, after the write).** When `--pdf` was passed and a report
+file **was** written this run, render it to a sibling PDF per
+`knowledge/report-pdf-integration.md`:
+
+```bash
+sh "$CLAUDE_PLUGIN_ROOT/hooks/py.sh" "$CLAUDE_PLUGIN_ROOT/hooks/lib/report_pdf.py" .dev-team-reports/code-review.md
+```
+
+Surface the module's `Rendering PDF via <engine>…` and result lines. When no
+report file was written this run (`--json` or `--internal`), `--pdf` is a
+no-op: state `--pdf: no report file was written this run, nothing to render.`
+and do nothing else. Under `--json`, emit that no-op line (and any render
+status) to **stderr** so stdout stays valid JSON. `--pdf` never alters the
+review's own output or exit status — a missing engine or render error is
+non-fatal.
 
 ### 8. Save correction prompts for remaining issues
 
-For issues NOT auto-fixed (confidence: none, auto-fix failed, or suggestions), generate one correction prompt per issue using the Correction prompt schema in [`output-format.md`](code-review/output-format.md#correction-prompt-json). Save to `corrections/`. These can be addressed manually or via `/apply-fixes`.
+**Skip this entire step if `--json` was set.** Step 7 already stopped the run for `--json` mode; corrections are never written to disk in `--json` mode.
 
-### 9. Clear the commit gate
+For issues NOT auto-fixed (confidence: none, auto-fix failed, or suggestions), generate one correction prompt per issue using the Correction prompt schema in [`output-format.md`](output-format.md#correction-prompt-json). Save to `./corrections/` **in the target repository's working directory** (the cwd `/code-review` was invoked in). Write all output artifacts only to these repo-relative paths — never prepend a scratchpad, sandbox, or session root, and never join two absolute paths. These can be addressed manually or via `/apply-fixes`.
 
-The commit gate is the **`review-gate` extension**, not a file in the working
-tree. It intercepts `git commit`, hashes `git diff --cached`, and blocks unless
-that exact hash was approved.
+### 9. Write pre-commit gate file
 
-If the review was auto-scoped to uncommitted changes and the overall status is
-`pass` or `warn`:
+**Skip this entire step if `--json` was set** (same reason as step 8).
 
-1. **Stage exactly what you reviewed** (`git add …`). The gate binds to the
-   staged *content*, not to the file list, so any edit after approval
-   invalidates it — that is the point.
-2. Run **`/review-approve`**. It records the current staged hash to
-   `~/.omp/state/dev-team/<repoId>/review-gate.json` (out of tree, so the actor
-   being gated cannot forge an approval with a file write) and unlocks that one
-   commit.
+If the review was auto-scoped to uncommitted changes and the overall status is `pass` or `warn`, write `.review-passed` to `.claude/memory/` so the pre-commit hook allows the next commit. Use the **shared gate-hash helper** so the writer and the pre-commit hook compute the hash identically — it hashes the staged **content** (the cached patch), not just the file paths (#193), so any edit after review invalidates the gate:
 
-If `git diff --cached` is empty because you reviewed unstaged changes, stage them
-first — an empty index gives the gate nothing to approve.
+```bash
+mkdir -p .claude/memory && python3 $DEV_TEAM_ROOT/hooks/lib/review_gate_hash.py > .claude/memory/.review-passed
+```
 
-If overall status is `fail`, do **not** run `/review-approve`. The gate keeps
-blocking until the issues are resolved and the review re-run.
+Stage the exact changes you reviewed (`git add` them) before writing the gate, so the staged content the hook hashes matches what was reviewed. If `git diff --cached` is empty (you reviewed unstaged changes), stage them first — the gate binds to the staged patch by design.
 
-There is no `.review-passed` file, no gate-hash shell helper, and no git
-pre-commit hook involved: this replaced the Claude-Code-era
-`pre-commit-review.sh` flow entirely. `--no-verify` still overrides git's own
-hooks and this gate, but not for free — it requires a non-empty
-`GATE_BYPASS_REASON` and appends a durable audit line to
-`review-gate-bypass.jsonl` beside the gate state (upstream ADR-0006 measured
-bypassed commits carrying ~2.6× the rework of reviewed ones).
+If overall status is `fail`, do **not** write the gate file — the pre-commit hook will keep blocking until issues are resolved and the review re-run.

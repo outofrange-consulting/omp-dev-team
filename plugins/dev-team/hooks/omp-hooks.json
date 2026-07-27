@@ -1,0 +1,139 @@
+{
+  "SessionStart": [
+    {
+      "scripts": [
+        "pending_review_notify.py",
+        "codegraph_bootstrap.py"
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "scripts": [
+        "telemetry.py"
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "scripts": [
+        "pre_tool_guard.py",
+        "contract_version_guard.py",
+        "refactor_test_freeze_guard.py"
+      ]
+    },
+    {
+      "matcher": "Write|Edit|NotebookEdit",
+      "scripts": [
+        "verify_guard_edit_marker.py"
+      ]
+    },
+    {
+      "matcher": "Bash",
+      "scripts": [
+        "destructive_guard.py",
+        "refactor_test_bash_guard.py",
+        "pre_commit_review.py",
+        "pre_commit_knowledge_index.py",
+        "telemetry.py",
+        "verify_guard.py",
+        "bash_retry_guard.py",
+        "stryker_xunit_shim_guard.py",
+        "mutation_testing_smoke_gate.py"
+      ]
+    },
+    {
+      "matcher": "Skill",
+      "scripts": [
+        "telemetry.py",
+        "context_ceiling_guard.py"
+      ]
+    },
+    {
+      "matcher": "Read",
+      "scripts": [
+        "code_intelligence_nudge.py"
+      ]
+    },
+    {
+      "matcher": "Grep",
+      "scripts": [
+        "code_intelligence_nudge.py"
+      ]
+    },
+    {
+      "matcher": "Glob",
+      "scripts": [
+        "code_intelligence_nudge.py"
+      ]
+    },
+    {
+      "matcher": "Agent|Task",
+      "scripts": [
+        "context_ceiling_guard.py"
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "scripts": [
+        "js_fp_review.py",
+        "token_efficiency_review.py",
+        "eval_compliance_check.py",
+        "tdd_guard.py",
+        "knowledge_index.py",
+        "skills_index.py"
+      ]
+    },
+    {
+      "matcher": "Bash",
+      "scripts": [
+        "mutation_gate.py",
+        "refactor_test_revert_guard.py"
+      ]
+    },
+    {
+      "matcher": "Read",
+      "scripts": [
+        "version_check.py"
+      ]
+    },
+    {
+      "matcher": "mcp__codegraph__.*",
+      "scripts": [
+        "code_intelligence_turn_mark.py"
+      ]
+    },
+    {
+      "matcher": "mcp__plugin_repowise_repowise__.*",
+      "scripts": [
+        "code_intelligence_turn_mark.py"
+      ]
+    }
+  ],
+  "SessionEnd": [
+    {
+      "scripts": [
+        "session_learning_trigger.py"
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "scripts": [
+        "cost_meter.py",
+        "task_completion_metrics.py"
+      ]
+    }
+  ],
+  "SubagentStop": [
+    {
+      "scripts": [
+        "cost_meter.py",
+        "task_completion_metrics.py"
+      ]
+    }
+  ]
+}

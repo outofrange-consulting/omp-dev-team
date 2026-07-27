@@ -1,14 +1,19 @@
 ---
+
 name: arch-review
 description: Architectural alignment — ADR compliance, layer boundary violations, dependency direction, pattern consistency
-tools: read, search, find
-# Regrade (plan A.4): upstream runs these design-synthesis agents on opus.
+tools: read, grep, glob
 model: "@slow, @plan, @default"
 thinking-level: high
-blocking: true
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Architecture Review
+
+Scope: always
+Cites:
+- architecture-assessment
+- adversarial-review-protocol
 
 Output JSON:
 
@@ -20,7 +25,6 @@ Status: pass=aligned with architecture, warn=minor drift, fail=boundary or patte
 Severity: error=violates documented architectural decision or introduces prohibited dependency; warning=diverges from established pattern without documented rationale; suggestion=opportunity to align more closely with architectural intent
 Confidence: high=clear violation of explicit rule (wrong import direction, prohibited dependency); medium=pattern inconsistency identified, correct fix requires architectural context; none=requires human judgment (architectural tradeoff decisions, ADR authoring)
 
-Model tier: frontier
 Context needs: project-structure
 
 ## Knowledge Files
@@ -30,7 +34,7 @@ Read `skill://dev-team-knowledge/architecture-assessment.md` before starting ana
 ## MCP Tools (Optional)
 
 Probe for these tools at session start. Use if available, fall back
-to find/search/read if not.
+to Glob/Grep/Read if not.
 
 | Tool | Purpose |
 |------|---------|
@@ -96,13 +100,29 @@ Grep for patterns that architecture documentation explicitly bans:
 - Direct `fetch`/`axios`/`HttpClient` calls outside designated HTTP adapter layer
 - Direct DB client calls outside designated repository layer
 
-## Output discipline
+### Database change safety
 
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+When the changeset includes schema migrations or DDL, apply the signals in `skill://dev-team-knowledge/architecture-assessment.md#database-change-safety`:
+
+- A migration drops or renames a column/table that the same release's application code still reads or writes — breaks running instances mid-rollout and blocks rollback
+- A roll-forward migration ships with no paired roll-back script
+- A new `NOT NULL` column or constraint added with no backfill step
+- App code and schema assumed to deploy atomically (reads a structure added in the same deploy)
+
+Flag the migration file and the coupled application code; fix direction is to split into expand/contract across releases.
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#arch-review` (arch-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these arch-review-specific challenges:
+
+- Did you read the ADRs before reviewing? Every finding should reference whether it contradicts an ADR.
+- Did you check cross-boundary imports in BOTH directions (not just infrastructure → domain)?
+- For each "inconsistent pattern" finding, did you verify the established pattern exists in at least 2 other locations?
+- Did you check for circular dependencies introduced by the changeset?
+- Are there new abstractions that duplicate existing ones?
+- For any schema migration in the changeset, did you confirm it is reversible (paired roll-back) and backward-compatible with the currently-deployed app version?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

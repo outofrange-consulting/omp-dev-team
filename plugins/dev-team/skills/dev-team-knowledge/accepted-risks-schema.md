@@ -89,21 +89,7 @@ When `/code-review` runs in a repo without `ACCEPTED-RISKS.md`, the agent does N
 /code-review --init-risks
 ```
 
-There is no template file to copy — the plugin ships no `templates/` directory. `--init-risks` writes the skeleton below directly, and exits non-zero without overwriting if `ACCEPTED-RISKS.md` already exists.
-
-```markdown
----
-rules: []
----
-
-# Accepted Risks
-
-<!-- Add one entry per accepted risk to the `rules:` list above. Every entry
-     requires id, rule_id, files, rationale (>= 50 chars, concrete), expires
-     (ISO-8601) and owner; a wildcard rule_id or a `scope: file` entry also
-     requires `broad: true`. Field semantics: the "Rule schema" section of
-     skill://dev-team-knowledge/accepted-risks-schema.md -->
-```
+This copies `plugins/dev-team/templates/ACCEPTED-RISKS.md.tmpl` to the repo root if the file is absent. If the file already exists, `--init-risks` exits non-zero without overwriting.
 
 ## Out of scope
 

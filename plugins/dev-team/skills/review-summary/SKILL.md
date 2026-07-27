@@ -8,7 +8,7 @@ description: >-
   before closing a session.
 argument-hint: "[--from <json-file>]"
 user-invocable: true
-allowed-tools: read, write, find, bash(date *), bash(git rev-parse *), bash(git branch *), bash(mkdir *)
+allowed-tools: read, write, glob, bash
 ---
 
 # Review Summary
@@ -64,18 +64,10 @@ Write a summary under 150 words following this template:
 
 ### 3. Save summary
 
-Write the summary to `memory/review-summaries/<date>-<short-sha>.md`, creating
-the directory if it doesn't exist.
+Write the summary to `.claude/review-summaries/<date>-<short-sha>.md`.
 
-`memory/` — not a harness config directory — because these summaries are
-**project artifacts under the memory contract**: durable, human-readable, and
-the same place `/continue` and the handoff-policy skill look for prior-session
-state. The Claude-Code-era location (`review-summaries/` under the harness dot
-directory) does not exist in this repo and would not be picked up by either.
+Create the `.claude/review-summaries/` directory if it doesn't exist.
 
 ### 4. Report
 
-Display the summary to the user, and say where it was written. It is picked up by
-`/continue` and by any `/handoff` that follows, so it survives a `/compact`,
-`/fork`, or a new session — which is the whole point of writing it to disk
-instead of leaving it in the transcript.
+Display the summary to the user. Note that it will be available as context in future sessions.

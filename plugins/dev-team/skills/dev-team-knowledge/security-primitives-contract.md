@@ -16,17 +16,15 @@ semver-policy: |
 
 # Security Primitives Contract v1.3.1
 
-This file is the single source of truth for the data envelopes exchanged between the `dev-team` plugin (producer of primitives) and the `security-assessment` companion plugin (consumer). Downstream plugins declare compatibility via `required-primitives-contract: ^1.0.0` in their `plugin.json`.
-
-> **Companion plugin not ported.** `security-assessment` is a separate upstream plugin that **this marketplace does not ship** (see `docs/upstream-v8-v10.md`). Every consumer-side agent, skill, script and schema named below is therefore a *contract obligation*, not a file on disk here. IDs are quoted bare (`fp-reduction`, not a path) precisely so nothing in this repo resolves to a phantom file. Producer-side entries — `codebase-recon`, `security-review`, `static-analysis-integration`, the three schemas — do ship here and carry real paths.
+This file is the single source of truth for the data envelopes exchanged between `plugins/dev-team/` (producer of primitives) and `plugins/security-assessment/` (consumer). Downstream plugins declare compatibility via `required-primitives-contract: ^1.0.0` in their `plugin.json`.
 
 **Canonical schema registry**: this file is the single registry for every JSON/JSONL artifact shape shared or emitted in the security-assessment pipeline. Producer plugins (including the companion `security-assessment`) PR into this file rather than forking per-plugin contracts, so reviewers can trace any artifact back to one authoritative schema. New envelopes arrive as MINOR releases with `## Envelope N` sections plus changelog entries; per-tool raw outputs remain out of contract (see below).
 
 The contract covers three data envelopes, two registries, and a presentational severity mapping. Per-tool raw outputs are **explicitly not in the contract** — they are normalized into the unified finding envelope by SARIF-first adapters in `skills/static-analysis-integration/SKILL.md`. That normalization layer is an implementation detail behind the contract, free to evolve under PATCH releases.
 
-## Version-bump discipline
+## Bypass path
 
-A body change without a `version` field bump is a contract defect: consumers pin on `required-primitives-contract` and cannot see an unversioned edit. Upstream enforced this with a `contract-version-guard.sh` PreToolUse hook; this port has no hook layer (hooks were replaced by TypeScript extensions), so the rule is carried by review, not by a guard. Release commits (author `release-please[bot]`, or commit-message prefix `chore(main): release`) are exempt — they bump the version themselves.
+Edits to this file are guarded by `hooks/contract_version_guard.py`. A body change without a `version` field bump is blocked. Bypass is auto-granted only for release-please commits (matched by author `release-please[bot]` or commit-message prefix `chore(main): release`).
 
 ## Registries
 
@@ -38,11 +36,11 @@ Agents that produce or consume contract envelopes. Each ID is stable across the 
 |---|---|---|---|
 | `codebase-recon` | RECON envelope | — | `plugins/dev-team/agents/codebase-recon.md` |
 | `security-review` | unified findings | — | `plugins/dev-team/agents/security-review.md` |
-| `fp-reduction` | disposition register | unified findings, RECON | companion plugin — `agents/fp-reduction.md` (not shipped here) |
-| `tool-finding-narrative-annotator` | — | unified findings, RECON | companion plugin — `agents/tool-finding-narrative-annotator.md` (not shipped here) |
-| `business-logic-domain-review` | unified findings (domain-level) | — | companion plugin — `agents/business-logic-domain-review.md` (not shipped here) |
-| `cross-repo-synthesizer` | — | RECON, unified findings | companion plugin — `agents/cross-repo-synthesizer.md` (not shipped here) |
-| `exec-report-generator` | — | all three envelopes | companion plugin — `agents/exec-report-generator.md` (not shipped here) |
+| `fp-reduction` | disposition register | unified findings, RECON | `plugins/security-assessment/agents/fp-reduction.md` (companion plugin) |
+| `tool-finding-narrative-annotator` | — | unified findings, RECON | `plugins/security-assessment/agents/tool-finding-narrative-annotator.md` (companion plugin) |
+| `business-logic-domain-review` | unified findings (domain-level) | — | `plugins/security-assessment/agents/business-logic-domain-review.md` (companion plugin) |
+| `cross-repo-synthesizer` | — | RECON, unified findings | `plugins/security-assessment/agents/cross-repo-synthesizer.md` (companion plugin) |
+| `exec-report-generator` | — | all three envelopes | `plugins/security-assessment/agents/exec-report-generator.md` (companion plugin) |
 
 Adding an agent ID is a MINOR bump. Removing one is a MAJOR bump.
 
@@ -53,13 +51,13 @@ Skills that participate in the contract (operate on envelopes or define adapter 
 | Skill ID | Role | Defined in |
 |---|---|---|
 | `static-analysis-integration` | SARIF-first adapters; produces unified findings from per-tool outputs | `plugins/dev-team/skills/static-analysis-integration/SKILL.md` |
-| `false-positive-reduction` | Consumes unified findings, produces disposition register | companion plugin — `skills/false-positive-reduction/SKILL.md` (not shipped here) |
-| `compliance-mapping` | Consumes unified findings, emits compliance annotations (not in contract — downstream-only) | companion plugin — `skills/compliance-mapping/SKILL.md` (not shipped here) |
-| `security-assessment-pipeline` | Orchestrates full envelope flow end-to-end | companion plugin — `skills/security-assessment-pipeline/SKILL.md` (not shipped here) |
+| `false-positive-reduction` | Consumes unified findings, produces disposition register | `plugins/security-assessment/skills/false-positive-reduction/SKILL.md` (companion plugin) |
+| `compliance-mapping` | Consumes unified findings, emits compliance annotations (not in contract — downstream-only) | `plugins/security-assessment/skills/compliance-mapping/SKILL.md` (companion plugin) |
+| `security-assessment-pipeline` | Orchestrates full envelope flow end-to-end | `plugins/security-assessment/skills/security-assessment-pipeline/SKILL.md` (companion plugin) |
 
 ## Envelope 1 — RECON
 
-Normalized reconnaissance output from `codebase-recon`. Schema: `skill://dev-team-knowledge/schemas/recon-envelope-v1.json`.
+Normalized reconnaissance output from `codebase-recon`. Schema: `knowledge/schemas/recon-envelope-v1.json`.
 
 Key design notes:
 - Superset of the `codebase-recon` v0.1 placeholder; `schema_version` bumps to `"1.0"`.
@@ -70,7 +68,7 @@ Key design notes:
 
 An authoritative enumeration of every file the recon considered in-scope at recon time. Gap 6's manifest-membership hook depends on this field — without it, consumers cannot answer "did a scan agent read a file outside the recon surface?" without their own tree walk.
 
-The list itself ships as a **sibling file** (not embedded JSON) because mid-size repos produce 10k+ paths that bloat envelope diffs and validation cost. The main envelope carries a pointer and a count; the list lives at `memory/recon-<slug>.inventory.txt`.
+The list itself ships as a **sibling file** (not embedded JSON) because mid-size repos produce 10k+ paths that bloat envelope diffs and validation cost. The main envelope carries a pointer and a count; the list lives at `.claude/memory/recon-<slug>.inventory.txt`.
 
 **Shape** (main envelope, optional at schema level):
 
@@ -84,7 +82,7 @@ The list itself ships as a **sibling file** (not embedded JSON) because mid-size
 
 All three sub-fields are required when the object is present. Object itself is optional so pre-1.2.0 envelopes stay schema-valid; `codebase-recon` always emits it from 1.2.0 forward.
 
-**Sibling file contract** (`memory/recon-<slug>.inventory.txt`):
+**Sibling file contract** (`.claude/memory/recon-<slug>.inventory.txt`):
 
 - UTF-8, LF line terminators, no BOM.
 - One repo-relative path per line; path separator `/` on every platform; no leading `./`.
@@ -93,12 +91,7 @@ All three sub-fields are required when the object is present. Object itself is o
 - No symlink entries — symlinks resolve to real-path targets; broken symlinks are skipped and recorded in the envelope's `notes` array.
 - Plain text; not JSON; not validated by schema tooling.
 
-**Enumeration pipeline** — upstream's canonical implementation is a `scripts/recon-inventory.sh`; **this port does not ship it**, so the `codebase-recon` agent performs the two branches inline and this section is the specification it follows. Both branches must produce the byte-shape above.
-
-- **git branch** (target is a git working tree): `git ls-files -z --cached --others --exclude-standard`, then normalise per the rules above. `.gitignore` is authoritative; the excludes file is not consulted.
-- **filesystem branch** (non-git target): walk the tree, pruning the directory prefixes and dropping the filenames listed in `plugins/dev-team/skills/dev-team-knowledge/recon-inventory-excludes.txt`.
-
-Keeping the exclusion set in a data file rather than in the agent prompt is what makes the non-git branch reproducible across runs.
+**Enumeration pipeline** — canonical shippable implementation at `plugins/dev-team/scripts/recon_inventory.py` (the single source of truth per the 1.2.0 plan's decision #1). Both the `codebase-recon` agent and the test harnesses invoke this script. Excluded prefixes and filenames for the non-git branch live in `plugins/dev-team/knowledge/recon-inventory-excludes.txt`.
 
 ### Consumer error contract
 
@@ -107,10 +100,10 @@ Consumers that depend on `file_inventory` (e.g., Gap 6's PreToolUse hook, or any
 | Branch | Trigger | Stderr notice template |
 |---|---|---|
 | a | `file_inventory` field is absent on the envelope | `[recon-inventory] notice: file_inventory field absent on envelope; proceeding without membership check` |
-| b | `file_inventory.sibling_ref` resolves to a file that is missing or unreadable at `memory/<sibling_ref>` | `[recon-inventory] notice: sibling file <path> missing; proceeding without membership check` |
+| b | `file_inventory.sibling_ref` resolves to a file that is missing or unreadable at `.claude/memory/<sibling_ref>` | `[recon-inventory] notice: sibling file <path> missing; proceeding without membership check` |
 | c | `file_inventory.count != wc -l <sibling>` (envelope declares N, sibling contains M, M != N) | `[recon-inventory] notice: file_inventory.count (<declared>) != wc -l <sibling> (<actual>); proceeding without membership check` |
 
-Upstream backs this with `evals/primitives-contract/fixtures/consumer-stub-fail-open.sh` and `evals/primitives-contract/tests/backward-compat-1.2.0.sh`. Neither was ported (no `evals/` tree here), so the three templates above are the normative text — copy them verbatim rather than paraphrasing.
+Reference implementation: `evals/primitives-contract/fixtures/consumer-stub-fail-open.sh`. Conformance test: `evals/primitives-contract/tests/backward-compat-1.2.0.sh`.
 
 ## Envelope 2 — Unified finding
 
@@ -153,7 +146,7 @@ One disposition entry per unified finding processed. Each entry:
 
 ## Envelope 4 — Accepted-risks log (added in v1.3.0)
 
-Per-target suppression log emitted by `scripts/apply-accepted-risks.sh` in the companion plugin (not shipped here). Written to `<memory-dir>/accepted-risks-<slug>.jsonl`. Source-of-truth input is `<target-dir>/ACCEPTED-RISKS.md` — the input format this port ships is `skill://dev-team-knowledge/accepted-risks-schema.md`.
+Per-target suppression log emitted by `scripts/apply-accepted-risks.sh` in the companion plugin. Written to `<memory-dir>/accepted-risks-<slug>.jsonl`. Source-of-truth input is `<target-dir>/ACCEPTED-RISKS.md` — see `plugins/security-assessment/docs/accepted-risks-format.md` for the input format.
 
 Two record shapes, discriminated by the `status` field:
 
@@ -165,7 +158,7 @@ Two record shapes, discriminated by the `status` field:
   "rule_id": "semgrep.csharp.sqli.raw-sql-concat",
   "source_ref": "src/Legacy/Query/Foo.cs",
   "source_ref_glob": "src/Legacy/**/*.cs",
-  "reason": "Legacy reporting module scheduled for deletion Q3 2026 (ACI-RPT-1234).",
+  "reason": "Legacy reporting module scheduled for deletion Q3 2026 (TICKET-1234).",
   "expires": "2026-09-30",
   "iso": "2026-04-24T17:30:39Z"
 }
@@ -209,7 +202,7 @@ Per-target floor-application log emitted by `scripts/apply-severity-floors.sh` i
 
 Field invariants:
 - `id` matches an entry `id` in the disposition register.
-- `floor_class` comes from the `<class> floor=<n>` pattern embedded in the entry's `exploitability.rationale` (fp-reduction agent convention) AND must appear in the companion plugin's `knowledge/severity-floors.json` `recognized_classes` (not shipped here — a consumer-side obligation).
+- `floor_class` comes from the `<class> floor=<n>` pattern embedded in the entry's `exploitability.rationale` (fp-reduction agent convention) AND must appear in `plugins/security-assessment/knowledge/severity-floors.json`'s `recognized_classes`.
 - `floor`, `original_score`, `final_score` are integers in 0..10.
 - `final_score >= original_score` (floors only raise).
 - `final_score >= floor` (the floor was respected).
@@ -250,16 +243,18 @@ The `exec-report-generator` enforces these invariants and rejects (with named er
 Explicitly NOT part of this contract:
 
 - Per-tool raw outputs (SARIF documents, JSON outputs from bespoke adapters). These flow through the adapter layer and are normalized into unified findings. Consumers treat adapters as opaque — the unified finding envelope is the contract boundary.
-- Internal adapter configuration (`references/tool-configs.md` layouts, matcher regexes). These are implementation details of `skills/static-analysis-integration`.
+- Internal adapter configuration (`skills/static-analysis-integration/references/tool-configs.md` layouts, matcher regexes). These are implementation details of `skills/static-analysis-integration`.
 - Compliance mapping outputs. These are a downstream product of the companion plugin, not shared cross-plugin primitives.
 - Report templates (executive report sections, Mermaid diagrams). These are presentation concerns.
-- Red-team harness artifacts. The harness ships its own schemas under the companion plugin's `harness/redteam/schemas/` — separate lifecycle, separate versioning.
+- Red-team harness artifacts. The harness ships its own schemas under `plugins/security-assessment/harness/redteam/schemas/` — separate lifecycle, separate versioning.
 
 ## Conformance
 
-Schemas live at `plugins/dev-team/skills/dev-team-knowledge/schemas/` — `recon-envelope-v1.json`, `unified-finding-v1.json`, `disposition-register-v1.json` — and must validate using any Draft 2020-12 JSON Schema validator. From an agent: `read skill://dev-team-knowledge/schemas/<name>-v1.json`.
+Schemas live at `plugins/dev-team/knowledge/schemas/{recon-envelope,unified-finding,disposition-register}-v1.json` and must validate using any Draft 2020-12 JSON Schema validator.
 
-Upstream's conformance fixtures (`evals/primitives-contract/fixtures/`, plus the mutation test and the version-mismatch mock that exercises the installer's refusal path) were **not ported** — there is no `evals/` tree under this plugin. What CI does enforce here is `scripts/ci-validate-json.mjs` (every shipped JSON parses) and `scripts/ci-framework-compliance.mjs` (every `plugins/...` path named in markdown resolves, so a schema rename cannot silently orphan this section). Restoring the fixtures is the open gap; agent IDs cited elsewhere in the plugin must match the registry above.
+Conformance fixtures at `evals/primitives-contract/fixtures/` exercise each envelope against positive and negative cases. The `/agent-audit` command validates references to this file (agent IDs cited elsewhere in the plugin must match the registry above).
+
+A mutation test alters a field in a conformance fixture; CI must fail. A version-mismatch mock (producer 2.0.0 vs. consumer `^1.0.0`) exercises the `install.sh` refusal path.
 
 ## Versioning lifecycle
 
@@ -269,20 +264,17 @@ Upstream's conformance fixtures (`evals/primitives-contract/fixtures/`, plus the
 
 ## Changelog
 
-### 1.3.1 (2026-07-26)
+### 1.3.1 (2026-07-25)
 
-PATCH — documentation only. No schema file changed; no field added, removed or re-meant. Consumers on `^1.0.0` are unaffected.
+Clarification only — no schema or field changes. Consumers on `^1.0.0` are unaffected.
 
-- **Dead paths corrected.** Every reference that used upstream's top-level `knowledge/` directory pointed at a path that does not exist in this port; the corpus lives at `plugins/dev-team/skills/dev-team-knowledge/`. The three schemas, the excludes file and the accepted-risks format now resolve.
-- **Companion-plugin references de-pathed.** Full paths into the `security-assessment` plugin named files this marketplace does not ship. The agent and skill IDs stay (they are the versioned contract); only the phantom paths are gone, replaced by a "not shipped here" marker per row and a banner in the preamble.
-- **Unported implementations named as such.** `scripts/recon-inventory.sh` and the `evals/primitives-contract/` fixtures do not exist here. The enumeration pipeline is now *specified* in this file — git-ls-files branch, filesystem-walk branch, byte-shape — and `codebase-recon` implements it inline against that spec.
-- **Bypass section rewritten.** It described a `contract-version-guard.sh` PreToolUse hook; this port has no hook layer, so the version-bump rule is stated as review-enforced rather than as a guard that does not exist.
+- **Path clarification.** Envelope 1's `file_inventory` sibling-file location updated from bare `memory/recon-<slug>.inventory.txt` to `.claude/memory/recon-<slug>.inventory.txt`, matching the `.claude/`-scoped runtime-artifact convention adopted repo-wide (#1405/#1406). The `sibling_ref` field itself remains a bare filename (`"recon-<slug>.inventory.txt"`); only the directory it resolves under changed. Historical entries below are left as originally written for the version they describe.
 
 ### 1.3.0 (2026-04-24)
 
 Additive schema release. Consumers on `^1.0.0` continue to install unmodified.
 
-- **New Envelope 4 — Accepted-risks log.** Registers the `<memory-dir>/accepted-risks-<slug>.jsonl` artifact emitted by the companion plugin's new `scripts/apply-accepted-risks.sh` (Phase 1c). Two record shapes: `status:"suppressed"` and `status:"expired"`. Input format reference lives in the companion plugin's `docs/accepted-risks-format.md`; the format this port ships is `skill://dev-team-knowledge/accepted-risks-schema.md`.
+- **New Envelope 4 — Accepted-risks log.** Registers the `<memory-dir>/accepted-risks-<slug>.jsonl` artifact emitted by the companion plugin's new `scripts/apply-accepted-risks.sh` (Phase 1c). Two record shapes: `status:"suppressed"` and `status:"expired"`. Input format reference lives at `plugins/security-assessment/docs/accepted-risks-format.md`.
 - **New Envelope 5 — Severity-floors log.** Registers the `<memory-dir>/severity-floors-log-<slug>.jsonl` artifact emitted by the companion plugin's new `scripts/apply-severity-floors.sh` (Phase 2b). Schema matches the 2026-04-24 extranetapi reference byte-for-byte.
 - **New canonical-registry paragraph** in the preamble making explicit that this file is the single registry for artifacts shared between the two plugins. Addresses an architecture-review observation during the helper-scripts PR that producers should PR into this file rather than fork per-plugin contracts.
 - **Backward compatibility:** pre-1.3.0 plugin installations continue to work — the new envelopes have no producers outside the new helper scripts, and the existing envelopes are unchanged.
@@ -292,8 +284,8 @@ Additive schema release. Consumers on `^1.0.0` continue to install unmodified.
 Additive schema release. Consumers on `^1.0.0` continue to install unmodified.
 
 - **New field:** Envelope 1 now carries an optional `file_inventory` object (`source` enum, `count` integer, `sibling_ref` string). The actual path list ships as a sibling file `memory/recon-<slug>.inventory.txt` to keep JSON diffs small on large repos.
-- **New subsection:** `### Consumer error contract` under Envelope 1 documents the three fail-open branches (field absent, sibling absent, count mismatch) with exact stderr notice templates. Upstream's reference implementation (`evals/primitives-contract/fixtures/consumer-stub-fail-open.sh`) was not ported; the templates below are the spec.
-- **New canonical enumeration pipeline:** upstream's `scripts/recon-inventory.sh` is the single source of truth for both the git-ls-files branch and the filesystem-walk branch. This port has no `scripts/` layer under the plugin, so `codebase-recon` implements both branches inline against the spec in this file; excludes for the non-git branch live in `plugins/dev-team/skills/dev-team-knowledge/recon-inventory-excludes.txt`.
+- **New subsection:** `### Consumer error contract` under Envelope 1 documents the three fail-open branches (field absent, sibling absent, count mismatch) with exact stderr notice templates. Reference implementation at `evals/primitives-contract/fixtures/consumer-stub-fail-open.sh`.
+- **New canonical enumeration pipeline:** `plugins/dev-team/scripts/recon_inventory.py` is the single source of truth for both the git-ls-files branch and the filesystem-walk branch; excludes for the non-git branch live in `plugins/dev-team/knowledge/recon-inventory-excludes.txt`.
 - **Backward compatibility:** pre-1.2.0 envelopes continue to validate. Consumers that need the field (Gap 6's manifest-membership hook) follow the fail-open contract documented above.
 
 ### 1.1.0 (2026-04-21)

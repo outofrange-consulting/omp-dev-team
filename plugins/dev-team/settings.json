@@ -1,0 +1,271 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "NotebookEdit",
+      "mcp__*"
+    ],
+    "deny": ["Bash(rm *)", "Bash(git push *)"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/pending_review_notify.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/codegraph_bootstrap.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/telemetry.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/pre_tool_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/contract_version_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/refactor_test_freeze_guard.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/verify_guard_edit_marker.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/destructive_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/refactor_test_bash_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/pre_commit_review.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/pre_commit_knowledge_index.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/telemetry.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/verify_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/bash_retry_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/stryker_xunit_shim_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/mutation_testing_smoke_gate.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/telemetry.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/context_ceiling_guard.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/code_intelligence_nudge.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/code_intelligence_nudge.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/code_intelligence_nudge.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/context_ceiling_guard.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/js_fp_review.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/token_efficiency_review.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/eval_compliance_check.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/tdd_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/knowledge_index.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/skills_index.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/mutation_gate.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/refactor_test_revert_guard.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/version_check.py"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__codegraph__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/code_intelligence_turn_mark.py"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_repowise_repowise__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/code_intelligence_turn_mark.py"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/session_learning_trigger.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/cost_meter.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/task_completion_metrics.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/cost_meter.py"
+          },
+          {
+            "type": "command",
+            "command": "sh hooks/py.sh hooks/task_completion_metrics.py"
+          }
+        ]
+      }
+    ]
+  }
+}

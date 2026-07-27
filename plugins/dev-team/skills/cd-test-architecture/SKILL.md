@@ -3,9 +3,15 @@ name: cd-test-architecture
 description: Evaluate an existing application's tests and recommend a CD-pipeline-aligned test architecture — fast, deterministic tests with minimal tooling that fully validate behavior (including cross-service interaction) and run in CI without configuring the rest of the system. Use when the user says "evaluate how this app is tested", "design a test architecture", "align our tests for CD", "make our CI tests deterministic", "our tests need the whole system configured", "our tests live in another repo / Postman / manual scripts", or asks for UI/service/batch test patterns.
 role: worker
 user-invocable: true
+argument-hint: "[--component <name>] [--ci <path>] [--external-tests <path>] [--stack <id>] [--pdf] [--yes]"
 ---
 
 # CD Test Architecture
+
+Role: worker. This command assesses and reports — it does not write tests or
+refactor code; it hands the migration steps to `/plan` or `/build`; Step 4b's
+build-vs-document ask is this skill's one interactive branch point, and even
+there it proposes a Story rather than invoking `/build` itself.
 
 ## Overview
 
@@ -13,19 +19,16 @@ An **advisory, application-level** skill: it assesses how an existing applicatio
 
 Where `test-design-advisor` works at the unit/module level and `test-smell-review` finds smells in test files, this skill works at the **whole-application** level: test types, pipeline stages, and per-component patterns.
 
-For the **delivery** side around this test architecture, see the CD knowledge:
-`skill://dev-team-knowledge/deployment-pipeline.md` (stages/gates),
-`release-strategies.md` (deploy≠release, rollback), `cd-maturity-model.md` (where
-the team sits), and `database-change-management.md` (schema through the pipeline).
+Grounded in these knowledge references — read the first two before assessing:
 
-Grounded in two knowledge references — read both before assessing:
-
-- `skill://dev-team-knowledge/cd-test-architecture.md` — the six test types, the determinism→pre-merge-gate rule, the adapter rule, double validation, pipeline stages, and MinimumCD-vs-Fowler terminology.
-- `skill://dev-team-knowledge/component-test-patterns.md` — per-component patterns (UI / Services / Batch) with isolation strategy and pipeline placement.
+- `knowledge/cd-test-architecture.md` — the six test types, the determinism→pre-merge-gate rule, the adapter rule, double validation, pipeline stages, and MinimumCD-vs-Fowler terminology.
+- `knowledge/component-test-patterns.md` — per-component patterns (UI / Services / Batch) with isolation strategy and pipeline placement.
+- `knowledge/database-test-patterns.md` — load when a component is database-backed: Database Sandbox isolation, Transaction Rollback / Table Truncation Teardown, and the rule that pushes most data-logic tests onto in-memory Fakes so they stay pre-merge-gate eligible.
+- `knowledge/test-doubles.md` — the Stub/Fake/Mock/Spy taxonomy; load when Step 4b's database branch proposes a hand-rolled Fake double, so it's named correctly (a Fake, never a "mock").
 
 ## Constraints
 
-- Advisory only. Assess and recommend; do not edit production or test code. Hand the migration steps to `/plan` or `/build`.
+- Advisory only. Assess and recommend; do not edit production or test code. Hand the migration steps to `/plan` or `/build` — including Step 4b's build-vs-document ask: it proposes a downstream Story, it never invokes `/build` or edits code directly.
 - Use MinimumCD vocabulary (unit / component / contract / integration / E2E / static analysis) consistently; when the codebase uses other names, map them explicitly.
 - The pre-merge gate may contain **only deterministic** tests (static, unit, component, contract). Any test that needs a database, broker, downstream service, or environment secrets configured to run is, by definition, not a pre-merge test — flag it.
 - Recommend isolation via in-memory doubles + owned adapters, validated by the double-validation loop. Do **not** recommend standing up the whole system (docker-compose of dependencies) for the gate — that is the configured-dependency problem this architecture removes.
@@ -36,19 +39,25 @@ Grounded in two knowledge references — read both before assessing:
 
 ## Parse Arguments
 
-Arguments: a target application/repo path or description. Optional `--component <name>` to scope to one component, `--ci <path>` to point at the existing pipeline config, and **`--external-tests <path-or-repo-or-description>`** to point at tests that live outside this repo (another repo's suite, a third-party runner, Postman/Insomnia collections, manual test scripts, recorded UI flows, spreadsheets of test cases). If little or no in-repo testing is found and no external location is given, **ask** where the application is actually tested before concluding it is untested. If no target is given, ask for one.
+Arguments: a target application/repo path or description. Optional `--component <name>` to scope to one component, `--ci <path>` to point at the existing pipeline config, **`--external-tests <path-or-repo-or-description>`** to point at tests that live outside this repo (another repo's suite, a third-party runner, Postman/Insomnia collections, manual test scripts, recorded UI flows, spreadsheets of test cases), and `--stack <id>` to override stack detection (default: detect from manifests; resolved profile key like `dotnet`, `node`, `spring-boot`, `go`, `django`, `react`, `vue`, `ssr-htmx`). `--yes` runs unattended: Step 4b's build-vs-document prompt is skipped and every flagged component defaults to Document-only, per `human-oversight-protocol`'s non-interactive convention. If little or no in-repo testing is found and no external location is given, **ask** where the application is actually tested before concluding it is untested. If no target is given, ask for one.
 
 ## Steps
+
+### 0. Detect stack
+
+Resolve the project's stack so the assessment can resolve concrete tools from `knowledge/test-stack-profiles/<stack>.md`. Mirrors `skills/test-design-advisor/SKILL.md:31, 62`: when `--stack <id>` is provided, **it takes precedence** and detection is skipped. Otherwise, read manifests at the target — `package.json` (refined to react/vue via dependency, or to ssr-htmx when an htmx dep is present alongside `templates/*.html`), `*.csproj` / `*.sln`, `pom.xml` / `build.gradle*`, `go.mod`, `pyproject.toml` / `requirements.txt` — and resolve the matching profile key. Load `knowledge/test-stack-profiles/<stack>.md` (and any references it points at) so the *Target architecture* table can name concrete tools per layer. When no profile matches, proceed with stack-agnostic guidance and **name the missing profile in the report** — never block on it.
 
 ### 1. Inventory the application's components
 
 Map the deployable/testable surfaces and assign each its pattern from `component-test-patterns.md` (User Interface; API Provider / API Consumer / Event Consumer / Event Producer / Stateful Service / CLI-Library; Scheduled Job). A real system is usually several — list each surface.
 
+**Graph-assisted inventory.** If the target repo has `.codegraph/` (CodeGraph MCP server, `mcp__codegraph__codegraph_explore` — fast callers/callees/impact lookups) and/or a Repowise MCP server (`get_context`/`search_codebase` — verified context and semantic search), prefer them over raw `Grep` for locating components, their deployable surfaces, and existing test suites. Never assume either is present — fall back to `Read`/`Grep`/`Glob` when absent; the tools are simply unavailable (no error) on repos without an index.
+
 ### 2. Inventory the existing tests and classify them
 
 Find the test suites **in the repo** and classify each against the six types in `cd-test-architecture.md`. For each, record: type, what it actually exercises, whether it is deterministic, and **what it requires to run** (DB URL, broker, downstream service, secrets, sleep, real clock).
 
-If in-repo tests are sparse or absent, the application is not necessarily untested — it may be tested out-of-repo (see Step 2b). Do not conclude "no tests" without checking.
+If in-repo tests are sparse or absent, the application is not necessarily untested — it may be tested out-of-repo (see Step 2b — locate and harvest out-of-repo tests). Do not conclude "no tests" without checking.
 
 ### 2b. Locate and harvest out-of-repo tests
 
@@ -58,13 +67,13 @@ When `--external-tests` is given (or in-repo tests are sparse and the user point
 - **Postman / Insomnia / `.http` collections** — each request + its assertions describes an API contract and a scenario. Extract: endpoint, request shape, expected response, and which success/failure scenario it covers.
 - **Manual test scripts / spreadsheets / recorded UI flows** — extract each step as a behavior the team cares about (a candidate component/E2E scenario), and note it is currently human-executed and non-repeatable.
 
-Produce a behavior inventory from these sources, mapped to the component patterns from Step 1. This becomes the **basis for improvement** — the behaviors to re-express as deterministic, in-repo, gated tests.
+Produce a behavior inventory from these sources, mapped to the component patterns from Step 1 (inventory the application's components). This becomes the **basis for improvement** — the behaviors to re-express as deterministic, in-repo, gated tests.
 
 ### 3. Diagnose CD-fitness gaps
 
 Flag, with evidence:
 
-- **Out-of-repo / third-party-runner testing** — the component's tests live in another repo, a separate QA runner, Postman collections, or manual scripts rather than alongside the code. **This is an anti-pattern**, even when that external coverage is extensive: the tests cannot gate the component's own merges, are not versioned with the code they verify, are usually non-deterministic and environment-coupled, and silently drift from the code. The goal state is deterministic tests co-located with the code and run in its pipeline. Flag this explicitly and treat the external suite as the *source material* (Step 2b), not the destination.
+- **Out-of-repo / third-party-runner testing** — the component's tests live in another repo, a separate QA runner, Postman collections, or manual scripts rather than alongside the code. **This is an anti-pattern**, even when that external coverage is extensive: the tests cannot gate the component's own merges, are not versioned with the code they verify, are usually non-deterministic and environment-coupled, and silently drift from the code. The goal state is deterministic tests co-located with the code and run in its pipeline. Flag this explicitly and treat the external suite as the *source material* (Step 2b — locate and harvest out-of-repo tests), not the destination.
 - **Manual / non-repeatable testing** — behavior verified only by humans following scripts. Non-repeatable, unsuitable for any gate; each such script is a behavior to automate.
 - **Mis-typed gate tests** — "unit/component" tests that require a real dependency or are non-deterministic (real clock/RNG/network/sleep). These cannot be a pre-merge gate.
 - **Configured-dependency tests** — tests that need the rest of the system stood up to run.
@@ -81,9 +90,37 @@ For each under-tested or untested component, identify the **testable seams** —
 
 Per component, using its pattern: which test types cover which layers, **what to double to run pre-merge without configuration**, the success scenarios and failure modes to cover, the double-validation loop, and the pipeline stage for each (pre-merge gate vs Stage 1/2 vs out-of-band vs post-deploy). Show the resulting pre-merge gate is deterministic and config-free. For under-tested components, separate the recommendation into **(a) the outside-in characterization baseline writable today without refactoring** and **(b) the post-baseline refactor** toward this target (use the DDD skills to suggest where boundaries/seams should land).
 
+**E2E justification gate.** Never recommend an E2E test "for completeness" or "to round out the pyramid." For each E2E recommendation, document that **all four** conditions hold: (1) a **contract test** cannot pin the boundary that catches this behavior, (2) a **component test** with doubles cannot exercise it via the component's public interface, (3) a **resilience test** (timeout / retry / circuit-breaker / malformed response) cannot cover the failure mode, AND (4) the behavior is a critical user journey across multiple real components that cannot be decomposed. Record one sentence per behavior explaining why E2E was *not* chosen when (1)–(3) cover it. When E2E is genuinely required, name the user journey, the pipeline stage (post-deploy smoke; never pre-merge), and surface that E2E is non-deterministic per MinimumCD.
+
+**The pyramid is a cost heuristic, not a target shape.** Do not recommend per-layer target counts or "current shape vs recommended shape" tables. Per-component / per-behavior placement is the valid output; if the suite shape is pathological, name the pathology (ice-cream cone, hourglass, cupcake) and the behaviors that suffer from it — do not propose a numeric redistribution.
+
+### 4b. Build-vs-document decision (off-gate adapter test doubles)
+
+When Step 4 identifies one or more components needing an off-gate adapter test double (today: a testcontainers-based real-DB test), ask the operator once per run, batched across every such component regardless of adapter kind — this is the shared prompt later adapter-kind slices (#1434 downstream services, #1435 record-and-replay libraries) append to, not a new prompt each run. The one prompt lists every such component and asks the operator, for each one, to choose exactly one of three options — there is no separate follow-up sub-question:
+
+1. **Build (testcontainers)** — propose a downstream Story for a testcontainers-based real-DB test that the operator/orchestrator later drives `/build` against.
+2. **Build (Fake)** — propose a downstream Story for a hand-rolled Fake database double.
+3. **Document-only** (default) — the recommendation lands in the report as today, with no further action.
+
+The operator answers with one of these three choices for each listed component in a single reply — one prompt is surfaced per run, carrying a per-component three-way answer, not one verdict applied to every component in the batch.
+
+Non-interactive runs (per `human-oversight-protocol`'s `--yes` / `DEV_TEAM_AUTO_APPROVE=1` / no-TTY convention) skip the prompt entirely — no prompt is surfaced, and every such component's recommendation lands in the report only, document-only, exactly as today.
+
+An ambiguous or absent answer for any component in the batched three-way question — for example "maybe", "I'm not sure", a bare "yes" or "no", an unqualified "build" that does not name which of the two Build options (none of these map to one of the three labeled options), or silence/empty input — defaults to Document-only for that component, same as any other ambiguous answer: never guessed, never blocked on.
+
+Repos with no such gap see no behavior change: no prompt is asked, and the report is unchanged.
+
+#### Database-specific branch
+
+For the database-IS-the-SUT band, the three-way answer directly determines the outcome per component:
+
+- **Build (testcontainers)** — propose a Story titled `[<component>] Add testcontainers-based real-DB test`. Its description names Database Sandbox isolation and both teardown options — Transaction Rollback and Table Truncation — and cites `database-test-patterns.md`.
+- **Build (Fake)** — propose a Story titled `[<component>] Add hand-rolled Fake database double`. Its description names the Fake as an in-memory repository implementing the same interface, per `test-doubles.md`'s Fake taxonomy, cites both `database-test-patterns.md` and `test-doubles.md`, and always carries this caveat verbatim: "Caveat: this hand-rolled Fake cannot verify actual SQL, mapping, or schema correctness the way a real-engine test can — a deliberate coverage trade-off, not a silent downgrade."
+- **Document-only** — the recommendation lands in the report only, as today; no further action.
+
 ### 5. Produce a migration path
 
-Order the moves from current → target, lowest-risk first. The spine is **baseline before refactor**: get behavior under test at existing seams *without changing code*, then refactor under that green baseline (never behavior + structure in one step). When tests are out-of-repo (Step 2b), the harvested behaviors feed that baseline. Typical full sequence:
+Order the moves from current → target, lowest-risk first. The spine is **baseline before refactor**: get behavior under test at existing seams *without changing code*, then refactor under that green baseline (never behavior + structure in one step). When tests are out-of-repo (Step 2b — locate and harvest out-of-repo tests), the harvested behaviors feed that baseline. Typical full sequence:
 
 1. **Characterization baseline (no refactoring)** — at the outermost reachable seam, write outside-in tests that lock in current behavior; harvest any out-of-repo/manual behaviors into this inventory and reproduce them here. Get green.
 2. **Introduce owned adapters and seams — under the baseline** (Adapter Rule; `testability-patterns.md`; DDD skills suggest where boundaries/seams belong). Refactor only with the baseline green.
@@ -103,9 +140,31 @@ Write the assessment (see Output). Keep every recommendation tied to a concrete 
 
 ## Output
 
-Write to `reports/cd-test-architecture-<app>.md` (or chat for a single component):
+Write to `.dev-team-reports/cd-test-architecture-<app>.md` (or chat for a single component).
+
+When `--pdf` was passed and a report **file** was written, render it to a
+sibling PDF per `knowledge/report-pdf-integration.md`:
+
+```bash
+sh "$CLAUDE_PLUGIN_ROOT/hooks/py.sh" "$CLAUDE_PLUGIN_ROOT/hooks/lib/report_pdf.py" .dev-team-reports/cd-test-architecture-<app>.md
+```
+
+In the single-component **chat-only** case no file was written, so `--pdf` is a
+no-op: state `--pdf: no report file was written this run, nothing to render.`
+and do nothing else. Additive; non-fatal if no engine is available.
+
+For the header block and closing Provenance section, follow
+`knowledge/report-template.md`; the sections below are this skill's own
+body.
 
 ```markdown
+# CD Test Architecture
+
+**Date**: <ISO 8601>
+**Target**: <app>
+**Tool versions**: _Not applicable — no tool versions apply to this assessment._
+**Scope**: <full app | single component>
+
 ## CD Test Architecture — <app>
 
 ### Components & patterns
@@ -124,7 +183,11 @@ Write to `reports/cd-test-architecture-<app>.md` (or chat for a single component
 | Component | Outermost seam | Best outside-in test writable today (no refactor) |
 
 ### Target architecture (per component)
-| Component | Layer | Test type | Double (to run config-free) | Pipeline stage |
+| Component | Layer | Test type | Double (to run config-free) | Pipeline stage | Build/Document status |
+
+`Build/Document status` is one of `Build (testcontainers)`, `Build (Fake)`, or `Document-only` (set per Step 4b). A row whose status is `Build (Fake)` also carries this caveat, verbatim, in the same cell: "Caveat: this hand-rolled Fake cannot verify actual SQL, mapping, or schema correctness the way a real-engine test can — a deliberate coverage trade-off, not a silent downgrade."
+
+When Step 0 loaded a `knowledge/test-stack-profiles/<stack>.md` profile, **cite that profile** (and any reference it points at) in the *Test type* or *Double* column so the concrete tool choice is traceable to the stack-specific reference.
 
 ### Pre-merge gate (deterministic, config-free)
 <the set of suites that will gate merges, and why each is deterministic>
@@ -135,6 +198,13 @@ Write to `reports/cd-test-architecture-<app>.md` (or chat for a single component
 ### Next steps
 - Refactor/seams → /plan or /build
 - Per-file smells → /test-design
+
+## Provenance
+
+- Repository: `<repo path>`
+- Branch / SHA: `<branch>` / `<sha>`
+- Run parameters: `<flags — e.g. single-component scope>`
+- `dev-team` plugin version: `<plugin_version>`
 ```
 
 ## Integration
@@ -142,4 +212,4 @@ Write to `reports/cd-test-architecture-<app>.md` (or chat for a single component
 - Pairs with `test-design-advisor` (unit/module design) and the `test-smell-review` / `test-review` agents (per-file findings). This skill sets the application-level target those operate within.
 - For under-tested/legacy components, the characterization-baseline-then-refactor procedure is the **`legacy-code`** skill (Feathers' algorithm: change points → test points/seams → break dependencies → characterization tests → refactor under green). Defer the mechanics to it.
 - Use the **`domain-driven-design`** and **`domain-analysis`** skills to suggest the target structure for the post-baseline refactor — where bounded contexts, ports, and seams should land — so refactoring improves the domain model, not just testability.
-- Hand the migration path to `/plan` or `/build` for implementation. This skill stops at the architecture and plan.
+- Hand the migration path to `/plan` or `/build` for TDD implementation. This skill stops at the architecture and plan, except that Step 4b may propose a downstream Story as part of that hand-off — it still never invokes `/build` itself.

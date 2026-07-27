@@ -1,0 +1,93 @@
+# Session-review harness (#131)
+
+`/session-review` mines **ground-truth Claude Code session transcripts**
+(`~/.claude/projects/<slug>/*.jsonl`) to suggest plugin improvements that reduce
+**re-work**, cut **token usage**, and improve **accuracy**.
+
+It fills a blind spot. The plugin already measures quality from two angles, both
+with gaps:
+
+- `/agent-eval` + `evals/` grade agents on a *synthetic* fixture corpus — proves
+  an agent *can* detect a planted issue, says nothing about real behaviour.
+- `/harness-audit` + `.claude/metrics/` analyse effectiveness from *self-reported*
+  task logs — sparse, and only what the model chose to record about itself.
+
+Neither reads what *actually happened*: per-turn token usage, tool errors,
+failed edits, user corrections, and skill/agent attribution. `/session-review`
+does.
+
+## Three stages (the model never reads raw transcripts)
+
+| Stage | Component | What it does |
+|---|---|---|
+| 1. Extract | `scripts/session_extract.py` (#127) | Deterministic, **zero model tokens**. Distills MBs of JSONL into a KB digest capturing all four signal classes equally (token / rework / accuracy / utilization). Privacy: metrics only — never prompt or code content. |
+| 2. Analyze | `agents/session-analysis.md` + `skills/session-review/SKILL.md` (#128) | A focused agent reads **only the digest** and maps aggregated patterns to probable *plugin* causes. |
+| 3. Suggest | `.dev-team-reports/session-review-<date>.md` (#128) | Ranked recommendations, each tagged `{token \| rework \| accuracy}`, naming the target artifact and handing off — never auto-applying. |
+
+## Hand-off, not auto-apply
+
+| Suggestion | Handed to |
+|---|---|
+| Config / prompt / convention fix | `/feedback-learning` |
+| Effort re-banding | `/harness-audit` + `.claude/model-ladder.json` |
+| New / changed detection rule | `/agent-eval` |
+| Token-heavy skill / agent | `token-efficiency-review` |
+
+## Trend persistence (#129)
+
+Each run appends one metrics-only record to the append-only trend stream
+`metrics/session-digest.jsonl` (deliberately left bare — /session-review's own
+scratch-state writer is out of scope for the #1406 `.claude/`-scoped artifact
+migration) — the real-session counterpart to the self-reported
+`.claude/metrics/*-task-log.jsonl` streams — so `/harness-audit` can
+consume ground-truth data alongside the task logs. This is the canonical
+description of both the record schema and the harness-audit join;
+[`eval-system.md`](eval-system.md) links here.
+
+### Record schema (`session-digest/v1`)
+
+Each line is a JSON object with **aggregate counts only** — no file names,
+prompts, command strings, or code (privacy by construction):
+
+| Field | Meaning |
+|---|---|
+| `recorded_at` | UTC ISO-8601 of the run (the only wall-clock field) |
+| `sessions`, `transcripts` | how many sessions/transcripts the digest covered |
+| `tokens` | input/output/cache token totals |
+| `cost_usd`, `cache_hit_ratio` | session cost and cache-read efficiency |
+| `rework` | counts: `failed_edits`, `repeated_file_edits`, `retried_bash_commands`, `repeated_verify_runs`, `permission_denials`, `compaction_events` |
+| `accuracy` | `tool_calls`, `tool_error_rate`, `user_correction_turns` |
+| `utilization` | counts of `skills_invoked`, `agents_invoked`, `never_observed_skills`, `never_observed_agents` |
+
+### harness-audit consumption (the join)
+
+`/harness-audit` historically read only the self-reported
+`.claude/metrics/*-task-log.jsonl`. It joins real-session data by reading
+`metrics/session-digest.jsonl`:
+
+- **token / cost trends** → corroborate or contradict self-reported efficiency
+  claims (the audit's blind spot was that it saw only self-reports).
+- **`utilization.never_observed_*`** → flag stale/undiscoverable harness surface
+  for the simplification recommendations harness-audit already makes.
+- **`rework` / `accuracy` trends** → evidence for re-tiering or prompt fixes.
+
+Join key: correlate by `recorded_at` time window (the two streams live at
+different roots — `metrics/session-digest.jsonl` is deliberately bare,
+`.claude/metrics/*-task-log.jsonl` is migrated — see the note above). The
+session-digest stream is ground-truth; the task-log stream is self-reported —
+where they disagree, prefer the session digest.
+
+## OSS complements (#130)
+
+For continuous *quantitative* monitoring, reach for `ccusage`, native
+OpenTelemetry, or `claude-code-log` — they cover what `/session-review` does not.
+`/session-review` covers the plugin-specific *qualitative* suggestions they
+cannot, since they don't know this plugin's agents and skills. See
+`session-review-oss-complements.md`.
+
+## Child issues
+
+- #127 — deterministic session-log extractor (`scripts/session_extract.py`)
+- #128 — `/session-review` skill + `session-analysis` agent + report
+- #129 — trend digest persistence + harness-audit consumption
+- #130 — document OSS complements

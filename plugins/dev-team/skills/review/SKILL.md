@@ -7,15 +7,15 @@ description: >-
   this", "run the agents", or has just finished implementing a feature.
 argument-hint: >-
   [--agent <name>] [--since <ref>] [--path <dir>] [--all] [--json]
-  [--force --reason "<text>"] [--static-analysis|--no-static-analysis]
-  [--init-risks] [--background]
+  [--internal] [--force --reason "<text>"]
+  [--static-analysis|--no-static-analysis] [--init-risks] [--background]
 user-invocable: true
 allowed-tools: >-
-  read, edit, search, find, ask
-  bash(git diff *), bash(npx *), bash(npm run *)
-  bash(pnpm *), bash(yarn *), bash(tsc *), bash(eslint *)
-  bash(git log *), bash(gh run *), bash(semgrep *)
-  bash(pylint *), skill(review-agent *)
+  Read, Write, Edit, Grep, Glob, AskUserQuestion, Agent,
+  Bash(git diff *), Bash(npx *), Bash(npm run *),
+  Bash(pnpm *), Bash(yarn *), Bash(tsc *), Bash(eslint *),
+  Bash(git log *), Bash(gh run *), Bash(semgrep *),
+  Bash(ruff *), Bash(mypy *), Skill(review-agent *)
 ---
 
 # Review (alias)
@@ -29,13 +29,13 @@ Role: orchestrator.
 3. **Be concise.** Defer all output to code-review.md.
 
 This is an alias for `/code-review`. Read and follow
-`skill://code-review` with all arguments passed through.
+`skills/code-review/SKILL.md` with all arguments passed through.
 
 > **Keep frontmatter in sync.** This alias delegates the entire `/code-review`
 > flow, so its `allowed-tools` and `argument-hint` MUST mirror
-> `skill://code-review`. `allowed-tools` is an allowlist — omitting a tool
-> the canonical command needs (e.g. `Edit` for the fix loop, `AskUserQuestion`
-> for the fix/report prompt, `Bash(pylint *)` for Python lint) silently breaks
+> `skills/code-review/SKILL.md`. `allowed-tools` is an allowlist — omitting a tool
+> the canonical command needs (e.g. `Edit` for the fix loop, `the `ask` tool`
+> for the fix/report prompt, `Bash(ruff *)` for Python lint) silently breaks
 > that capability under `/review`.
 
 Arguments: $ARGUMENTS
@@ -44,4 +44,4 @@ Arguments: $ARGUMENTS
 
 ### 1. Pass through
 
-Read and follow `skill://code-review` with `$ARGUMENTS` unchanged.
+Read and follow `skills/code-review/SKILL.md` with `$ARGUMENTS` unchanged.

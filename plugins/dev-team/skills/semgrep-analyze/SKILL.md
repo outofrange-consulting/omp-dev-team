@@ -8,7 +8,7 @@ description: >-
   when security findings are needed before AI agents run.
 argument-hint: "[path] [--rules <ruleset>]"
 user-invocable: true
-allowed-tools: read, search, find, bash(semgrep *)
+allowed-tools: read, grep, glob, bash
 ---
 
 # Semgrep Analyze
@@ -63,6 +63,12 @@ If not installed, output:
 
 If `--programmatic` is set, return the JSON above and stop — do not
 add installation guidance or prose.
+
+Otherwise (human-facing run), also tell the user: **Run `/project-init` to set
+up this repo's tooling as the one-stop entry point — it installs semgrep as a
+capability tool (see its `$DEV_TEAM_ROOT/skills/project-init/references/capability-tools.md`) — or install semgrep
+directly — `pip install semgrep` (also `pipx install semgrep` or `brew install
+semgrep`).** (The direct install command is the fallback.)
 
 Stop.
 

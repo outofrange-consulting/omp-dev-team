@@ -1,15 +1,20 @@
 ---
+
 name: spec-compliance-review
 description: Verify implementation matches specification before quality review agents run
-tools: read, search, find
-model: "@plan, @default"
-thinking-level: medium
-blocking: true
+tools: read, grep, glob
+model: "@smol, @default"
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Spec Compliance Review
 
-Model tier: mid
+Scope: always
+Cites:
+- adversarial-review-protocol
+- directory-enumeration
+
 Context needs: full-file
 File scope: All changed files
 
@@ -21,7 +26,7 @@ This agent answers one question: **does the code do what the spec says?** It run
 
 ### Unmet acceptance criteria
 
-- Read acceptance criteria from the spec (`docs/specs/<slug>.md`), plan, and/or design doc
+- Read acceptance criteria from the spec (`docs/specs/<slug>.md`), plan, and/or design doc — or, on a repo that opted into `/specs`' issue-first persistence convention, from the linked spec GitHub issue if the plan records a `--spec-issue <url>` reference instead of a `docs/specs/**` file (see `/specs`' "Persist to GitHub issue" step)
 - For each criterion, locate the implementation that satisfies it
 - For each criterion, locate the test that validates it
 - Flag criteria with no implementation or no test
@@ -71,7 +76,7 @@ This agent answers one question: **does the code do what the spec says?** It run
 
 Return `{"status": "skip", "issues": [], "summary": "No spec artifacts found"}` when:
 
-- No plan file (with its slice scenarios), spec, design doc, or acceptance criteria can be located for the target
+- No plan file (with its slice scenarios), spec, design doc, or acceptance criteria can be located for the target — locate with `Glob("docs/specs/**/*.md")` / `Glob("plans/**")`, never a bare `Read` of the directory (`skill://dev-team-knowledge/directory-enumeration.md`, Whole-file load: a short single-rule reference); also check the plan for a recorded `--spec-issue <url>` reference before concluding no spec exists
 - Target is a standalone script or utility with no associated specification
 
 ## Severity Rules
@@ -82,10 +87,14 @@ Return `{"status": "skip", "issues": [], "summary": "No spec artifacts found"}` 
 - Plan deviation → `warning` (may be justified)
 - Cosmetic divergence from the plan that meets every criterion (naming, file placement, ordering) → `suggestion`
 
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#spec-compliance-review` (the shared challenger loop + the spec-compliance-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these spec-compliance-review-specific challenges:
+
+- Did you load EVERY spec artifact (spec, plan, design doc, all `.feature` files), or stop at the first one found?
+- For each acceptance criterion, did you locate BOTH the implementation and its test — not assume a test exists because the criterion "looks covered"?
+- For every scope-violation finding, did you confirm the change maps to no criterion, including criteria in linked or related slices?
+- Did you check for planned changes that were NOT made (missing files), not just unplanned files that were added?
+- Is every `error` (unmet criterion, uncovered scenario) backed by the specific criterion/scenario text, not a paraphrase?
+
+Append confidence level (High/Medium/Low) to the `summary` field.

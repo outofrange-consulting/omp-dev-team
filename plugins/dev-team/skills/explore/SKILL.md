@@ -9,14 +9,14 @@ description: >-
   this feature", or wants hands-off exploratory testing of a live target.
 argument-hint: "--charter '<goal>' [target] [--probe-budget <n>] [--invariants '<expr,...>'] [--no-adversarial] [--force]"
 user-invocable: true
-allowed-tools: read, search, find, bash, write, task
+allowed-tools: read, grep, glob, bash, write, task
 ---
 
 # Explore
 
 Role: worker. This command is a thin entry point: it parses arguments, runs the
 charter-quality + reachability pre-flight, then runs the
-[`exploratory-testing`](../skill://exploratory-testing) skill as the
+[`exploratory-testing`](../exploratory-testing/SKILL.md) skill as the
 probe loop. It does not probe directly — the skill owns the protocol.
 
 ## Worker constraints
@@ -46,6 +46,6 @@ What should I investigate? Provide a charter: --charter '<goal>'
 
 1. **Charter quality** — evaluate the charter against the field-guide anti-patterns. On a match, emit a one-line warning and prompt to refine or re-run with `--force`; do not probe until acceptable or forced.
 2. **Reachability** — baseline-request the target. If unreachable, report the URL + error and stop (no report).
-3. **Run the skill** — invoke `exploratory-testing` with the parsed charter, budget, invariants, and flags. It runs the probe loop, adversarial expansion, defect classification, auto-triage, and writes `reports/explore-<YYYYMMDDThhmmss>.md` incrementally — ending with a "Next Exploration" section of 2–3 follow-up charters.
+3. **Run the skill** — invoke `exploratory-testing` with the parsed charter, budget, invariants, and flags. It runs the probe loop, adversarial expansion, defect classification, auto-triage, and writes `.dev-team-reports/explore-<YYYYMMDDThhmmss>.md` incrementally — ending with a "Next Exploration" section of 2–3 follow-up charters.
 
 Surface the report path and any triaged defects in chat. On `/stop`, the skill finalizes a partial report.

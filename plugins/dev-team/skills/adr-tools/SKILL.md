@@ -1,13 +1,6 @@
 ---
 name: adr-tools
-description: >-
-  Create and manage Architecture Decision Records using the adr-tools CLI
-  (https://github.com/npryce/adr-tools). Use when the user asks to "add an ADR",
-  "record this decision", "create an ADR", "supersede ADR N", "link ADRs",
-  "generate the ADR table of contents", or any request involving the `adr`
-  command. Pairs with the adr-author agent — this skill is the mechanics
-  (commands, files, links); adr-author is the decision framework (when an ADR is
-  warranted) and the prose authoring.
+description: Create and manage Architecture Decision Records using the npryce adr-tools CLI. Use when the user asks to "add an ADR", "record this decision", "create an ADR", "supersede ADR N", "link ADRs", "generate the ADR table of contents", or any request involving the `adr` command. Pairs with the adr-author agent — this skill is the mechanics (commands, files, links); adr-author is the decision framework (when an ADR is warranted) and the prose authoring.
 role: worker
 user-invocable: true
 ---
@@ -24,11 +17,13 @@ cat .adr-dir 2>/dev/null   # project's configured ADR directory
 ls "$(cat .adr-dir 2>/dev/null || echo docs/adr)/" 2>/dev/null | head -3
 ```
 
+If the pre-flight reports `adr` missing, run `/project-init` to set up this repo's tooling — it installs the `adr` CLI as a capability tool (see its `$DEV_TEAM_ROOT/skills/project-init/references/capability-tools.md`) — or install it directly: see [npryce/adr-tools](https://github.com/npryce/adr-tools) (the CLI link is the fallback).
+
 Project convention is `docs/adr/`. `adr-tools` stores the directory in `.adr-dir` at the project root — `adr` reads that file to find the ADRs no matter what subdirectory you're in. If `.adr-dir` is missing, run `adr init docs/adr` once. Do not init silently into a different path — confirm with the user if existing ADRs live somewhere unexpected.
 
 ## Editor caveat — the most common failure
 
-`adr new` opens `$VISUAL` or `$EDITOR` (defaulting to `vi`). In a Oh-My-Pi (OMP) shell this hangs the command and exits non-zero — the file is created but empty. Two workarounds:
+`adr new` opens `$VISUAL` or `$EDITOR` (defaulting to `vi`). In a Claude Code shell this hangs the command and exits non-zero — the file is created but empty. Two workarounds:
 
 1. **Preferred — bypass the editor.** Run with a no-op editor, then write the body with the Write tool:
 

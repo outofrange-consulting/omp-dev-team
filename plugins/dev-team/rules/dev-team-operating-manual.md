@@ -1,50 +1,99 @@
 ---
-description: Dev-team operating manual — North Star + pointers (always loaded; kept deliberately small)
 alwaysApply: true
+description: dev-team operating manual (upstream CLAUDE.md, always loaded)
 ---
 
-# Dev-Team (Oh-My-Pi port)
+<!-- GENERATED from CLAUDE.md by scripts/port-upstream-dev-team.mjs.
+     Upstream ships this as the harness's always-loaded context file; OMP's
+     equivalent is an alwaysApply rule. Edit CLAUDE.md, not this file. -->
 
-A persona-driven AI dev team on OMP (ported from `bdfinst/agentic-dev-team`). The
-**orchestrator** agent is the dispatcher; it routes work to specialists via the
-`task` tool. This rule is injected into **every** context (main and every
-subagent), so it stays small on purpose — detail lives where it's used, loaded
-on demand.
+# Agentic Dev Team - Orchestration Pipeline
+
+## System Overview
+
+Persona-driven AI agent team. The Orchestrator dispatches tasks to specialized agents by classification, complexity, and expertise.
 
 ## North Star
 
-Every change must reduce friction for someone getting work done: **fewer
-missteps, less rework, lower token cost.** Measure friction, don't assume it —
-the `telemetry` extension and `/cost-report` close the loop. A change that
-cannot name the friction it removes does not ship.
+Every change must reduce friction: **fewer missteps, less rework, lower token cost.** Measure friction — don't assume it. A change that cannot name the friction it removes does not ship.
 
-## Where the detail lives (load on demand — do not inline it here)
+## Architecture
 
-- **Orchestration pipeline** — Research → Plan → Implement, human gates, the
-  five plan-review personas, the three-stage inline review, acceptance scenarios, and the
-  decision log: owned by the **orchestrator** agent prompt (`## Three-Phase
-  Workflow` / `## Decision Log`). Don't restate it in always-loaded context.
-- **Model resolution** — **native, no plugin resolver.** Each agent's `model:`
-  frontmatter declares a role floor (`@smol` / `@plan` / `@slow` / `@designer`,
-  with `@default` last as a fallback); OMP resolves it through `modelRoles`.
-  Depth per agent is `thinking-level:`. Per *call*, the `task` tool's
-  `effort: lo|med|hi` carries the task size — passed during spec/plan only,
-  never during build/review. Full rule: orchestrator agent, **§ Resolution
-  Procedure**. No concrete model id belongs in a prompt.
-- **Output discipline** — the `output-discipline` rule (always loaded): artifacts
-  to files, no narration, plan-only means plan-only, name your evidence.
-- **Verification / quality gates** — the `no-disable-analyzers` and
-  `source-of-truth` rules, plus `/impl-verify` (strict stack build + tests with
-  a bounded fix counter).
+- **CLAUDE.md**: Core philosophy + quick reference (always loaded)
+- **Skills**: Detailed procedures (loaded on-demand)
+- **Knowledge**: Registries, rubrics, patterns (loaded on-demand by agents)
+- **Agents**: Behavioral specifications (loaded per-phase, never all at once)
+- **Templates**: Language-specific agent templates (scaffolded by `/setup`)
 
-## Session canary (context-loaded check)
+## Output Guardrails
 
-This file is the always-loaded operating manual. The `canary` extension verifies
-at session start that the *installed* copy of this rule is intact — present,
-still `alwaysApply: true`, still carrying the sentinel below. A `CANARY FAIL`
-notice means the dev-team context did not load (botched install, broken
-frontmatter, stale mirror): fix it before working, not twenty minutes in. Run
-`/canary` to re-check on demand. Keep the sentinel byte-identical here, in
-`extensions/canary.ts`, and in `scripts/ci-framework-compliance.mjs` (check E).
+1. **Write to files, not chat.** Artifacts go to files — not chat deliverables.
+2. **Plan-only mode.** When asked for a plan, produce ONLY the plan.
+3. **Incremental output.** First draft within 3–4 tool calls, then refine.
 
-<!-- dev-team-canary: DT-CANARY-7Q2F -->
+## Core Principles
+
+1. **Selective Agent Loading**: Load only necessary agents. Target < 10,000 tokens simple tasks.
+2. **40% Context Ceiling**: Conservative target, not an accuracy cliff — see [Context Management](docs/context-management.md). Enforced by `hooks/context_ceiling_guard.py`.
+3. **Persona-Driven Behavior**: Specs in `.claude/agents/`. Build concurrency `DEV_TEAM_MAX_PARALLEL_BUILDS`: unset → `min(16, cores-2)`, `1` = sequential.
+4. **Human-in-the-Loop**: Autonomous agents, human oversight.
+5. **Dynamic Configuration**: Config changes → `.claude/metrics/config-changelog.jsonl`.
+6. **ATDD + Code-First Small Batches** (sole build cadence — Rec 3, docs/experiments/RECOMMENDATIONS.md): no code without a `/plan` scenario.
+7. **Python for cross-OS scripts**: shipped hooks/scripts are Python 3.8+ stdlib-only (ADR 0014, 0015).
+
+## Team Organization
+
+See @docs/team-structure.md for the org chart.
+
+## Agent & Skill Registry
+
+Full registry (token counts, effort bands): [`knowledge/agent-registry.md`](knowledge/agent-registry.md). Registry gate (`/agent-audit`) fails CI on drift.
+
+Teams can create `REVIEW-CONTEXT.md` in the project root with domain knowledge code analysis cannot discover — `/code-review` passes it to each agent.
+
+## Skills Registry
+
+See [knowledge/skills-registry.md](knowledge/skills-registry.md) for the full command reference. All review skills run under orchestrator direction via the Resolution Procedure (`agents/orchestrator.md`).
+
+## Request Processing Flow
+
+See [knowledge/request-processing-flow.md](knowledge/request-processing-flow.md) for the three-phase workflow (Research → Plan → Implement), inline review protocol, and multi-agent collaboration.
+
+## Model/Effort
+
+Each agent declares `model:`/`effort:` directly in frontmatter — the native Claude Code sub-agent contract, resolved by the harness itself (ADR 0026). See `agents/orchestrator.md` → Model/Effort Resolution.
+
+## Context Management
+
+1. **[Context Loading Protocol](skills/context-loading-protocol/SKILL.md)** — decides *what* to load and *when*
+2. **[Handoff](skills/handoff/SKILL.md)** — decides *when*/*how* to compress (continue) or fork side-work (fork)
+
+Token budgets per agent: see [knowledge/agent-registry.md](knowledge/agent-registry.md).
+
+Rules: load on demand; summarize phases to `.claude/memory/` before next phase; new conversations read from `.claude/memory/`.
+
+## Feedback & Learning
+
+**[Feedback & Learning](skills/feedback-learning/SKILL.md)** is a choreographic skill — keywords `amend`, `learn`, `remember`, `forget` fire directly via Claude Code's skill-matching, independent of orchestrator phase classification.
+
+## Human Oversight
+
+Required for high-impact decisions. Full protocol: **[Human Oversight Protocol](skills/human-oversight-protocol/SKILL.md)**. Commands: `amend`/`learn`/`remember`/`forget` (feedback-learning), `override`, `pause`, `stop`.
+
+## Proxy Resilience
+
+429s: **[Proxy Resilience](skills/proxy-resilience/SKILL.md)**. Refused conns: [proxy-connectivity.md](knowledge/proxy-connectivity.md).
+
+## Quality & Accuracy
+
+All agents apply the **[Quality Gate Pipeline](skills/quality-gate-pipeline/SKILL.md)**. Ethics and audit logging: **[Governance & Compliance](skills/governance-compliance/SKILL.md)**.
+
+**Quality ownership.** Agents own the quality *state* — green means the whole suite, not just the diff. Red signals must be fixed or triaged, never stepped over.
+
+Hooks: `pre_tool_guard.py` blocks sensitive path writes; `destructive_guard.py` warns on destructive commands; `context_ceiling_guard.py` enforces the context ceiling (see above).
+
+## Performance Metrics
+
+Logged to `.claude/metrics/` as JSONL. **[Performance Metrics](skills/performance-metrics/SKILL.md)**.
+
+Every claim must name the instrument. **Instrumented:** token budgets (`scripts/measure-tokens.sh`), agent accuracy (`/agent-eval`), efficiency (`/orchestration-benchmark`). **Not yet:** hallucination rate, first-pass acceptance.

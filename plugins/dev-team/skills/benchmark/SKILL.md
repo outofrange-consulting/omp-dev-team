@@ -7,7 +7,7 @@ description: >-
   "web vitals", "performance regression", or "how fast is this page".
 argument-hint: "<url> [--baseline] [--budget] [--trend] [--mobile] [--3g] [--runs <n>]"
 user-invocable: true
-allowed-tools: read, write, find, search, bash(npx playwright *), bash(node *), bash(mkdir *), bash(date *), bash(cat *)
+allowed-tools: read, write, glob, grep, bash
 ---
 
 # Benchmark
@@ -38,14 +38,14 @@ If no URL is provided, look for a `performance-budget.json` file and benchmark a
 
 ## Prerequisites Check
 
-1. Verify Playwright is installed: `npx playwright --version`. If not installed, tell the user: "Playwright is required. Run `npx playwright install chromium` first."
+1. Verify Playwright is installed: `npx playwright --version`. If not installed, tell the user: "Playwright is required. Run `/project-init` to set up this repo's tooling (it installs Playwright + Chromium for frontend projects), or install directly: `npx playwright install chromium`."
 2. If the URL is localhost, verify the dev server is running by attempting a fetch. If not running, tell the user: "Dev server doesn't appear to be running at <url>. Start it first."
 
 ## Steps
 
 ### 1. Load the skill
 
-Read `skill://performance-benchmark` for the full metric definitions, output format, and collection methodology. Read `skills/performance-benchmark/references/benchmark-script.md` for the Playwright script template.
+Read `skills/performance-benchmark/SKILL.md` for the full metric definitions, output format, and collection methodology. Read `skills/performance-benchmark/references/benchmark-script.md` for the Playwright script template.
 
 ### 2. Generate and run the benchmark script
 

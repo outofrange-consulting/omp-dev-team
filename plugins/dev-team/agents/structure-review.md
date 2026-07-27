@@ -1,13 +1,20 @@
 ---
+
 name: structure-review
 description: SRP violations, DRY, coupling, nesting depth, file organization
-tools: read, search, find
+tools: read, grep, glob
 model: "@plan, @default"
-thinking-level: medium
-blocking: true
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Structure Review
+
+Scope: always
+Cites:
+- design-smells
+- object-calisthenics
+- adversarial-review-protocol
 
 Output JSON:
 
@@ -19,7 +26,6 @@ Status: pass=clean, warn=minor issues, fail=architectural problems
 Severity: error=breaks maintainability, warning=tech debt, suggestion=improvement
 Confidence: high=mechanical extraction (duplicate block → shared function); medium=SRP split direction clear but interface design may vary; none=requires human judgment (module boundary decisions, coupling tradeoffs)
 
-Model tier: mid
 Context needs: full-file
 
 ## Knowledge Files
@@ -72,13 +78,18 @@ Design smells:
 - For SRP violations and coupling issues, map to the smell → pattern table in `skill://dev-team-knowledge/design-smells.md#design-smells-pattern-mapping`. Every finding should name the smell, quote the code, and include a refactor sketch.
 - For method-level issues (nesting, long methods, flag arguments), check Object Calisthenics rules 1-2 and 7 in `skill://dev-team-knowledge/object-calisthenics.md`. Whole-file load: the nine-rule catalog is short enough that the agent reads the whole file rather than picking specific rule anchors.
 
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#structure-review` (structure-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these structure-review-specific challenges:
+
+- Did you check every module/class for SRP violations, including small ones?
+- Did you trace dependency direction? Does business logic depend on infrastructure (not just vice versa)?
+- Are there hidden static singletons or global state that aren't injected?
+- For every "duplicate code" finding, did you verify it's semantic duplication and not just structural similarity?
+- Did you check constructor parameter counts? >5 parameters usually signals SRP violation.
+- Are there God objects/Megaclasses you walked past because they're "just how the code is"?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

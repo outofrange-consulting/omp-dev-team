@@ -1,12 +1,6 @@
-# Single source of truth for filesystem-walk exclusions used by the
-# `codebase-recon` agent's inventory step (the `file_inventory` envelope field,
-# security-primitives-contract 1.2.0+) when the target is NOT a git working
-# tree. Two sections, each with one entry per line.
-#
-# Upstream ships this as input to a `scripts/recon-inventory.sh`; that script was
-# not ported, so the agent walks the tree itself and reads this file for the
-# exclusion set. Keeping the list here (rather than inline in the agent prompt)
-# is what makes the walk deterministic across runs.
+# Single source of truth for filesystem-walk exclusions used by
+# plugins/dev-team/scripts/recon-inventory.sh when the target is not a
+# git working tree. Two sections, each with one entry per line.
 #
 # The git-ls-files branch does NOT consult this file — git's own .gitignore +
 # working-tree rules are already authoritative. This file drives ONLY the

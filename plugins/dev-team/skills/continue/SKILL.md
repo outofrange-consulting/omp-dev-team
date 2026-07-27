@@ -1,13 +1,13 @@
 ---
 name: continue
 description: >-
-  Resume work from a prior session by reading phase progress files in memory/
-  and active plans. Use this when starting a new session on in-progress work,
+  Resume work from a prior session by reading phase progress files in
+  .claude/memory/ and active plans. Use this when starting a new session on in-progress work,
   or when the user says "continue", "pick up where I left off", "resume",
   or "what was I working on".
 argument-hint: ""
 user-invocable: true
-allowed-tools: read, find, search, bash(git log *), bash(git branch *), bash(git status *), bash(git diff *), bash(ls *)
+allowed-tools: read, glob, grep, bash
 ---
 
 # Continue Session
@@ -20,7 +20,7 @@ You have been invoked with the `/continue` command.
 
 ## Orchestrator constraints
 
-1. Resume from memory/ progress files; do not restart completed phases.
+1. Resume from .claude/memory/ progress files; do not restart completed phases.
 2. Summarize prior state; do not replay full history.
 3. **Be concise.** Report where work resumes, no narration.
 
@@ -28,19 +28,18 @@ You have been invoked with the `/continue` command.
 
 ### 1. Scan for in-progress work
 
-Read all files in `memory/` looking for phase progress files. These follow the pattern:
+Find phase progress files with `Glob(".claude/memory/*.md")` — never `Read` the bare `.claude/memory/` directory to see what it contains (`skill://dev-team-knowledge/directory-enumeration.md`). These follow the pattern:
 
-- `memory/research-progress-*.md` — Research phase output
-- `memory/plan-progress-*.md` — Plan phase output
-- `memory/implementation-progress-*.md` — Implementation phase output
-- `memory/decisions.md` — Accumulated decision log
+- `.claude/memory/research-progress-*.md` — Research phase output
+- `.claude/memory/plan-progress-*.md` — Plan phase output
+- `.claude/memory/implementation-progress-*.md` — Implementation phase output
+- `.claude/memory/decisions.md` — Accumulated decision log
 
-Also check:
+Also check (same rule — `Glob`, not a directory `Read`):
 
 - `plans/` directory for active plan files
-- `docs/specs/` for design documents without corresponding implementation
-- `memory/review-summaries/` for recent review results (written by
-  `/skill:review-summary`; the Claude-Code-era harness dot-dir is not used here)
+- `docs/specs/` for design documents without corresponding implementation — or, on a repo that opted into `/specs`' issue-first persistence convention, a `--spec-issue <url>` reference recorded in the active plan instead of a file
+- `.claude/review-summaries/` for recent review results
 - `corrections/` for unapplied code review fixes
 
 ### 2. Check git state

@@ -39,6 +39,7 @@ When LLMs hit failures, they tend to guess at fixes — changing code, re-runnin
 **Investigate** (use as many techniques as needed):
 - **Read the error**: Parse the stack trace. What file, line, and function? What's the actual error type?
 - **Trace the data flow**: Follow the input from entry point to failure point. Where does the actual value diverge from the expected value?
+- **Graph-assisted tracing**: If the target repo has `.codegraph/` (CodeGraph MCP server — `codegraph_trace`/`codegraph_callers`/`codegraph_callees` for "how does X reach Y" call-path questions) and/or a Repowise MCP server (`get_context`/`search_codebase`), prefer them over hand-walking the codebase to trace the call path from symptom to source. Never assume either is present — fall back to `Grep`/`Read` when absent.
 - **Check recent changes**: What changed since this last worked? (`git diff`, `git log`)
 - **Add observation points**: Temporary logging or print statements at key points to see actual values
 - **Multi-component systems**: Add diagnostics at each component boundary — log data entering and exiting each layer to find which layer fails
@@ -65,13 +66,19 @@ When LLMs hit failures, they tend to guess at fixes — changing code, re-runnin
 ### Phase 4: Fix
 **Goal**: Make the smallest change that addresses the root cause.
 
-1. Write or modify a test that captures the bug (it should fail now)
+**Iron Law of Phase 4: no fix without a failing test that reproduces the defect first.** This is a hard gate, not the advisory test-driven-development skill's opt-in discipline — it applies to every defect fix regardless of the build's cadence.
+
+1. Write or modify a test that captures the bug (it should fail now) — do not write fix code before this test exists and fails for the right reason
 2. Apply the fix — one change, targeting the root cause
 3. Run the test — it should pass
 4. Run the full suite — no regressions
 5. **Gate**: paste the test output showing the fix works and nothing else broke
 
 **If the fix doesn't work**: Stop and reassess. After fewer than 3 attempts, return to Phase 1. After 3+ failures, question the architecture itself — when each fix reveals new problems elsewhere, the bug is architectural, not local. Discuss fundamentals with the human before attempting more fixes.
+
+### After the fix: capture the pattern (Improve)
+
+A bug class you had to debug once should be cheaper next time — this is the "improve" step of the ownership loop. When a root cause reflects a recurring pattern (a timezone helper, a boundary off-by-one, a shared-state leak), leave the loop better than you found it: the regression test from Phase 4 pins it, and if the pattern is likely to recur, note it where the next engineer will see it — a comment at the fault site, or a `learn:`/`remember:` via [Feedback & Learning](../feedback-learning/SKILL.md). Skipping this means re-discovering the same bug.
 
 ## Red Flags Requiring Process Restart
 

@@ -11,7 +11,7 @@ user-invocable: true
 
 The QA Engineer in charter-driven **"Chaos Specialist"** mode. Given a charter and a running target (endpoint, CLI, feature), it probes with structured heuristics, captures telemetry on every probe, classifies defects, auto-triages critical findings, and writes an incremental report ending with runnable follow-up charters. It is bounded by a **probe budget** so a session always terminates.
 
-Frameworks (charter quality, variable identification, state model, implicit-expectation lenses) live in `skill://dev-team-knowledge/exploratory-testing-field-guide.md`; this file is the protocol.
+Frameworks (charter quality, variable identification, state model, implicit-expectation lenses) live in `knowledge/exploratory-testing-field-guide.md`; this file is the protocol.
 
 ## Constraints
 
@@ -71,7 +71,7 @@ After the heuristic probes, expand along **3 implicit-expectation lenses** (fiel
 Classify each finding by severity. A **Critical** defect (data corruption, auth bypass, crash, invariant violation) triggers auto-triage:
 
 - Retry the probe **once** to rule out a transient — **except invariant violations**, which are **Critical-immediate** (no retry).
-- If it reproduces (or is invariant-immediate), invoke **`/triage`** with the reproduction. On success, record the returned `triage-record: .triage/<slug>.md` path in the report. On triage failure, preserve the reproduction at `tmp/explore-trace-<timestamp>.md` and record that path instead.
+- If it reproduces (or is invariant-immediate), invoke **`/triage`** with the reproduction. On success, record the returned `triage-record: .dev-team-reports/triage/<slug>.md` path in the report. On triage failure, preserve the reproduction at `tmp/explore-trace-<timestamp>.md` and record that path instead.
 - **No defect → no triage.** Non-critical findings are recorded in the report only.
 
 ### 7. Session debrief
@@ -80,7 +80,7 @@ When the budget is exhausted or `/stop` is received, stop and state the terminat
 
 ## Output
 
-Write incrementally to `reports/explore-<YYYYMMDDThhmmss>.md`:
+Write incrementally to `.dev-team-reports/explore-<YYYYMMDDThhmmss>.md`:
 
 ```markdown
 ## Exploration — <charter>
@@ -92,7 +92,7 @@ Write incrementally to `reports/explore-<YYYYMMDDThhmmss>.md`:
 
 ### Defects
 | Severity | Probe # | Summary | Triage |
-(Triage = `.triage/<slug>.md` path, or `tmp/explore-trace-<ts>.md` on triage failure)
+(Triage = `.dev-team-reports/triage/<slug>.md` path, or `tmp/explore-trace-<ts>.md` on triage failure)
 
 ### Next Exploration
 - `--charter 'Explore … with … to discover …'`
@@ -104,5 +104,5 @@ The report must contain **≥1 Goldilocks and ≥1 Happy-Path Divergence** entry
 ## Integration
 
 - Invoked by the `/explore` command; runs as the QA Engineer's Chaos Specialist mode.
-- Hands critical defects to `/triage` (which writes `.triage/<slug>.md`).
-- Frameworks: `skill://dev-team-knowledge/exploratory-testing-field-guide.md`. For *test design* (which layer, which double) use `test-design-advisor`; this skill probes running behavior, it does not design a suite.
+- Hands critical defects to `/triage` (which writes `.dev-team-reports/triage/<slug>.md`).
+- Frameworks: `knowledge/exploratory-testing-field-guide.md`. For *test design* (which layer, which double) use `test-design-advisor`; this skill probes running behavior, it does not design a suite.

@@ -16,7 +16,69 @@ Token-budget reference (CLAUDE.md baseline, full-load ceiling, per-agent and per
 - Load agents on demand when their phase begins, not speculatively.
 - Use tool-based file reads (Read); do not paste file contents into the prompt.
 
+## Enforcement
+
+This protocol is backed by a `PreToolUse` hook — `hooks/context_ceiling_guard.py`
+(registered on `Agent` and `Skill`). Before a capability-loading call it measures
+`utilization = (input + cache_read + cache_creation) / model_context_window` from
+the transcript's latest assistant-message usage against the model's context
+window, which the hook auto-detects from the session's most recent
+`message.model` by family/version substring: Haiku family -> 200K; current
+1M-window models -> 1M (Fable, Mythos, Opus 4.6/4.7/4.8, Sonnet 5, Sonnet 4.6);
+unrecognized model, or a same-family model outside those pinned versions ->
+200K conservative fallback (window is a fixed per-model property, so an
+unrecognized model is never assumed large — over-nudging is a minor false
+alarm, under-nudging risks running well past the real ceiling). Set
+`DEV_TEAM_CONTEXT_WINDOW` to override detection explicitly.
+
+The effective ceiling is `min(ceiling_pct% of window, 150K tokens)` — an
+absolute-token cap (`DEV_TEAM_CONTEXT_ABS_CEILING`, default 150000, matching
+Anthropic's server-side compaction default) that keeps large windows from
+pushing the trigger point far past where compaction already kicks in; it's a
+no-op on the 200K base window (40% = 80K, already under the cap). The warning
+names which bound is binding — percentage or absolute, never both — and the
+window's provenance (override, detected, or default).
+
+As occupancy climbs past the ceiling, the hook escalates through three
+Handoff action bands keyed to multiples of the effective
+ceiling — 1x nudge, 1.25x run `/handoff` now, 1.5x full
+summary + fresh conversation (see [Handoff → When to
+Summarize](../handoff/SKILL.md#when-to-summarize)) — before
+nudging (warn, default) or, at/above the ceiling under
+`DEV_TEAM_CONTEXT_STRICT=on`, blocking the load. Recovery skills
+(`/handoff`, `/context-loading-protocol`, `/continue`,
+`/review-summary`, `/session-review`) are never gated — blocking the path
+back under budget would deadlock the session.
+
+Knobs: `DEV_TEAM_CONTEXT_CEILING_PCT` (default 40), `DEV_TEAM_CONTEXT_ABS_CEILING`
+(default 150000), `DEV_TEAM_CONTEXT_WINDOW` (overrides auto-detection),
+`DEV_TEAM_CONTEXT_CEILING=off` (disables entirely).
+The hook is a backstop measured from real usage; the budget estimate below is still
+the planning tool you apply *before* loading.
+
+### Why 40%
+
+The 40% ceiling is a conservative planning target, not a claimed accuracy cliff.
+Chroma's [Context Rot study](https://www.trychroma.com/research/context-rot) found
+degradation across 18 models (including Claude 4) is gradual, not a sharp drop at
+any single percentage. Needle-in-a-haystack benchmarks like RULER and NoLiMa show a
+model's *effective* context is often only about half its advertised window, with
+sharp accuracy drops on non-lexical retrieval well before the window limit. Anthropic's
+[effective context engineering guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+recommends proactive compaction well ahead of the limit — the Claude API's own
+compaction default is 150K absolute tokens even on 1M-window models. Given that
+evidence, budgeting to 40% of the window (capped at 150K absolute) leaves headroom
+before quality degrades, rather than chasing a precise threshold that doesn't exist.
+
+Full guide — warning-line field reference, concrete band fire-points per
+window size, knob table, troubleshooting: [Context
+Management](../../docs/context-management.md).
+
 ## Loading Decision Procedure
+
+### Step 0: Confirm there is a task
+
+Before loading anything or reading files, confirm an actionable instruction exists. If the user has not yet said what they want, wait — do not speculatively read files, verify code, or load agents. Premature investigation before a task is given wastes context and is a common interrupt trigger. Once a task exists, proceed to Step 1.
 
 ### Step 1: Classify the task
 
@@ -54,13 +116,13 @@ Total = CLAUDE.md baseline
       + expected output (estimate)
 ```
 
-**Target: total < 40% of the model's context window.** For Claude with a 200K window, that's < 80K tokens. The config files are a small fraction; the real budget concern is conversation history + output accumulation over multi-turn tasks.
+**Target: total < 40% of the model's context window, capped at 150K absolute tokens.** For Claude with a 200K window, that's < 80K tokens; on a 1M-window model the cap (150K) binds before the percentage would. See [Why 40%](#why-40) for the rationale. The config files are a small fraction; the real budget concern is conversation history + output accumulation over multi-turn tasks.
 
 ### Step 5: Load via tool-based file reads
 
 ```
 Read agents/software-engineer.md
-Read skill://hexagonal-architecture
+Read skills/hexagonal-architecture/SKILL.md
 ```
 
 Do NOT copy file contents into the system prompt or conversation.
@@ -70,20 +132,23 @@ Do NOT copy file contents into the system prompt or conversation.
 Pre-computed loading sets for common task types.
 
 ### Code Implementation
+
 - **Load**: Software Engineer + relevant skill(s)
 - **Defer**: QA (load after implementation), Architect (load only if design questions arise)
 
 ### Architecture Design
+
 - **Load**: Architect + relevant architecture skill(s)
 - **Defer**: Software Engineer (load at implementation), QA (load at validation)
 
 ### Bug Fix
+
 - **Load**: Software Engineer only
 - **Defer**: QA (load if regression test needed)
 
 ### New Feature (full lifecycle)
 
-Three phases, each in a fresh context window with a human review gate between. Each phase's output is a structured progress file in `memory/` that onboards the next phase.
+Three phases, each in a fresh context window with a human review gate between. Each phase's output is a structured progress file in `.claude/memory/` that onboards the next phase.
 
 | Phase | Load | Purpose | Output |
 |---|---|---|---|
@@ -92,6 +157,7 @@ Three phases, each in a fresh context window with a human review gate between. E
 | 3. Implement | Software Engineer + QA + skill(s) | Execute the plan; code, tests | Working code + test results |
 
 Key rules:
+
 - Each phase starts with a fresh context window, loading only the previous phase's progress file.
 - Human reviews and approves the progress file before the next phase begins.
 - Sub-agents primarily provide context isolation — they search, read, and return concise findings.
@@ -101,8 +167,8 @@ Key rules:
 
 Since tokens can't be literally removed from context:
 
-1. **Phase transitions** — summarize completed phase output into `memory/` and start a new conversation for the next phase.
-2. **Within a conversation** — stop referencing the agent/skill; the orchestrator mentally notes it's no longer active. Use the Context Summarization skill to compress stale content.
+1. **Phase transitions** — summarize completed phase output into `.claude/memory/` and start a new conversation for the next phase.
+2. **Within a conversation** — stop referencing the agent/skill; the orchestrator mentally notes it's no longer active. Use the Handoff skill (continue mode) to compress stale content.
 3. **Multi-turn accumulation** — when conversation history crosses **30%** utilization, trigger summarization before loading additional agents.
 
 ## Anti-patterns

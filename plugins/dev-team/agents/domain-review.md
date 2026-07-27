@@ -1,17 +1,22 @@
 ---
+
 name: domain-review
 description: Domain boundaries, abstraction leaks, business logic placement
-tools: read, search, find
-# Regrade (plan A.4): upstream runs these design-synthesis agents on opus.
+tools: read, grep, glob
 model: "@slow, @plan, @default"
 thinking-level: high
-blocking: true
-# Traces 1:1 to the `## Skills` section below (ADR-0028's one-directional gate).
 autoload-skills:
   - ubiquitous-language
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Domain Review
+
+Scope: always
+Cites:
+- domain-modeling
+- ubiquitous-language
+- adversarial-review-protocol
 
 Output JSON:
 
@@ -23,7 +28,6 @@ Status: pass=clean model, warn=minor issues, fail=boundary violations
 Severity: error=violation that causes data exposure, cross-context coupling, or untestable code; warning=misplaced logic or missing abstraction that adds friction; suggestion=modeling improvement with no immediate harm
 Confidence: high=mechanical (add missing DTO, rename to domain term); medium=direction clear, entity/service split may have tradeoffs; none=requires human judgment (aggregate boundary decisions, bounded context design)
 
-Model tier: frontier
 Context needs: project-structure
 
 ## Knowledge Files
@@ -84,19 +88,45 @@ Anemic domain model:
 - Entities or aggregates that are pure data holders (only getters/setters, no behavior) while all logic lives in services — suggest moving invariant enforcement and state transitions onto the entity
 - Entities that allow external callers to set internal state directly instead of through intention-revealing methods (e.g., setting a status field directly rather than calling a method like `markPaid()` or `Submit()`)
 
+Implicit concepts (missing specification/policy):
+
+- The same multi-clause business condition duplicated across 2+ places — a named domain rule wearing a disguise; suggest extracting a specification/policy object
+- A rule stated in a comment but enforced ad hoc — the concept lives in language, not in the model
+- Flag only duplication or comment-encoded rules you can cite; a single local condition is not a missing specification
+
+Construction without invariants (missing factory):
+
+- Public constructors / object literals that let callers build an invalid aggregate (required field unset, interdependent fields set independently)
+- The same multi-step aggregate assembly repeated across call sites — creation belongs in one factory
+- Do not flag simple objects that are valid by plain construction
+
+Supple design smells (domain model only — defer general purity/coupling to js-fp-review and structure-review):
+
+- Domain methods named for *how* not *what* (`recalc`, `doProcess`), or boolean flag parameters that switch behavior — not intention-revealing
+- A method on a value object or entity that both mutates and returns (command-query separation); value objects should expose only side-effect-free operations
+- Value-typed concepts (money, range, coordinate) that are mutable (public setters / in-place mutation)
+- Invariants asserted by callers instead of guarded inside the entity/aggregate
+
 ## Skills
 
-Whole-file load: each linked skill is loaded in full when invoked.
+Whole-file load: each linked SKILL.md is loaded in full when invoked.
 
-- [Ubiquitous Language](skill://ubiquitous-language) — invoke when the user asks to "build the glossary", "extract domain terms", or "document the ubiquitous language". Also invoke when domain-review findings show pervasive terminology inconsistency (3+ different names for the same concept across the codebase).
-
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
+- [Ubiquitous Language](../skills/ubiquitous-language/SKILL.md) — invoke when the user asks to "build the glossary", "extract domain terms", or "document the ubiquitous language". Also invoke when domain-review findings show pervasive terminology inconsistency (3+ different names for the same concept across the codebase).
 
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#domain-review` (domain-review challenge questions). Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these domain-review-specific challenges:
+
+- Did you check every entity/aggregate for anemic domain model patterns (data bags with all behavior in services)?
+- For each "business logic in wrong layer" finding, did you quote the specific rule and its location?
+- Did you check for ubiquitous language drift: same concept with 3+ different names across modules?
+- Are domain objects leaking persistence annotations, HTTP concerns, or infrastructure types?
+- Did you check aggregate boundary enforcement — are child entities accessed directly by external callers?
+- For each "missing specification" finding, did you cite the 2+ locations where the same condition is duplicated (not a single local `if`)?
+- For supple-design smells, did you stay scoped to domain types (entities/value objects/domain services) and not re-report general FP-purity or coupling that js-fp-review / structure-review own?
+- Did you confirm each "mutable value object" is genuinely used as a value (not an entity with identity)?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

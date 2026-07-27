@@ -1,14 +1,19 @@
 ---
+
 name: complexity-review
 description: Cyclomatic complexity, nesting depth, function size, parameter count
-tools: read, search, find
-# Regrade (plan A.4): upstream runs this on sonnet; @smol was a two-tier downgrade.
+tools: read, grep, glob
 model: "@plan, @default"
-thinking-level: low
-blocking: true
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Complexity Review
+
+Scope: always
+Cites:
+- object-calisthenics
+- adversarial-review-protocol
 
 Output JSON:
 
@@ -20,7 +25,6 @@ Status: pass=manageable, warn=hotspots, fail=critical issues
 Severity: error=unmaintainable, warning=high complexity, suggestion=could simplify
 Confidence: high=threshold violation (function >N lines, nesting >N levels); medium=extraction direction clear, exact split requires context; none=requires human judgment (algorithm design)
 
-Model tier: mid
 Context needs: full-file
 
 ## Knowledge Files
@@ -68,13 +72,17 @@ Cognitive load:
 - Too many concepts per function
 - Non-obvious control flow
 
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
 ## Self-Challenge
 
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#complexity-review`. Append confidence level (High/Medium/Low) to the `summary` field.
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these complexity-review-specific challenges:
+
+- Did you check ALL methods and functions, not just the visibly large ones?
+- For each nesting-depth finding, did you count the actual levels rather than estimating by appearance?
+- Are there methods just under the threshold (19 lines, 3 levels) that warrant a warning?
+- Did you distinguish between genuine cognitive complexity (multiple concepts) and mechanical repetition (defensive null checks)?
+- For async findings, did you verify the pattern is actually problematic in context (library vs. application code)?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 

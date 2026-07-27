@@ -7,7 +7,7 @@ description: >-
   /code-review has run and produced a corrections/ directory.
 argument-hint: "<corrections-dir> [--dry] [--skip-tests] [--skip-build] [--skip-lint]"
 user-invocable: true
-allowed-tools: read, edit, search, find, bash(git diff *, npm run *, npx *, yarn *, pnpm *)
+allowed-tools: read, edit, grep, glob, bash
 ---
 
 # Apply Fixes
@@ -51,13 +51,10 @@ Optional:
 
 Detect and read rules from the target repository:
 
-- `.omp/AGENTS.md` and `.omp/RULES.md` (OMP's native project context; highest
-  discovery priority)
-- a repo-root `AGENTS.md` / `CLAUDE.md`
+- `CLAUDE.md`
+- `.clinerules`
+- `.claude/rules/index.md`
 - `CONTRIBUTING.md`
-
-OMP discovers these itself before the session starts, so they are usually already
-in context — re-read one only when you need a passage verbatim.
 
 These rules inform how fixes should be applied.
 
@@ -99,6 +96,14 @@ Copy this checklist and track progress:
 For each prompt, sorted by priority (high first), then by
 confidence (high before medium):
 
+**Check blast radius before editing.** If the target repo has `.codegraph/`
+(CodeGraph MCP server, `mcp__codegraph__codegraph_explore` — callers/impact
+lookups) and/or a Repowise MCP server (`get_context`/`search_codebase`), use
+them on the affected symbol/file before applying the fix, to see what else
+depends on it — cheaper and more reliable than inferring blast radius from a
+grep. Never assume either is present — fall back to `Read`/`Grep`/`Glob`
+alone when absent.
+
 **`confidence: high` — auto-apply:**
 
 1. Read the affected file(s)
@@ -129,7 +134,7 @@ Unless skipped, run after each fix:
 2. **Build** — run the project's build command
 3. **Tests** — run the project's test command
 
-If validation fails, report the failure and continue to the next fix.
+If validation fails, read `skill://dev-team-knowledge/failure-routing.md` and classify the failing output/exit code by its regex table — deterministic pattern match only, no LLM call. This skill has neither `Agent` nor `Skill` in `allowed-tools`, so a non-inline route (test-generation, security-engineer, human arbitration) is never dispatched — **annotate only**: report the failure's class and recommended route in the Fix Summary (e.g. "security-finding — route to security-engineer via orchestrator") and continue to the next fix. `unclassified` failures report exactly as before, with no added text.
 
 ### 5. Track and report
 
@@ -150,8 +155,10 @@ Total: N | Applied: N | Skipped: N | Failed: N | Validation Failed: N
 [category] instruction (reason)
 
 --- FAILED ---
-[category] instruction (reason)
+[category] instruction (reason) [class: <failure-class>, route: <recommended route>]
 ```
+
+The `[class: ..., route: ...]` tag is present only when validation failed and the failure matched a signature in `failure-routing.md`; an `unclassified` failure omits the tag, matching prior output exactly.
 
 Move successfully applied prompt files to a `completed/` subdirectory.
 
@@ -162,3 +169,5 @@ unclear names), the
 [refactoring](https://github.com/elifiner/refactoring) plugin provides
 incremental, verified refactorings one at a time — better suited for
 complex structural changes than batch correction prompts.
+Install it with `claude plugin install refactoring@refactoring` (or the
+`marketplace-dev` plugin's `/add-plugin refactoring@refactoring --repo elifiner/refactoring`).

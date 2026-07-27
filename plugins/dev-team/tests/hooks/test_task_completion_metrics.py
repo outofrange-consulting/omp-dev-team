@@ -1,0 +1,203 @@
+"""Tests for hooks/task_completion_metrics.py (issue #1044)."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+_HOOK = (
+    Path(__file__).resolve().parent.parent.parent / "hooks" / "task_completion_metrics.py"
+)
+
+
+def _run(stdin: str, env: dict | None = None, cwd: Path | None = None):
+    import os
+
+    full_env = os.environ.copy()
+    if env:
+        full_env.update(env)
+
+    result = subprocess.run(
+        [sys.executable, str(_HOOK)],
+        input=stdin,
+        capture_output=True,
+        text=True,
+        env=full_env,
+        cwd=str(cwd) if cwd else None,
+        check=False,
+    )
+    return result
+
+
+def _scratch_payload(tmp_path):
+    scratch = {"task_type": "fix"}
+    dot_claude = tmp_path / ".claude"
+    dot_claude.mkdir(exist_ok=True)
+    (dot_claude / "session-metrics.json").write_text(json.dumps(scratch))
+    return json.dumps({"stop_reason": "end_turn"})
+
+
+def _consent_env(tmp_path):
+    """Env with a home directory whose ~/.claude/telemetry.json opts in."""
+    home = tmp_path / "home"
+    (home / ".claude").mkdir(parents=True, exist_ok=True)
+    (home / ".claude" / "telemetry.json").write_text('{"enabled": true}')
+    return {"HOME": str(home)}
+
+
+class TestOptOut:
+    def test_off_env_var_exits_zero(self, tmp_path):
+        result = _run("{}", env={"DEV_TEAM_TASK_METRICS": "off"}, cwd=tmp_path)
+        assert result.returncode == 0
+        assert not (tmp_path / ".claude" / "metrics").exists()
+
+
+class TestTelemetryConsent:
+    def test_no_consent_file_no_output_even_with_scratch(self, tmp_path):
+        home = tmp_path / "home"
+        home.mkdir()
+        payload = _scratch_payload(tmp_path)
+        result = _run(payload, env={"HOME": str(home)}, cwd=tmp_path)
+        assert result.returncode == 0
+        assert not (tmp_path / ".claude" / "metrics").exists()
+
+    def test_consent_enabled_but_per_writer_opt_out_still_suppresses(self, tmp_path):
+        home = tmp_path / "home"
+        (home / ".claude").mkdir(parents=True)
+        (home / ".claude" / "telemetry.json").write_text('{"enabled": true}')
+        payload = _scratch_payload(tmp_path)
+        result = _run(
+            payload,
+            env={"HOME": str(home), "DEV_TEAM_TASK_METRICS": "off"},
+            cwd=tmp_path,
+        )
+        assert result.returncode == 0
+        assert not (tmp_path / ".claude" / "metrics").exists()
+
+    def test_consent_enabled_and_no_opt_out_produces_output(self, tmp_path):
+        home = tmp_path / "home"
+        (home / ".claude").mkdir(parents=True)
+        (home / ".claude" / "telemetry.json").write_text('{"enabled": true}')
+        payload = _scratch_payload(tmp_path)
+        result = _run(payload, env={"HOME": str(home)}, cwd=tmp_path)
+        assert result.returncode == 0
+        logs = list((tmp_path / ".claude" / "metrics").glob("*-task-log.jsonl"))
+        assert len(logs) == 1
+
+
+class TestNoScratch:
+    def test_empty_payload_no_scratch_no_output(self, tmp_path):
+        """With no scratch file and no payload, hook skips writing."""
+        result = _run("", cwd=tmp_path)
+        assert result.returncode == 0
+        assert not (tmp_path / ".claude" / "metrics").exists()
+
+    def test_stop_payload_no_scratch_writes_nothing(self, tmp_path):
+        """A Stop payload with no scratch file writes no task entry (#1258).
+
+        A bare heartbeat carries no task-local signal — recording one only
+        produces task_type:"unknown" noise that dilutes harness-audit Step 3.
+        """
+        payload = json.dumps({"stop_reason": "end_turn"})
+        result = _run(payload, cwd=tmp_path)
+        assert result.returncode == 0
+        assert not (tmp_path / ".claude" / "metrics").exists()
+
+
+class TestScratchFile:
+    def test_scratch_fields_appear_in_task_log(self, tmp_path):
+        scratch = {
+            "task_id": "t-1",
+            "task_type": "implementation",
+            "task_description": "Add auth",
+            "agents_used": ["software-engineer"],
+            "skills_used": ["quality-gate-pipeline"],
+            "hallucination_detected": True,
+            "rework_cycles": 2,
+            "defects_found": 3,
+        }
+        dot_claude = tmp_path / ".claude"
+        dot_claude.mkdir()
+        (dot_claude / "session-metrics.json").write_text(json.dumps(scratch))
+
+        result = _run(
+            json.dumps({"stop_reason": "end_turn"}),
+            env=_consent_env(tmp_path),
+            cwd=tmp_path,
+        )
+        assert result.returncode == 0
+
+        logs = list((tmp_path / ".claude" / "metrics").glob("*-task-log.jsonl"))
+        assert len(logs) == 1
+        entry = json.loads(logs[0].read_text().strip())
+        assert entry["task_id"] == "t-1"
+        assert entry["hallucination_detected"] is True
+        assert entry["rework_cycles"] == 2
+        assert entry["defects_found"] == 3
+
+    def test_scratch_cleared_after_write(self, tmp_path):
+        dot_claude = tmp_path / ".claude"
+        dot_claude.mkdir()
+        scratch_path = dot_claude / "session-metrics.json"
+        scratch_path.write_text(json.dumps({"task_type": "fix"}))
+
+        _run(json.dumps({}), env=_consent_env(tmp_path), cwd=tmp_path)
+        assert not scratch_path.exists()
+
+    def test_config_change_writes_changelog(self, tmp_path):
+        scratch = {
+            "config_change": {
+                "parameter": "DEV_TEAM_CONTEXT_CEILING_PCT",
+                "old_value": "40",
+                "new_value": "50",
+                "reason": "Test",
+            }
+        }
+        dot_claude = tmp_path / ".claude"
+        dot_claude.mkdir()
+        (dot_claude / "session-metrics.json").write_text(json.dumps(scratch))
+
+        result = _run(json.dumps({}), env=_consent_env(tmp_path), cwd=tmp_path)
+        assert result.returncode == 0
+
+        changelog = tmp_path / ".claude" / "metrics" / "config-changelog.jsonl"
+        assert changelog.exists()
+        entry = json.loads(changelog.read_text().strip())
+        assert entry["parameter"] == "DEV_TEAM_CONTEXT_CEILING_PCT"
+        assert entry["new_value"] == "50"
+
+    def test_no_config_change_no_changelog(self, tmp_path):
+        scratch = {"task_type": "fix"}
+        dot_claude = tmp_path / ".claude"
+        dot_claude.mkdir()
+        (dot_claude / "session-metrics.json").write_text(json.dumps(scratch))
+
+        _run(json.dumps({}), cwd=tmp_path)
+        assert not (tmp_path / ".claude" / "metrics" / "config-changelog.jsonl").exists()
+
+
+class TestFailOpen:
+    def test_invalid_json_payload_exits_zero(self, tmp_path):
+        result = _run("not-json", cwd=tmp_path)
+        assert result.returncode == 0
+
+    def test_metrics_dir_creation_failure_exits_zero(self, tmp_path):
+        """Simulate metrics dir being a file (cannot mkdir) — hook must exit 0.
+
+        Populates the scratch so the hook reaches the mkdir (an empty scratch
+        now short-circuits before any write, per #1258). The output metrics
+        directory now lives under .claude/metrics/, so the blocking file must
+        sit at that path, not the legacy bare metrics/.
+        """
+        dot_claude = tmp_path / ".claude"
+        dot_claude.mkdir()
+        (dot_claude / "metrics").write_text("file")
+        (dot_claude / "session-metrics.json").write_text(json.dumps({"task_type": "fix"}))
+        result = _run(
+            json.dumps({"stop_reason": "end_turn"}),
+            env=_consent_env(tmp_path),
+            cwd=tmp_path,
+        )
+        assert result.returncode == 0

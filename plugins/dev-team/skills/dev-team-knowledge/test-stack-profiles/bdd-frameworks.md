@@ -1,0 +1,222 @@
+# BDD Frameworks — per-language wire-in
+
+The minimal steps to wire a BDD runner into a project, one section per supported
+language. Use this **after** `../references/bdd-value-guide.md` recommends
+`bdd-runner` mode — this file is the mechanics, not the decision.
+
+Every runner here outputs JUnit-XML (or an equivalent the CI already understands),
+so the BDD suite plugs into the existing pipeline without new reporting.
+
+---
+
+## JS/TS — Cucumber.js
+
+- **Framework:** [@cucumber/cucumber](https://github.com/cucumber/cucumber-js) (v11+).
+- **Install:** `npm install --save-dev @cucumber/cucumber`
+- **Directory layout:**
+  - `features/` — `.feature` files.
+  - `features/support/` — step definitions and world/hooks.
+- **Runner config** — `cucumber.yaml` (or `cucumber.js`) at repo root:
+
+  ```yaml
+  default:
+    require:
+      - features/support/**/*.js
+    format:
+      - "junit:reports/cucumber-junit.xml"
+  ```
+
+- **Step stub (pending):**
+
+  ```js
+  import { Given } from "@cucumber/cucumber";
+  Given("a precondition", function () {
+    return this.pending(); // marks the step (and scenario) pending
+  });
+  ```
+
+- **Run:** `npx cucumber-js`
+- **CI note:** the `junit` formatter writes `reports/cucumber-junit.xml`; point the existing JUnit reporter at it. Cucumber.js runs alongside Vitest/Jest — they are complementary, not alternatives.
+
+---
+
+## Java / Maven — Cucumber-JVM
+
+- **Framework:** [Cucumber-JVM](https://github.com/cucumber/cucumber-jvm) on the JUnit 5 platform.
+- **Install** — add to `pom.xml`:
+
+  ```xml
+  <dependency>
+    <groupId>io.cucumber</groupId>
+    <artifactId>cucumber-java</artifactId>
+    <version>7.18.1</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>io.cucumber</groupId>
+    <artifactId>cucumber-junit-platform-engine</artifactId>
+    <version>7.18.1</version>
+    <scope>test</scope>
+  </dependency>
+  ```
+
+- **Directory layout:**
+  - `src/test/resources/features/` — `.feature` files.
+  - `src/test/java/.../steps/` — step-definition classes.
+- **Runner config** — a suite entry point:
+
+  ```java
+  import org.junit.platform.suite.api.*;
+
+  @Suite
+  @IncludeEngines("cucumber")
+  @SelectClasspathResource("features")
+  public class RunCucumberTest {}
+  ```
+
+  (add `import static io.cucumber.junit.platform.engine.Constants.*;` only if you also set `@ConfigurationParameter` options such as the `pretty` plugin.)
+- **Step stub (pending):**
+
+  ```java
+  import io.cucumber.java.en.Given;
+  import io.cucumber.java.PendingException;
+
+  public class Steps {
+    @Given("a precondition")
+    public void a_precondition() { throw new io.cucumber.java.PendingException(); }
+  }
+  ```
+
+- **Run:** `mvn test` (Surefire discovers the JUnit 5 suite automatically).
+- **CI note:** Surefire emits JUnit XML under `target/surefire-reports/` — no extra config.
+
+---
+
+## Java / Gradle — Cucumber-JVM
+
+Same engine as Maven; only the wiring differs.
+
+- **Install** — add to `build.gradle`:
+
+  ```groovy
+  testImplementation 'io.cucumber:cucumber-java:7.18.1'
+  testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.18.1'
+  testImplementation 'org.junit.platform:junit-platform-suite:1.10.2'
+  ```
+
+- **Runner config** — ensure the `test` task uses the JUnit Platform and sees the feature resources:
+
+  ```groovy
+  test {
+    useJUnitPlatform()
+    systemProperty 'cucumber.junit-platform.naming-strategy', 'long'
+  }
+  ```
+
+  Keep `.feature` files under `src/test/resources/features/` (same suite class as Maven).
+- **Step stub:** identical to Maven (`io.cucumber.java.PendingException`).
+- **Run:** `./gradlew test`
+- **CI note:** Gradle writes JUnit XML under `build/test-results/test/`.
+
+---
+
+## C# — Reqnroll
+
+- **Framework:** [Reqnroll](https://reqnroll.net/) — the actively-maintained, MIT-licensed successor to SpecFlow. **Prefer Reqnroll over SpecFlow:** identical API, but SpecFlow requires a commercial license for teams larger than one, while Reqnroll is free.
+- **Install:** `dotnet add package Reqnroll.xUnit` (or `Reqnroll.NUnit` / `Reqnroll.MsTest` to match the project's test runner) **and** `dotnet add package Reqnroll.Tools.MsBuild.Generation`. The second package is required, not optional — it's the `.feature` → C# code generator; the runtime-bindings package alone leaves `.feature` files silently uncompiled (`dotnet test` reports "No test is available," with no error at all).
+- **Directory layout:**
+  - `Features/` — `.feature` files. The default MSBuild wildcard include only reaches `.feature` files under the test project's own directory tree. To reference files living outside it (e.g. a shared `features/` convention dir consumed by multiple projects), add them explicitly as `ReqnrollFeatureFile` items — **not** `AdditionalFiles` (that's a Roslyn-source-generator convention; MSBuild-based Reqnroll codegen doesn't key on it):
+
+    ```xml
+    <ItemGroup>
+      <ReqnrollFeatureFile Include="..\..\features\*.feature" Link="Features\%(Filename)%(Extension)" />
+    </ItemGroup>
+    ```
+
+  - `StepDefinitions/` — `[Binding]` step classes.
+- **Runner config** — `reqnroll.json` at the project root:
+
+  ```json
+  { "language": { "feature": "en" } }
+  ```
+
+- **Step stub (pending):** throw `PendingStepException` directly — this is Reqnroll's own auto-suggested stub for an undefined step. (`ScenarioContext.StepIsPending()` is deprecated as of Reqnroll 3.3.4 and will be removed in v4; it is also a **static** method, not an instance method, despite older examples showing it called via constructor-injected `ScenarioContext`.)
+
+  ```csharp
+  using Reqnroll;
+
+  [Binding]
+  public class Steps {
+    [Given("a precondition")]
+    public void GivenAPrecondition() => throw new PendingStepException();
+  }
+  ```
+
+- **Run:** `dotnet test`
+- **CI note:** `dotnet test --logger "junit;LogFilePath=reports/reqnroll-junit.xml"` (via the JUnit test logger) produces JUnit XML for the pipeline.
+
+---
+
+## Python — pytest-bdd / behave
+
+- **Framework:** [pytest-bdd](https://github.com/pytest-dev/pytest-bdd) (scenarios run as ordinary pytest tests — preferred when pytest is already the runner) or [behave](https://github.com/behave/behave) (standalone Gherkin runner).
+- **Install:** `pip install pytest-bdd` or `pip install behave` (declare in `pyproject.toml` or `requirements*.txt`).
+- **Directory layout:**
+  - `features/` — `.feature` files (both tools' convention).
+  - pytest-bdd: step definitions in `tests/step_defs/test_*.py`, bound with `scenarios("../../features")`.
+  - behave: step definitions in `features/steps/*.py`.
+- **Step stub (pending):**
+
+  ```python
+  # pytest-bdd
+  import pytest
+  from pytest_bdd import given
+
+  @given("a precondition")
+  def a_precondition():
+      pytest.skip("pending")  # marks the step (and scenario) pending
+
+  # behave
+  from behave import given
+
+  @given("a precondition")
+  def step_a_precondition(context):
+      raise NotImplementedError("pending")
+  ```
+
+- **Run:** `pytest` (pytest-bdd) or `behave --junit --junit-directory reports/` (behave).
+- **CI note:** pytest-bdd scenarios surface through the existing pytest JUnit reporter (`--junitxml`); behave's `--junit` flag writes per-feature JUnit XML the pipeline can pick up directly.
+
+---
+
+## Go — Godog
+
+- **Framework:** [Godog](https://github.com/cucumber/godog) — the official Cucumber implementation for Go.
+- **Install:** `go get github.com/cucumber/godog/cmd/godog@latest` (the library is pulled in transitively; the CLI is optional).
+- **Directory layout:**
+  - `features/` — `.feature` files.
+  - step definitions live in a `*_test.go` file beside the suite entry point.
+- **Runner config** — a suite entry point in `*_test.go` so Godog runs inside `go test` (no separate binary):
+
+  ```go
+  func TestFeatures(t *testing.T) {
+    suite := godog.TestSuite{
+      ScenarioInitializer: InitializeScenario,
+      Options: &godog.Options{Format: "junit", Paths: []string{"features"}, TestingT: t},
+    }
+    if suite.Run() != 0 { t.Fatal("non-zero status returned, failed to run feature tests") }
+  }
+  ```
+
+- **Step stub (pending):**
+
+  ```go
+  func aPrecondition() error { return godog.ErrPending }
+
+  func InitializeScenario(sc *godog.ScenarioContext) {
+    sc.Step(`^a precondition$`, aPrecondition)
+  }
+  ```
+
+- **Run:** `go test ./...` (the suite runs as an ordinary Go test).
+- **CI note:** with the `TestingT` option set (above), scenario failures surface as normal `go test` results, so the existing pipeline already sees them. For a separate JUnit-XML artifact, point `Options.Output` at a file writer (e.g. `f, _ := os.Create("reports/godog-junit.xml"); opts.Output = f`) with `Format: "junit"`.

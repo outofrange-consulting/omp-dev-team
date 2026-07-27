@@ -7,7 +7,7 @@ description: >-
   feature".
 argument-hint: "[--skip-review] [--draft] [--base <branch>]"
 user-invocable: true
-allowed-tools: read, write, edit, find, search, bash(git *), bash(gh *), bash(npm *), bash(npx *), bash(pnpm *), bash(yarn *), bash(make *), bash(pytest *), bash(go *), bash(cargo *), bash(dotnet *), skill(code-review *)
+allowed-tools: read, write, edit, glob, grep, bash
 ---
 
 # Pull Request
@@ -29,6 +29,7 @@ Arguments: $ARGUMENTS
 - `--skip-review`: Skip the `/code-review` step (not recommended)
 - `--draft`: Create a draft PR
 - `--base <branch>`: Target branch (default: `main`)
+- `--no-auto-merge`: Do not enable auto-merge (the default is to enable it; see Step 5)
 
 ## Steps
 
@@ -39,6 +40,14 @@ Verify:
 - Current branch is not `main` or `master`
 - There are commits ahead of the base branch
 - Working tree is clean (no uncommitted changes) — if dirty, ask whether to commit or stash
+
+If a plan file is present (check `plans/` for the most recently modified approved or implemented plan), run the plan completion gate:
+
+```bash
+python3 scripts/progress_guardian.py --pre-pr --plan <plan-file>
+```
+
+A non-zero exit means incomplete steps remain; stop and surface the findings — do not open the PR until all steps are `[x]`.
 
 ### 2. Run quality gate
 
@@ -62,7 +71,13 @@ Run each check sequentially. Stop on first failure:
    - `golangci-lint` available: `golangci-lint run`
 
 4. **Code review** (unless `--skip-review`):
-   - Run `/code-review --json`. `/pr` owns the human gate, so code-review runs non-interactively: it skips its own "fix or report?" prompt and applies its fix loop automatically (up to 5 iterations), then returns an aggregated status.
+   - Scope the review to this branch's diff against the base branch, not the whole repo. At PR time the working tree is clean (Step 1 requires it), so a bare `/code-review --json` would auto-scope to the **full repository** — expensive, wrongly scoped, and on a large repo it can trigger the sliced-review path. Compute the merge base and pass it via `--since`:
+
+     ```bash
+     BASE=$(git merge-base HEAD "origin/<base>")   # <base> defaults to main, or the --base arg
+     ```
+
+   - Run `/code-review --since "$BASE" --json`. `/pr` owns the human gate, so code-review runs non-interactively: it skips its own "fix or report?" prompt and applies its fix loop automatically (up to 5 iterations), then returns an aggregated status.
    - Read the returned status field. A normal review returns `{"overall": "pass|warn|fail", ...}`; a documentation-only changeset short-circuits with `{"status": "skipped", ...}`:
      - `overall` of `pass` / `warn`, or `status` of `skipped` → continue to step 3.
      - `overall` of `fail` → show the remaining findings and ask the user whether to proceed anyway or stop and fix.
@@ -84,8 +99,50 @@ Analyze the diff against the base branch (`git diff <base>...HEAD`) and commit h
 - **Title**: Short, imperative (<70 chars)
 - **Summary**: 1-3 bullet points of what changed and why
 - **Test plan**: How to verify the changes
+- **Decisions & assumptions**: Collect everything decided without a human in the
+  loop, from the run's artifacts: the plan's `## Approval` auto-approval record and
+  any auto-passed gate lines from the build output; the plan's stated stances on
+  `knowledge/decision-defaults.md` axes; the spec's `## Ambiguity Log` entries
+  classified `inferable`; `assumptions` entries from software-engineer step outputs;
+  auto-applied review fixes with `confidence: medium`; and deferred follow-ups.
+  Omit the section only when every gate had an interactive human approval.
+- **Evidence bundle**: Assemble per `skill://dev-team-knowledge/evidence-bundle.md`
+  from the Step 2 quality-gate results plus on-disk pipeline data — **no new
+  checks, no re-execution**:
+  - **Checks run**: the exact Step 2 commands (test/typecheck/lint/`/code-review
+    --since <base> --json`) and their results.
+  - **Scope notes**: gates skipped as not-applicable in Step 2 (e.g. no
+    `tsconfig.json` → type check skipped), plus `--skip-review` if passed.
+  - **Untested regions**: read `baseline-coverage.json` / `coverage-history.json`
+    if present; otherwise "not measured — no coverage tool detected."
+  - **Residual risks**: derived-first from `.claude/metrics/review-value.jsonl` entries
+    with `outcome: "escalated"`, gate-bypass audit lines, and negative coverage
+    deltas; "None identified" only when all derived sources are empty.
+  - This command assembles from its own runtime's live data — it never reads a
+    handoff file from a prior `/build` run, so running `/pr` standalone still
+    produces a complete (possibly more-degraded) bundle.
 
 ### 4. Create the PR
+
+**Never phrase a non-closing issue reference with a closing keyword, even
+negated.** GitHub's closing-keyword parser is a dumb regex over the PR body:
+`(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#\d+`. It
+fires on that pattern regardless of grammar — "does not close #123", "won't
+fix #123", and "this doesn't resolve #123" all still auto-close #123 on
+merge (issue #977). If an issue is only partially addressed or deferred,
+write around the keyword instead: "leaves #123 open", "the remaining scope
+is deferred to #124", "see #123 for the rest of this work" — never
+`<closing-keyword> #123` in any form, negated or not.
+
+Before calling `gh pr create`, lint the drafted body for accidental matches:
+
+```bash
+python3 $DEV_TEAM_ROOT/scripts/pr_close_keyword_lint.py --body-file <body-file>
+```
+
+This is advisory only (always exits 0). If it prints warnings, rephrase the
+flagged sentence per the guidance above before creating the PR — do not
+proceed with a body the linter flagged without fixing the phrasing.
 
 ```bash
 gh pr create --title "<title>" --body "<body>" [--draft] --base <base>
@@ -104,12 +161,40 @@ Use the structured template:
 - [x] Lint: clean
 - [x] Code review: <status>
 
+## Decisions & Assumptions
+<!-- Everything decided without a human in the loop. An empty section means a fully human-gated run. -->
+- <axis or assumption> — <stance taken> — <one-line rationale / recommended-default basis>
+
 ## Test Plan
 - [ ] <verification step 1>
 - [ ] <verification step 2>
+
+## Evidence Bundle
+<!-- Per skill://dev-team-knowledge/evidence-bundle.md. All four headers always appear; a section with no data states why instead of being omitted. -->
+**Checks run**
+- `<command>` — <result>
+
+**Scope notes**
+- <what this gate does not cover for this diff>
+
+**Untested regions**
+- <coverage % + delta, or "not measured — <reason>">
+
+**Residual risks**
+- <deferred/escalated finding, waiver, or bypass line — or "None identified">
 ```
 
-### 5. Report
+### 5. Enable auto-merge (default)
+
+Unless `--no-auto-merge` or `--draft` was given, enable auto-merge so the PR lands automatically once checks pass and any required reviews are in — rather than merging directly to trunk. This is the default integration stance in `knowledge/decision-defaults.md` (auto-merge vs. direct-to-trunk).
+
+```bash
+gh pr merge --auto --squash
+```
+
+If the repository does not have auto-merge enabled (the command errors), report that and leave the PR open for manual merge — do **not** merge directly to trunk to work around it.
+
+### 6. Report
 
 Display the PR URL and a summary of the quality gate results.
 

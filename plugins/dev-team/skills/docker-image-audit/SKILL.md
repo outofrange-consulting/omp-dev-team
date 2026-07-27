@@ -1,6 +1,7 @@
 ---
 name: docker-image-audit
 description: Audit Docker images and Dockerfiles for security vulnerabilities, bloat, and best-practice violations using hadolint, Trivy, and Grype. Produces a structured severity report with actionable fixes. Use this skill whenever the user wants to check a Docker image for security issues, scan a container for vulnerabilities, audit a Dockerfile, harden a Docker image, reduce image size, minimize attack surface, check for CVEs in a container, or says things like "is this Dockerfile secure?", "scan my image", "check my container for vulnerabilities", "how can I make this image smaller?", "audit my Docker setup", or "harden this container". Also trigger when the user has just created or modified a Dockerfile and wants validation before shipping it.
+role: worker
 user-invocable: true
 ---
 
@@ -20,7 +21,7 @@ command -v hadolint && command -v trivy && command -v grype
 | **trivy** | `brew install trivy` | Vulnerability scanning |
 | **grype** | `brew install grype` | Second-opinion CVE scanning |
 
-If any tool is missing, read `references/install-guide.md` for multi-platform install instructions. The skill degrades gracefully — hadolint alone covers static analysis; Trivy + Grype require a built image. **If no tools are installed, still run the structural analysis (Step 2b). A tool-free audit is better than no audit.**
+If any tool is missing, run `/project-init` to set up this repo's tooling — it installs hadolint/trivy/grype as capability tools when a Dockerfile is present (see its `$DEV_TEAM_ROOT/skills/project-init/references/capability-tools.md`) — or install these Docker tools directly per `references/install-guide.md` (multi-platform; the install-guide is the fallback). The skill degrades gracefully — hadolint alone covers static analysis; Trivy + Grype require a built image. **If no tools are installed, still run the structural analysis (Step 2b). A tool-free audit is better than no audit.**
 
 ## Workflow
 
@@ -38,7 +39,7 @@ If the user points to a Dockerfile but no built image exists, offer to build it 
 hadolint --format json Dockerfile
 ```
 
-Catches base image issues (`:latest` tag, unpinned versions), security anti-patterns (`ADD` vs `COPY`, running as root), efficiency problems (missing `--no-cache`, uncleaned apt cache), and shell issues in `RUN` instructions via integrated ShellCheck. Note: hadolint flags `:latest` (`DL3007`) but not other unpinned tags like `:10.0` without a digest — call those out in Step 2b if the base image lacks a specific patch version or SHA digest.
+Catches base image issues (`:latest` tag, unpinned versions), security anti-patterns (`ADD` vs `COPY`, running as root), efficiency problems (missing `--no-cache`, uncleaned apt cache), and shell issues in `RUN` instructions via integrated ShellCheck. Note: hadolint flags `:latest` (`DL3007`) but not other unpinned tags like `:10.0` without a digest — call those out in Step 2b (Structural Analysis) if the base image lacks a specific patch version or SHA digest.
 
 ### Step 2b: Structural Analysis
 

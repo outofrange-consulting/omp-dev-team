@@ -37,7 +37,7 @@ How the test is written and driven.
 
 | Strategy | What it is | Use when | Cost / risk |
 |---|---|---|---|
-| **Scripted Test** | Test programs written by hand (the test code you write in any xUnit) | **Default**, and the only option that can be authored before the code exists — there's nothing to record before the code exists | Needs programming skill; not for non-technical authors |
+| **Scripted Test** | Test programs written by hand (the test code you write in any xUnit) | **Default**, and the only option that can *drive* development (TDD) — there's nothing to record before the code exists | Needs programming skill; not for non-technical authors |
 | **Data-Driven Test** | A common interpreter holds the logic; cases live as rows in an external data table (one line per case) | Many cases vary only by input/expected data; lets non-programmers add cases (e.g. Fit/Fitnesse) | Interpreter is itself code to maintain; failures can be opaque; easy to over-build |
 | **Recorded Test** | Capture interactions with a running SUT (usually through the UI) and replay them | Regression-testing a **finished, stable** app where little will change | Brittle to UI/behavior change; can't drive development; high re-record cost |
 | **Test Automation Framework** | The harness that discovers, runs, verifies, and reports tests; you supply only test-specific logic | You **use** one (xUnit, etc.) — rarely build one | Building your own is almost always wasted effort |

@@ -46,6 +46,15 @@
     "agentCount": 11,
     "contextStrategy": "diff-only|full-file|mixed"
   },
+  "topFindings": [
+    {
+      "severity": "error|warning|suggestion",
+      "agents": ["structure-review", "complexity-review"],
+      "file": "src/api/handler.ts",
+      "line": 15,
+      "message": "God object: handler mixes routing, validation, and persistence"
+    }
+  ],
   "summary": "WARN (N agents passed, N warned, N failed). N total issues."
 }
 ```
@@ -55,6 +64,131 @@ The `tokenEstimate` field provides rough cost observability:
 - `totalInputFiles`: approximate character count of all input files passed to agents
 - `agentCount`: number of agents that ran (not skipped)
 - `contextStrategy`: whether diff-only, full-file, or a mix was used
+
+The `topFindings` array is the consolidated cross-agent view — one entry per
+distinct `file:line`, so a finding surfaced by several agents appears once:
+
+- `severity` is the **single highest** enum (`error` > `warning` > `suggestion`)
+  for that finding — never a slash- or comma-joined string.
+- `agents` is an explicit array of the reporting agents. Multi-agent
+  attribution lives here; never join multiple values into `severity` or an
+  `agent` scalar.
+
+**`--json` output contract.** When `--json` is set, the object above is the
+run's *only* output: printed to stdout, and no `corrections/*.json` files or
+`.review-passed` gate file are written — regardless of scope (`--path`,
+`--since`, `--all`, auto-scope) or how many issues were found. This holds
+whether `--json` was reached directly or via `/pr`'s call into `/code-review
+--json` (see SKILL.md steps 7–9).
+
+## Per-slice section artifact (sliced mode)
+
+Written by `scripts/ledger.py` → `write_section` to
+`.dev-team-reports/code-review/raw/section-<id>.json` as each slice completes,
+then dropped from orchestrator context (persist-and-drop). `scripts/consolidate.py`
+reads these back for the final report.
+
+```json
+{
+  "schema": "code-review-section/v1",
+  "id": "0001",
+  "files": ["src/auth/login.ts", "src/auth/session.ts"],
+  "is_declarative": false,
+  "panel": ["correctness-review", "structure-review"],
+  "findings": [
+    {"severity": "warning", "confidence": "medium", "agent": "structure-review", "file": "src/auth/login.ts", "line": 42, "message": "..."}
+  ]
+}
+```
+
+- `id` is the slice id; the filename is `section-<id>.json`.
+- `panel` lists the agents that **actually ran** for this slice — a reduced-panel
+  (declarative) slice lists only `correctness-review` and `structure-review`, so
+  a reader can tell "fewer findings" from "fewer reviewers ran".
+- `findings` use the per-agent `issues[]` shape above **plus an `agent` field**
+  naming the review dimension that reported each one. Because a slice's whole
+  panel writes into one flat `findings[]` list, that `agent` tag is what lets
+  `consolidate.py` merge reporting agents per `file:line` and roll up recurring
+  themes — omitting it yields empty `agents[]` arrays and no themes.
+
+### Schema-drift tolerance (#1261)
+
+Real review-agent output drifts from this schema — agents return the native
+`{status, issues, summary}` shape, key the list as `issues` (the per-agent key)
+instead of `findings` (the section key), or add extra top-level keys. The
+aggregator absorbs these variants deterministically rather than miscounting:
+
+- `consolidate.py`'s `consolidate()` reads a section's findings from `findings`
+  **or** `issues` (canonical first), so a mis-keyed list is aggregated, never
+  silently counted as zero. A value present but not a list degrades to "no
+  findings" rather than crashing.
+- `consolidate.normalize_agent_result(raw, agent_name=None)` is the extraction
+  contract for folding one agent's raw result into a section's flat `findings[]`:
+  it pulls the list from either key, ignores extra keys (`status`, `summary`),
+  and tags each finding with its reporting `agent` (`raw["agentName"]`, else the
+  passed `agent_name`). Non-dict input degrades to `[]`; it never raises.
+
+This tolerance is a safety net for silent drift, **not** a licence to emit the
+wrong shape — the per-agent contract above (`issues[]`) remains authoritative.
+
+## Progress ledger (sliced mode)
+
+Written by `init_ledger` to `.dev-team-reports/code-review/ledger.json`, updated to
+`done` as each slice's section artifact lands. Inspectable/interruptible — a
+partial ledger is always valid JSON.
+
+```json
+{
+  "schema": "code-review-ledger/v1",
+  "cap": 50,
+  "slices": [
+    {"id": "0001", "files": ["src/auth/login.ts"], "is_declarative": false, "status": "pending"}
+  ]
+}
+```
+
+- `cap` is the per-slice file cap the run partitioned with; `--resume` **refuses**
+  a different cap rather than silently repartitioning (see `sliced-mode.md`).
+- `status` is `pending` until the slice's section artifact exists, then `done`.
+  The artifact on disk — not this status field — is the source of truth for
+  `--resume`.
+
+## Consolidated aggregate (sliced mode)
+
+Produced by `scripts/consolidate.py` → `consolidate(sections)` from all
+`section-*.json` artifacts. It extends the aggregated `--json` object above with
+two sliced-only fields, and reuses the same `topFindings` dedup contract
+(one entry per distinct `file:line`, reporting agents merged into `agents[]`,
+severity = the single highest enum).
+
+```json
+{
+  "sliced": true,
+  "sliceCount": 24,
+  "overall": "warn",
+  "totals": {"errors": 0, "warnings": 5, "suggestions": 3},
+  "topFindings": [
+    {"severity": "warning", "agents": ["structure-review", "complexity-review"], "file": "src/api/handler.ts", "line": 15, "message": "..."}
+  ],
+  "recurringThemes": [
+    {"agent": "structure-review", "slices": ["0003", "0007", "0011"], "occurrences": 9}
+  ],
+  "reducedPanelSlices": ["0002", "0019"],
+  "summary": "WARN across 24 slices — 0 errors, 5 warnings, 3 suggestions; 1 recurring theme(s)."
+}
+```
+
+- `summary`: a one-line roll-up (status, slice count, totals, theme count).
+- `malformedArtifacts` (optional): present only when a `section-*.json` was
+  unreadable — an array of the offending paths; `main()` also reports each to
+  stderr and exits non-zero, so a bad artifact is never silently dropped.
+- `recurringThemes`: review dimensions (by `agent`) whose findings recur across
+  **two or more slices** — the systemic-pattern rollup (e.g. the same god-class
+  or leak flagged in many modules). `slices` lists the affected slice ids;
+  `occurrences` is the total finding count for that dimension. A dimension
+  appearing in only one slice is **not** a theme.
+- `reducedPanelSlices`: the ids of slices that ran the reduced (declarative)
+  panel — so a reader can tell "fewer findings" from "fewer reviewers ran".
 
 ## Correction prompt JSON
 
@@ -102,7 +236,10 @@ Each agent declares a `Context needs` field that controls what input it receives
 
 ## Review Findings prompt (interactive — step 6)
 
-When actionable issues exist, present this prompt before any fix action:
+When actionable issues exist, present this prompt before any fix action. **This
+prompt is bypassed under `--json` (or `--yes`)**: those runs are contractually
+non-interactive and default to report-only (no code modified) — see SKILL.md
+step 6, exception (a).
 
 ```text
 ## Review Findings
@@ -163,7 +300,7 @@ After the summary, list remaining issues grouped by file, sorted by severity. Ma
 
 ## Override audit log entry (step 2, `--force` path)
 
-Append to `metrics/override-audit.jsonl` (create if missing):
+Append to `.claude/metrics/override-audit.jsonl` (create if missing):
 
 ```json
 {

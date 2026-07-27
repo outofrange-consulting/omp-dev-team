@@ -6,7 +6,7 @@ Source: Michael Feathers, *Working Effectively with Legacy Code* (2005), Ch. 25 
 
 Core principle: **break the smallest dependency that gets the code under test, and preserve behavior while doing it.** Every break is temporary scaffolding — once tests exist, refactor toward a real design (constructor injection, ports). Prefer the lowest-risk technique that works; reach for `Extract Method` first when nothing else presents a seam.
 
-See the `legacy-code` skill (the procedure: Legacy Code Change Algorithm, seam types, characterization tests), `legacy-test-strategy.md` (where to test — effect reasoning, pinch points), and `testability-patterns.md` (the *target* design these scaffold toward).
+See `legacy-code` (the procedure: Legacy Code Change Algorithm, seam types, characterization tests), `legacy-test-strategy.md` (where to test — effect reasoning, pinch points), and `testability-patterns.md` (the *target* design these scaffold toward).
 
 ---
 

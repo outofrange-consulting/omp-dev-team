@@ -25,15 +25,8 @@ Produces a queryable per-concept glossary at `.plans/domain/`. Each concept gets
 Run the colocated gather script. It collects raw candidates; it does not decide what is domain language (that is Phase 3's job).
 
 ```bash
-bash scripts/collect-domain-signals.sh "$ARGUMENTS"
+python3 .claude/skills/ubiquitous-language/scripts/collect_domain_signals.py "$ARGUMENTS"
 ```
-
-`scripts/` is **relative to this skill's own directory**, not to the repo you are
-analysing. When a skill is user-invoked, OMP appends `[Skill directory: <abs
-path>]` to the loaded skill and instructs you to resolve relative paths like
-`scripts/foo.sh` against it — so prefix that absolute path when you actually run
-the command. (A plugin-root variable would *not* work here: OMP substitutes it
-only in discovery configs, never inside a skill body.)
 
 The script writes to `.plans/raw/domain-language/`:
 
@@ -45,6 +38,8 @@ The script writes to `.plans/raw/domain-language/`:
 - `interface-names.txt` — interface/protocol names from domain and application layers
 
 If the script is unavailable, gather manually using `Grep` with the patterns documented in the script's comments.
+
+**Graph-assisted disambiguation.** If the target repo has `.codegraph/` (CodeGraph MCP server, `codegraph_explore`) and/or a Repowise MCP server (`get_context`/`search_codebase`), use them — in preference to more `Grep` passes — to check a candidate term's actual call sites and surrounding context when the raw signal is ambiguous (e.g. a name that could be a technical or a business concept, or two near-duplicate names that might be the same concept under different spellings). This is a supplement to Phase 1's grep-based collection, not a replacement — fall back to `Grep`/`Read` alone when neither tool is available; the collector script output is still the primary candidate source.
 
 ---
 
@@ -59,7 +54,7 @@ Check for `.plans/domain/_index.md`. If it exists, read the current term list so
 For each candidate term from Phase 1, apply all four gates. Promote only terms that pass all four.
 
 | Gate | Question | Fail condition |
-|---|---|---|
+| --- | --- | --- |
 | 1. Business concept | Would a domain expert (not a developer) recognize this term as part of the business vocabulary? | Pure technical terms: `Repository`, `Controller`, `Factory`, `Builder`, `Manager`, `Handler`, `Util`, `Helper`, `Config`, `Base`, `Abstract` |
 | 2. Non-generic | Does the name carry specific business meaning beyond "thing that does stuff"? | Single-word generics: `Item`, `Data`, `Info`, `Record`, `Object`, `Entity`, `Model` (unless qualified: `OrderLineItem` passes) |
 | 3. Appears in ≥2 signal sources | Is the term used in at least two different signal types (e.g., class name AND BDD scenario name)? | Terms that appear only once in a single file with no corroborating evidence |

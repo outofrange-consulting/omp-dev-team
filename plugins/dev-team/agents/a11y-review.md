@@ -1,14 +1,25 @@
 ---
+
 name: a11y-review
 description: WCAG 2.1 AA compliance, semantic HTML, ARIA, keyboard navigation, focus management
-tools: read, search, find
-# @designer is a real OMP model role, dead in our port until now; @plan/@default keep it alive if unset.
-model: "@designer, @plan, @default"
-thinking-level: low
-blocking: true
+tools: read, grep, glob
+model: "@smol, @default"
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Accessibility Review
+
+Scope:
+- **/*.svelte
+- **/*.html
+- **/*.jsx
+- **/*.tsx
+- **/*.vue
+- **/*.razor
+- **/*.cshtml
+- **/*.jsp
+Cites: [adversarial-review-protocol]
 
 Scope: UI component and template files only (.svelte, .html, .jsx, .tsx, .vue, .razor, .cshtml, .jsp).
 Skip non-component files (utilities, services, stores, configs, tests, routes/pages without markup).
@@ -23,10 +34,7 @@ Status: pass=accessible, warn=minor gaps, fail=WCAG AA violations
 Severity: error=blocks users, warning=degrades experience, suggestion=enhancement
 Confidence: high=mechanical fix (add missing attribute, swap element); medium=direction clear, implementation may vary; none=requires human judgment (design decisions, color palette)
 
-Model tier: mid
 Context needs: full-file
-
-`Model tier` stays `mid` because the field's vocabulary is closed to small/mid/frontier (`skill://code-review/output-format.md`). The frontmatter routes to `@designer` — a real OMP role that resolves to a vision-capable model — because contrast ratios, focus-visible state and reading order are judged from rendered output, not from markup alone. `@plan` is the fallback if `modelRoles.designer` is unset.
 
 ## Skip
 
@@ -85,14 +93,18 @@ Focus management:
 - Dynamic content insertion without focus management
 - Route changes not announcing new content
 
+## Self-Challenge
+
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these a11y-review-specific challenges:
+
+- Did you examine every component/template file in scope, not just the most obviously interactive one?
+- For each contrast finding, did you cite the actual color values and the computed WCAG ratio rather than estimate "looks low"?
+- Did you check keyboard operability for EVERY custom interactive element (handler + focusability + visible focus), not just buttons?
+- Are there dynamic regions (live updates, route changes, modal open/close) with no announcement/focus-management finding — a suspicious absence?
+- For each "missing label" finding, did you verify there's no `aria-labelledby` or visible-text association before flagging?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
+
 ## Ignore
 
 Code style, naming, test coverage, performance (handled by other agents)
-
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
-## Self-Challenge
-
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#a11y-review` (the shared challenger loop + the a11y-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

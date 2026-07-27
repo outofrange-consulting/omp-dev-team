@@ -1,14 +1,17 @@
 ---
+
 name: performance-review
 description: Resource leaks, N+1 queries, unbounded growth, timeouts, algorithmic issues
-tools: read, search, find
-# Regrade (plan A.4): upstream runs this on haiku; @smol is our cheap tier.
+tools: read, grep, glob
 model: "@smol, @default"
-thinking-level: medium
-blocking: true
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Performance Review
+
+Scope: always
+Cites: [adversarial-review-protocol]
 
 Output JSON:
 
@@ -20,7 +23,6 @@ Status: pass=no performance issues, warn=potential bottlenecks, fail=critical pe
 Severity: error=resource leak or unbounded growth, warning=likely bottleneck, suggestion=optimization opportunity
 Confidence: high=mechanical fix (add finally, add size limit, move query out of loop); medium=pattern identified but optimal solution depends on data volume; none=requires human judgment (caching strategy, algorithm selection)
 
-Model tier: small
 Context needs: full-file
 
 ## Skip
@@ -66,14 +68,18 @@ Algorithmic:
 - Large object cloning where partial updates suffice (deep clone in loops)
 - String concatenation in loops — use `join`/`StringBuilder` (Java/C#) or `Array.join` (JS/TS)
 
+## Self-Challenge
+
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these performance-review-specific challenges:
+
+- Did you check every loop and I/O site for N+1 / unbounded growth, not just the largest function?
+- For each resource-leak finding, did you confirm there is no cleanup (finally/using/defer/dispose) anywhere on the path?
+- For each algorithmic finding, did you verify it's on a hot path with realistic input size, not one-off init?
+- Is there a long-lived cache or collection with no eviction-bound finding — a suspicious absence?
+- For each "missing timeout" finding, did you check for a timeout configured at the client/global level before flagging the call site?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
+
 ## Ignore
 
 Code structure, naming, tests, domain modeling, security, concurrency (handled by other agents)
-
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
-## Self-Challenge
-
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#performance-review` (the shared challenger loop + the performance-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

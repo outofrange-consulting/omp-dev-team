@@ -31,11 +31,20 @@ Capture the optional path and flags from `$ARGUMENTS`.
 
 Invoke the semantic-duplication-scan skill.
 
+**Graph-assisted discovery.** If the target repo has `.codegraph/` (CodeGraph
+MCP server, `codegraph_explore` — fast callers/callees/impact lookups) and/or
+a Repowise MCP server (`get_context`/`search_codebase` — semantic search is
+especially well suited to finding duplicate implementations across layers),
+prefer them over raw `Grep`/`Read` when locating and comparing candidate
+implementations. Never assume either is present — fall back to
+`Read`/`Grep`/`Glob` when absent; the tools are simply unavailable (no error)
+on repos without an index.
+
 ### 3. Report
 
 Output the duplicate report.
 
-Apply the guidelines defined in skill://semantic-duplication-scan to the current task. Read the skill file and follow its process flow, pre-filter rules, annotation procedure, clustering strategy, and report format.
+Apply the guidelines defined in skills/semantic-duplication-scan/SKILL.md to the current task. Read the skill file and follow its process flow, pre-filter rules, annotation procedure, clustering strategy, and report format.
 
 ## Flags
 

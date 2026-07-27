@@ -1,14 +1,17 @@
 ---
+
 name: doc-review
 description: Documentation accuracy, README staleness, API doc alignment, inline comment drift, ADR update triggers
-tools: read, search, find
-# Regrade (plan A.4): upstream runs this on haiku; @smol is our cheap tier.
+tools: read, grep, glob
 model: "@smol, @default"
-thinking-level: medium
-blocking: true
+thinking-level: high
+# Dropped by the port (OMP's agent parser ignores these silently): color
 ---
 
 # Documentation Review
+
+Scope: always
+Cites: [adversarial-review-protocol]
 
 Output JSON:
 
@@ -16,12 +19,24 @@ Output JSON:
 {"status": "pass|warn|fail|skip", "issues": [{"severity": "error|warning|suggestion", "confidence": "high|medium|none", "file": "", "line": 0, "message": "", "suggestedFix": ""}], "summary": ""}
 ```
 
-Status: pass=docs accurate, warn=minor drift, fail=misleading or missing critical docs
+Status (derive from the highest-severity finding, do not let finding *volume* alone change the tier): `fail` when any finding is `error` (actively misleading — wrong behavior, removed feature still documented) or `warning` (stale, incomplete, or a detached doc comment); `warn` when the only findings are `suggestion`; `pass` when there are no findings. Comment-hygiene / tracker-ID findings are `suggestion` and on their own never raise status above `warn`.
 Severity: error=documentation actively misleads (wrong behavior, removed feature still documented); warning=documentation is stale or incomplete; suggestion=docs could be clearer or more complete
 Confidence: high=mechanical update (update version, remove reference to deleted thing); medium=content direction clear, exact wording requires context; none=requires human judgment (architectural narrative, ADR decision rationale)
 
-Model tier: small
 Context needs: project-structure
+
+## Contract precedence
+
+Before asserting that a frontmatter or tool-grant pattern (e.g. an MCP
+wildcard grant like `mcp__<server>__*`) is invalid syntax, verify the claim
+against `plugins/marketplace-dev/knowledge/agent-contract.json`'s `tools`
+field spec — that file is the authoritative external contract for what
+Claude Code's own sub-agent frontmatter schema permits. A repo-internal
+checker script's expectation-list constant (e.g. `mcp_tool_grants.py`'s
+`BASE_MCP_TOOLS`) enforces a narrower convention layered on top of the
+contract; it never redefines what the contract allows, and it may be stale.
+When the two disagree, the contract wins — never cite a checker script's
+constant as proof that a pattern the contract documents is invalid.
 
 ## Skip
 
@@ -51,6 +66,27 @@ Return `{"status": "skip", "issues": [], "summary": "No documentation files foun
 - Comments describe behavior that the code no longer implements
 - `TODO`/`FIXME` comments referencing issues or features that were resolved without removing the comment
 - Commented-out code blocks with no explanation retained beyond 5 lines
+- Detached doc comment: a doc/JSDoc/docstring block that describes a *different*
+  symbol than the one directly below it (e.g. a block describing function B left
+  sitting above function A). Severity `warning`.
+
+### Comment hygiene — describe purpose, not issues
+
+Comments must describe *purpose* (the why), not reference tracker items. Flag,
+across any language and comment syntax (`//`, `#`, `/* */`, `--`):
+
+- Issue/epic/ticket IDs in comments: `#<digits>`, `[A-Z]{2,}-<digits>`
+  (JIRA/ADO/Linear/etc.), or the words epic/ticket/story/issue next to a number
+  (e.g. `epic #24`, `JIRA-1187`).
+- Severity `suggestion`. `suggestedFix`: rewrite the comment to state intent and
+  move the issue reference to the commit message — do not merely delete the
+  number; a comment whose only content is a ticket pointer should be replaced by
+  one that explains why.
+- Do not flag a bare `TODO(#123)`/`FIXME(#123)` marker the team uses as a
+  tracked-work convention — that is the resolved-reference rule above, not this.
+- Do not flag standards/spec references that merely *look* like tracker IDs:
+  `ISO-4217`, `RFC-2119`, `UTF-8`, `WCAG-2`, `PEP-8`, CVE IDs, etc. These name a
+  durable external standard, not a work item — judge by meaning, not the regex.
 
 ### ADR update triggers
 
@@ -65,23 +101,21 @@ Return `{"status": "skip", "issues": [], "summary": "No documentation files foun
 - `docs/agent-architecture.md` references a configuration or governance detail that is no longer current
 - Agent or skill files changed without corresponding update to `CLAUDE.md` registry tables
 
-### Comment hygiene
+## Self-Challenge
 
-- **Tracker-ID references in shipped comments** — issue/epic/ticket IDs in code comments (`JIRA-123`, `PROJ-789`, `#456`, `closes GH-12`). The comment should explain *intent*; the tracker ID belongs in the commit message, not the source. Flag with a `suggestedFix` that rewrites the comment as a purpose statement.
-- **Detached / orphaned doc comments** — a JSDoc/docstring/XML-doc block separated from its symbol by blank lines or other statements, or attached to the wrong symbol (so tooling associates it incorrectly).
-- **Do NOT flag durable external standards** — `RFC-2119`, `ISO-4217`, `RFC 5322`, CVE IDs, and similar stable references are legitimate; they are not tracker IDs.
+After producing findings, run the shared challenger loop in `skill://dev-team-knowledge/adversarial-review-protocol.md` (Whole-file load: the slim shared methodology — The Loop + Output format — read in full), then work these doc-review-specific challenges:
 
-Comment-hygiene and tracker-ID findings are **capped at `suggestion`**: on their own they never raise status above `warn`.
+- Did you compare EVERY changed public signature against its doc comment, not just the ones with obvious drift?
+- For each "README describes removed feature" finding, did you confirm the feature is actually gone from source (grep), not assume?
+- Did you check whether agent/skill changes require a CLAUDE.md registry-table update — a common silent omission?
+- Are there new architectural patterns or dependencies with no ADR-trigger finding — a suspicious absence?
+- For each finding, did you distinguish a doc that is WRONG (flag) from one that merely differs in style (do not flag)?
+- Did you scan every comment (any language/delimiter) for tracker/epic/ticket IDs, and frame the fix as "describe purpose, move the ref to the commit message" rather than just deleting the number?
+- For each detached-doc-comment finding, did you confirm the block describes a different symbol than the one directly beneath it?
+
+Append confidence level (High/Medium/Low) to the `summary` field.
 
 ## Ignore
 
 Code correctness, naming conventions, test quality (handled by other agents)
 Doc style preferences (sentence case vs title case, oxford comma) — flag only when docs are wrong, not when they differ in style
-
-## Output discipline
-
-Derive `status` from the highest-severity finding, never from volume (`skill://dev-team-knowledge/review-output-discipline.md#deterministic-status`), and group same-kind findings — enumerate → classify → group — into ~3–5 concept-level findings per file, keeping `error` findings individual (`skill://dev-team-knowledge/review-output-discipline.md#finding-grouping`).
-
-## Self-Challenge
-
-After producing findings, run the adversarial challenge pass from `skill://dev-team-knowledge/adversarial-review-protocol.md#doc-review` (the shared challenger loop + the doc-review challenge questions; ≤3 rounds). Append a confidence level (High/Medium/Low) to the `summary` field.

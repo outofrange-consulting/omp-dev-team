@@ -32,10 +32,12 @@ Maintenance policies for adapters and rulesets live in `maintenance.md` — thos
 | Tool | SARIF invocation | Capability |
 |---|---|---|
 | semgrep | `semgrep scan --sarif --config auto` | SAST |
-| gitleaks | `gitleaks detect --report-format sarif --report-path -` | secrets |
-| trivy | `trivy config --format sarif <path>` + `trivy fs --format sarif <path>` | IaC + supply-chain |
+| gitleaks | `gitleaks detect --report-format sarif --report-path - --no-verify` | secrets |
+| trivy | `trivy config --format sarif --skip-update --offline-scan <path>` + `trivy fs --format sarif --skip-update --offline-scan <path>` | IaC + supply-chain |
 | hadolint | `hadolint --format sarif <Dockerfile>` | IaC (Dockerfile) |
 | actionlint | binary emits JSON; thin adapter maps to SARIF `result` (see `references/tool-configs.md`) | CI/CD |
+| pmd | `pmd check -d . -R <resolved-ruleset> -f sarif --no-progress` — language-conditional: dispatched (and hinted when missing) only when `.java` files are in the target set; detection probes the repo-local `.pmd/` bin before PATH; ruleset resolution in `references/tool-configs.md` | Java code quality |
+| ruff | `ruff check --output-format sarif .` (ruff ≥ 0.3.1) | Python lint + autofix (language-conditional — see step 1) |
 
 ### Tier 2 — optional SARIF adapters
 
@@ -43,11 +45,13 @@ Shipped in P2 Step 3b. Not part of the baseline.
 
 ### Tier 3 — bespoke JSON adapters
 
-Shipped in P2 Step 3b for tools without upstream SARIF. Each adapter ≤ 40 LOC. A thin adapter normalizes `security-review` agent output into the unified envelope (see `adapters/security-review-adapter.py`). Rule_id lookup is driven by `plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml`; malformed categories hard-fail, well-formed-but-unmapped categories fall back to `security-review.*` with a WARN.
+Shipped in P2 Step 3b for tools without upstream SARIF. Each adapter ≤ 40 LOC. A thin adapter normalizes `security-review` agent output into the unified envelope (see `adapters/security-review-adapter.py`). Rule_id lookup is driven by `plugins/dev-team/knowledge/security-review-rule-map.yaml`; malformed categories hard-fail, well-formed-but-unmapped categories fall back to `security-review.*` with a WARN.
+
+mypy (≥ 1.11, `mypy --output json`) normalizes via `adapters/mypy-adapter.py` — rule ids `mypy.python.<error-code>`; on older mypy (no `--output json`) the adapter degrades to a skip-with-warning. Language-conditional like ruff (see step 1). Invocation and field mapping in `references/tool-configs.md`.
 
 ### Tier 4 — legacy (pre-SARIF)
 
-ESLint / tsc / pylint remain callable via native JSON for older flows. Not part of the Step 3a baseline; migrate to SARIF when upstream lands.
+ESLint / tsc remain callable via native JSON for older flows. Not part of the Step 3a baseline; migrate to SARIF when upstream lands. (The legacy Python entry is retired — ruff replaces it outright as the Tier 1 Python source.)
 
 ## Execution flow
 
@@ -55,11 +59,29 @@ ESLint / tsc / pylint remain callable via native JSON for older flows. Not part 
 
 For each Tier 1 tool, run `command -v <tool>`. Record presence in a tool-map. Missing Tier 1 tools surface as a **warning group** via the install-hint format below — never a pipeline failure.
 
+**Language-conditional tools** (ruff, mypy) are probed and dispatched — and their missing-tool hints surfaced — only when `.py` files are in the target set. A non-Python repo never sees a "ruff missing" or "mypy missing" warning, and language-conditional tools never carry the `[REQUIRED]` prefix.
+
 If no Tier 1 tools are present, return:
 
 ```json
 { "status": "skip", "tools": [], "findings": [], "summary": "No static analysis tools detected." }
 ```
+
+### 1b. Offline enforcement (gitleaks, trivy)
+
+These tools default to making network calls; in restricted-egress environments those calls hang or fail and take the pre-pass down with them. Both are pinned to local-only operation so the pre-pass never depends on outbound network access.
+
+**gitleaks** runs with `--no-verify`. Verification (confirming a detected secret is a live credential) is the only outbound call gitleaks makes; disabling it keeps detection fully pattern-based and offline. No preflight needed — the flag is always on.
+
+**trivy** runs with `--skip-update --offline-scan` on both `trivy config` and `trivy fs`. Before dispatching trivy, run the **offline DB preflight** against the local cache (`${TRIVY_CACHE_DIR:-$HOME/.cache/trivy}/db/trivy.db`):
+
+| Local DB state | Action | Warning |
+|---|---|---|
+| absent | skip trivy | `trivy local DB missing — run: trivy image --download-db-only` |
+| mtime age ≤ 7 days | run (fresh) | none |
+| mtime age > 7 days | run anyway | `trivy DB is N days old — consider refreshing with: trivy image --download-db-only` |
+
+`N` is the integer day count. The 7-day boundary is inclusive (exactly 7 days = fresh; strictly greater than 7 days = stale). A missing or stale DB is **never a hard pipeline failure** — it degrades to a skip or a warning, consistent with the graceful-degradation constraint.
 
 ### 2. Run available tools in parallel
 
@@ -107,12 +129,12 @@ The parser MUST validate each emitted finding against unified-finding-v1 before 
 Two findings are duplicates if they share `file`, `line`, and either (a) identical `rule_id`, or (b) `message` cosine similarity > 0.85 on normalized text. When duplicates exist, keep the higher-priority tool:
 
 ```
-semgrep > gitleaks > trivy > hadolint > actionlint > (legacy ESLint > tsc > pylint)
+semgrep > gitleaks > trivy > hadolint > actionlint > ruff > mypy > oxlint > (legacy ESLint > tsc)
 ```
 
 ### 5. Consult ACCEPTED-RISKS.md
 
-If present at repo root, apply suppression per `skill://dev-team-knowledge/accepted-risks-schema.md`. Suppressed findings are removed from the return value but logged to the audit trail.
+If present at repo root, apply suppression per `plugins/dev-team/knowledge/accepted-risks-schema.md`. Suppressed findings are removed from the return value but logged to the audit trail.
 
 ### 6. Return structured result
 
@@ -144,9 +166,29 @@ gitleaks — secrets detection. install: brew install gitleaks
 trivy — IaC + supply-chain scanning. install: brew install trivy
 hadolint — Dockerfile linting. install: brew install hadolint
 actionlint — GitHub Actions linting. install: brew install actionlint
+ruff — Python lint + autofix. install: python3 -m pip install ruff (project venv / dev requirements)
+mypy — Python type checking. install: python3 -m pip install mypy (project venv / dev requirements)
 ```
 
 Print install-hints grouped by capability tier (secrets / IaC / CI-CD / supply-chain / SAST / data-flow). Required tools carry a `[REQUIRED]` prefix; absence of a required tool is a hard failure at install time, absence of an optional tool is a warning. Tier-implementation labels ("SARIF adapter", "bespoke-JSON adapter", "legacy") are internal vocabulary and never surface in user-facing text.
+
+### Missing-tool remediation convention (#838)
+
+When a command hits a **missing REQUIRED tool**, the remediation must name the
+onboarding command first — the consistent, discoverable one-command entry point
+— and give the raw install hint alongside it:
+
+> Run `/project-init` (or `/setup`) to set up this repo's tooling, or install directly: `<raw install hint>`.
+
+Onboarding ownership: `/project-init` installs the static-analysis lane tools
+(ruff, mypy, oxlint, dotnet-format, PMD) **and** the detection-gated capability
+tools other skills depend on — semgrep, hadolint/trivy/grype, `adr`, `gh`, and
+Playwright + Chromium — per its
+`skills/project-init/references/capability-tools.md` registry. The pointer
+names `/project-init` as the one-command entry point and the tool-specific
+install command stays as the direct fallback. Machine output (e.g.
+semgrep-analyze's `--programmatic` JSON) stays prose-free: the onboarding
+pointer lives only in the human-facing branch.
 
 ## Agent context injection
 
@@ -171,8 +213,11 @@ This context goes to **all** review agents, not just security-review.
 
 ## Related
 
-- `references/tool-configs.md` — per-tool invocation commands, adapter scripts, install hints
+- `references/tool-configs.md` — per-tool invocation commands, adapter scripts, install hints; hosts the "Build-time lanes" registry for `/build`'s static self-heal pass
+- `references/language-setup.md` — user-facing per-language setup guide for the build-time self-heal pass and this pre-pass
 - `references/sarif-parser.md` — normalized mapping from SARIF `result` to unified finding envelope v1.0
-- `skill://dev-team-knowledge/security-primitives-contract.md` — unified finding envelope v1.0
-- `skill://dev-team-knowledge/accepted-risks-schema.md` — per-project suppression policy
+- `evals/static-analysis-tools/tier1-mocks/` — tier-1 mocked SARIF fixtures
+- `evals/static-analysis-tools/tier2-integration/` — tier-2 real-binary integration tests (nightly CI)
+- `knowledge/security-primitives-contract.md` — unified finding envelope v1.0
+- `knowledge/accepted-risks-schema.md` — per-project suppression policy
 - `maintenance.md` — adapter and ruleset lifecycle policies
