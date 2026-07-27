@@ -1,14 +1,13 @@
 {
   "name": "@omp-dev-team/token-diet",
-  "version": "2.0.0",
-  "description": "Command-output filtering for OMP: ctx-wire filters for the commands OMP's native shellMinimizer does not cover, plus the caveman output-brevity skill. Opt-in context compressor.",
+  "version": "3.0.0",
   "license": "MIT",
   "private": true,
+  "description": "Wires lean-ctx into Oh-My-Pi: bash/read/grep/find/ls are routed through it for large token savings, plus the caveman output-brevity skill.",
   "omp": {
     "extensions": [
-      "./extensions/path-inject.ts",
-      "./extensions/context-compress.ts"
+      "./extensions/path-inject.ts"
     ]
   },
-  "comment": "v2.0.0 REFOCUS. OMP 17.x absorbed the runtime layer this plugin used to provide: compaction.supersedeReads (default true) replaces read-dedup + context-dedup; the native statusline cost/cache_read/cache_write/cache_hit segments replace cache-meter; secrets.enabled replaces the claimed in-process scrub; tools.xdev replaces the mcp-as-cli-skill-creator premise; and tools.discoveryMode/essentialOverride (this plugin's headline win) were REMOVED in OMP 17.0.0 and are now deleted from config on load. Those extensions and skills are gone. What remains is the part OMP does not do: ctx-wire's semantic filters (OMP truncates mechanically - 50KB tail, 768-byte column cap; only these filters know a 20KB all-green dotnet publish collapses to one line), the caveman skill (targets OUTPUT tokens, which nothing in OMP or ADT addresses), and path-inject (OMP's shell snapshot runs `bash -c`, which sources no profile, so ~/.local/bin tooling like ctx-wire stays invisible until the user opens a new login shell). context-compress is kept but OFF by default - a sliding compression window mutates the already-sent prefix and busts the prompt cache. Pure logic lives in extensions/lib and is unit-tested by scripts/extensions.test.ts."
+  "comment": "v3.0.0 replaces ctx-wire with lean-ctx (github.com/yvgude/lean-ctx, MIT). ctx-wire compressed COMMAND OUTPUT only, so this plugin carried a hand-written TOML filter pack for the four dotnet commands OMP's shellMinimizer misses. lean-ctx supersedes that: it compresses command output AND file reads, search results and project context, recognises 75+ tools, and keeps a session cache so an unchanged re-read costs a handful of tokens. The routing itself is upstream's pi-lean-ctx extension, mirrored from npm by install.sh rather than vendored - it declares pi.extensions, which OMP still accepts (docs/extension-loading.md:42,142), has zero dependencies, and uses only APIs OMP implements. context-compress and its protect/messages libs went with ctx-wire: lean-ctx does that job better and ours was off by default anyway. What is left here is the wiring, the caveman skill (output tokens, which lean-ctx does not address) and path-inject (OMP's shell snapshot runs `bash -c`, which sources no profile, so ~/.local/bin tooling stays invisible)."
 }

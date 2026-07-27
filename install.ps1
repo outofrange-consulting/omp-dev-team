@@ -331,7 +331,7 @@ if (Ask "Install dev-team (agentic dev team: /specs -> /plan -> /build -> /pr)?"
 if (Ask "Install copilot-preset (route models through GitHub Copilot)?") {
   Plug 'copilot-preset' (Join-Path $Root 'plugins\copilot-preset'); $SEL_COPILOT = $true
 }
-if (Ask "Install token-diet (ctx-wire + caveman + yagni + acli + LSP)?") {
+if (Ask "Install token-diet (lean-ctx context compression + caveman)?") {
   Plug 'token-diet' (Join-Path $Root 'plugins\token-diet'); $SEL_TOKENDIET = $true
   Ensure-Path (Join-Path $HOME ".local\bin")
 }

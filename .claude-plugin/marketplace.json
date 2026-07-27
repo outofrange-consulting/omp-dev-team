@@ -5,7 +5,7 @@
     "name": "outofrange-consulting"
   },
   "metadata": {
-    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, command-output filters, an Azure DevOps filesystem, an OpenAI-compatible provider, and Datadog observability.",
+    "description": "Oh-My-Pi plugins: an agentic dev team, a GitHub Copilot model preset, lean-ctx context compression, an Azure DevOps filesystem, an OpenAI-compatible provider, and Datadog observability.",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -36,7 +36,7 @@
     {
       "name": "token-diet",
       "source": "./token-diet",
-      "description": "Command-output filtering for OMP: ctx-wire filters that collapse dotnet publish/pack/run/tool output semantically (OMP truncates mechanically - 50KB tail, 768-byte column cap), including French locales, plus the caveman skill for terse agent output. Deliberately small: OMP 17 absorbed read/context dedup, cost and prompt-cache statusline segments, secret redaction and MCP-as-CLI, so those were removed rather than duplicated.",
+      "description": "Wires lean-ctx (github.com/yvgude/lean-ctx, MIT) into OMP: bash/read/grep/find/ls are routed through it, compressing command output AND file reads, search results and project context, with a session cache that makes an unchanged re-read nearly free. Replaces the retired ctx-wire filter pack, which compressed command output only and needed a hand-maintained filter per command. Also ships the caveman skill for terse agent OUTPUT, which lean-ctx does not address.",
       "category": "productivity",
       "license": "MIT",
       "homepage": "https://github.com/outofrange-consulting/omp-dev-team"

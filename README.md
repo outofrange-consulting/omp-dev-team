@@ -10,7 +10,7 @@ you through them.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | **Agentic dev team** — a *verbatim* port of [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) v10.20.0 (Bryan Finster): orchestrator + 45 specialist/critic agents, 93 skills including **`/ship`** (spec → plan → build → review → PR as one idempotent command), a 58-file knowledge corpus, and upstream's 38 Python hook invocations run **unmodified**. 456 of 567 upstream files land byte-identical; the rest carry only the Claude Code → OMP format conversion, applied by [`scripts/port-upstream-dev-team.mjs`](scripts/port-upstream-dev-team.mjs) so the next upstream bump is one command. Model-open: agents route through OMP roles (`@smol`/`@plan`/`@slow`), never a vendor id. **Requires `python3`.** |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **GitHub Copilot model preset** — route OMP (and the dev-team tiers) through `github-copilot` to run on a Copilot license. Config-only: tier→model mapping, post-June-2026 AI-credit pricing comparison, and MAI-Code-1-Flash wired in. |
-| **[`token-diet`](plugins/token-diet/)** | **What OMP's own context tooling doesn't cover** — ctx-wire filters that collapse `dotnet publish/pack/run/tool` output *semantically* (OMP truncates mechanically: 50 KB tail, 768-byte column cap), including French locales, plus the `caveman` skill for terse agent **output**. Deliberately small: OMP 17 absorbed read/context dedup, cost + cache statusline segments, and secret redaction, so those were removed rather than duplicated. |
+| **[`token-diet`](plugins/token-diet/)** | **Context compression via [lean-ctx](https://github.com/yvgude/lean-ctx)** (MIT) — `bash`, `read`, `grep`, `find` and `ls` are routed through a local Rust binary that compresses command output **and** file reads, search results and project context, recognises 75+ tools, and caches per session so an unchanged re-read is nearly free. Plus the `caveman` skill for terse agent **output**, the one axis nothing else addresses. Replaces the retired ctx-wire filter pack. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps as a filesystem** — read repos/files/PRs/diffs via `ado://` URIs (paginated), PR **gates/policies** + CI (builds/logs/run), create/checkout/push/complete PRs, comment/vote. Backed by the **Azure CLI** (`az` + the azure-devops extension), PAT auth, SQLite read cache; works behind corporate TLS proxies. |
 | **[`openai-compatible`](plugins/openai-compatible/)** | **Any OpenAI-compatible provider** — point it at a LiteLLM, Ollama, vLLM, or LocalAI endpoint (name + URL + API key); the installer lists the models and writes the provider into `~/.omp/agent/models.yml` with runtime discovery, usable as `<name>/<model-id>`. API key stored chmod 600, never in env. |
 | **[`datadog`](plugins/datadog/)** | **Datadog observability from the terminal** — via the Datadog [`pup`](https://github.com/DataDog/pup) CLI (logs, metrics, traces/APM, monitors, incidents, dashboards, SLOs, RUM, security/audit, CI test visibility, LLM observability). One broad `datadog` skill drives pup; installer sets up pup + auth. |
@@ -37,7 +37,7 @@ via GitHub Copilot: `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 5
 the dev-team orchestrator + architecture/domain design — non-trivial work goes
 research → plan → implement → review), `slow` → **Opus** (high-stakes security
 verdicts); without it, the same tiers on Anthropic ids. token-diet's
-ctx-wire and the skills are enabled too. **`--no-config`** leaves your
+lean-ctx routing and the skills are enabled too. **`--no-config`** leaves your
 config + mcp.json untouched.
 
 Three **official remote MCP servers** are merged into `~/.omp/agent/mcp.json`, all
@@ -124,7 +124,7 @@ tools at their latest versions) — see its README:
 
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (prereq check + config). All-cloud; no local model backend. C# navigation uses OMP's native `lsp` tool, which auto-detects `omnisharp`.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, then `omp` → `/login` → GitHub Copilot.
-- **token-diet** → `bash plugins/token-diet/install.sh` (installs ctx-wire).
+- **token-diet** → `bash plugins/token-diet/install.sh` (installs lean-ctx + its OMP extension).
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installs the Azure CLI + azure-devops extension, prompts for org/project/PAT, runs `az devops login`), then restart `omp` so the `ado` tool loads.
 - **openai-compatible** → `bash plugins/openai-compatible/install.sh --name=litellm --url=http://localhost:4000 --api-key=…` (lists the endpoint's models, writes the provider to `~/.omp/agent/models.yml`), then restart `omp`.
 - **datadog** → `bash plugins/datadog/install.sh` (installs the Datadog `pup` CLI + sets up auth; `--with-skills` to also add pup's domain skills).
@@ -181,7 +181,7 @@ Verified end-to-end and in CI (Linux/macOS/Windows — see
 [`.github/workflows/installers.yml`](.github/workflows/installers.yml)): all
 `install.sh` pass `bash -n`; all `install.ps1` parse under PowerShell 7; all
 manifests are valid JSON; the 8 dev-team extensions (plus the token-diet,
-azure-devops-fs, openai-compatible, and datadog extension modules) compile under `bun`; ctx-wire
+azure-devops-fs, openai-compatible, and datadog extension modules) compile under `bun` **and** pass `tsc --noEmit` against OMP's published types; lean-ctx
 and OMP install via the exact commands the scripts use; and all six
 plugins install through real OMP on each OS (`omp plugin marketplace add ./` →
 `omp plugin install <name>@omp-dev-team`).
@@ -189,5 +189,5 @@ plugins install through real OMP on each OS (`omp plugin marketplace add ./` →
 ## Credits
 
 - `dev-team` ports [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (MIT, Bryan Finster).
-- `token-diet` bundles [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) and [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman).
+- `token-diet` wires [yvgude/lean-ctx](https://github.com/yvgude/lean-ctx) (MIT) and its `pi-lean-ctx` extension, and bundles [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman).
 - `azure-devops-fs` mirrors the "GitHub as a filesystem" idea from [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

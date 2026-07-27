@@ -1,10 +1,16 @@
 #requires -Version 5.1
 <#
-  token-diet installer (Windows) — v2.0.0, refocused.
-  Installs the LATEST ctx-wire + the EN/FR filter pack for the four `dotnet`
-  commands OMP's native shellMinimizer does NOT cover (publish, pack, run,
-  tool), mirrors the extensions and the always-on rule into ~/.omp/agent, and
-  merges config.snippet.yml. caveman ships as an OMP skill.
+  token-diet installer (Windows) — v3.0.0.
+
+  Installs lean-ctx (https://github.com/yvgude/lean-ctx, MIT) and registers its
+  Pi extension so OMP routes bash/read/grep/find/ls through it, mirrors the
+  path-inject extension and the always-on rule into ~/.omp/agent, and merges
+  config.snippet.yml. caveman ships as an OMP skill.
+
+  Replaces ctx-wire: that compressed COMMAND OUTPUT only, so the plugin had to
+  hand-maintain a TOML filter per command. lean-ctx also compresses file reads,
+  search results and project context, recognises 75+ tools, and caches per
+  session.
   NOT installed any more (OMP does it, or it moved):
     acli / the atlassian skill -> official remote MCP server, wired by the
                                   repo-root install.sh
@@ -29,10 +35,10 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
 # --- Clean up obsolete predecessors on (re)install --------------------------
 # Earlier token-diet versions installed a code-graph MCP server (first CodeGraph,
-# then codebase-memory-mcp), before ctx-wire, RTK, and a csharp-ls LSP for C#
+# then codebase-memory-mcp), before RTK, ctx-wire, and a csharp-ls LSP for C#
 # semantics. Those are gone now (C# navigation and semantics go through OMP's
 # native `lsp` tool, which ships `omnisharp` as a built-in default for
-# `.cs`/`.csx`; ctx-wire replaced RTK), but an upgrade/uninstall does NOT remove
+# `.cs`/`.csx`; RTK -> ctx-wire -> lean-ctx), but an upgrade/uninstall does NOT remove
 # what a past install left on the machine. Unregister the dead MCP servers
 # from OMP's mcp.json, uninstall the obsolete csharp-ls dotnet tool + its
 # lsp.json entry, and remove the leftover binaries/dirs. Idempotent,
@@ -113,33 +119,69 @@ function Cleanup-Obsolete {
 }
 Cleanup-Obsolete
 
-# --- ctx-wire (transparent command-output compression + secret scrubbing) ----
-# NON-FATAL, matching the `|| true` the Unix installer already had. ctx-wire is
-# an accelerator, not a dependency: the plugin's skills and extensions work
-# without it, so a transient fetch failure must not abort the whole install.
+# --- lean-ctx ----------------------------------------------------------------
+# NON-FATAL by design: lean-ctx is an accelerator, not a dependency — the caveman
+# skill and path-inject work without it, so a transient fetch failure must never
+# abort an install.
 #
-# It fails for a mundane reason surprisingly often: ctx-wire's own installer
-# resolves its latest release through the UNAUTHENTICATED GitHub API, whose
-# anonymous limit is 60 requests/hour PER IP. Any shared egress IP — a CI runner
-# pool, a corporate NAT — burns that between them. Forwarding a token when one
-# is present raises the limit; failing softly covers the rest.
-if ((Have ctx-wire) -and $NoUpdate) {
-  Say "ctx-wire present"
+# It fails for a mundane reason surprisingly often: lean-ctx's installer resolves
+# its latest release through the UNAUTHENTICATED GitHub API, whose anonymous
+# limit is 60 requests/hour PER IP. Any shared egress IP — a CI runner pool, a
+# corporate NAT — burns that between them. Forwarding a token raises the limit to
+# 1000/hour; failing softly covers the rest.
+if ((Have lean-ctx) -and $NoUpdate) {
+  Say "lean-ctx present ($(lean-ctx --version 2>$null | Select-Object -First 1))"
 } else {
   $tok = if ($env:GITHUB_TOKEN) { $env:GITHUB_TOKEN } elseif ($env:GH_TOKEN) { $env:GH_TOKEN } else { $null }
   if ($tok) { $env:GITHUB_TOKEN = $tok; $env:GH_TOKEN = $tok }
   try {
-    if (Have ctx-wire) { Say "Updating ctx-wire"; Run "ctx-wire update" }
-    else { Say "Installing latest ctx-wire"; Run "irm https://ctx-wire.dev/install.ps1 | iex" }
+    Say "Installing/updating lean-ctx"
+    if (Have winget)   { Run "winget install --id yvgude.lean-ctx -e --accept-source-agreements --accept-package-agreements" }
+    elseif (Have npm)  { Run "npm install -g lean-ctx-bin" }
+    else               { Run "irm https://leanctx.com/install.ps1 | iex" }
   } catch {
-    Warn "ctx-wire install/update failed: $($_.Exception.Message -split "`n" | Select-Object -First 1)"
-    Warn "Continuing without it — the skills and extensions do not depend on ctx-wire."
-    Warn "Retry later with: irm https://ctx-wire.dev/install.ps1 | iex"
+    Warn "lean-ctx install failed: $($_.Exception.Message -split "`n" | Select-Object -First 1)"
+    Warn "Often GitHub's anonymous API limit (60/hour per IP). Retry: npm install -g lean-ctx-bin"
+    Warn "Continuing — the skill and the PATH extension do not depend on it."
   }
 }
-if (Have ctx-wire) {
-  Say "Installing ctx-wire PATH shims"
-  try { Run "ctx-wire shims install" } catch { Warn "ctx-wire shims install failed: $($_.Exception.Message)" }
+if (Have lean-ctx) { Ok "lean-ctx ($(lean-ctx --version 2>$null | Select-Object -First 1))" }
+
+# --- the OMP extension that routes tools through lean-ctx --------------------
+# pi-lean-ctx is published for the Pi coding agent and declares `pi.extensions`,
+# which OMP still accepts in package manifests (docs/extension-loading.md:42,142).
+# Zero dependencies, and it uses only APIs OMP implements — so it loads unchanged.
+# Mirrored from npm rather than vendored, so it does not rot here.
+if ((-not $NoConfig) -and (Have npm)) {
+  $extRoot = Join-Path $HOME ".omp\agent\extensions"
+  Say "Installing the pi-lean-ctx extension into $extRoot"
+  New-Item -ItemType Directory -Force -Path $extRoot | Out-Null
+  $tmp = Join-Path $env:TEMP ("pi-lean-ctx-" + [guid]::NewGuid().ToString('N'))
+  New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+  try {
+    Push-Location $tmp
+    npm pack pi-lean-ctx --silent | Out-Null
+    $tgz = Get-ChildItem -Filter 'pi-lean-ctx-*.tgz' | Select-Object -First 1
+    tar -xzf $tgz.FullName
+    Pop-Location
+    $dst = Join-Path $extRoot 'pi-lean-ctx'
+    if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }
+    Move-Item (Join-Path $tmp 'package') $dst
+    Ok "pi-lean-ctx installed"
+    # Its config resolver hardcodes ~/.pi; OMP's home is ~/.omp, so write the
+    # config where the extension will actually look for it.
+    $cfgDir = Join-Path $HOME ".pi\agent\extensions\pi-lean-ctx"
+    New-Item -ItemType Directory -Force -Path $cfgDir | Out-Null
+    $cfgFile = Join-Path $cfgDir 'config.json'
+    if (-not (Test-Path $cfgFile)) {
+      '{ "mode": "additive", "enableMcp": true, "toolProfile": "standard" }' | Set-Content -Path $cfgFile -Encoding UTF8
+    }
+    Ok "config: $cfgFile (the path that extension reads)"
+  } catch {
+    Warn "could not fetch pi-lean-ctx from npm: $($_.Exception.Message -split "`n" | Select-Object -First 1)"
+  } finally {
+    if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue }
+  }
 }
 
 # Ensure ~/.local/bin is on PATH (user scope)
@@ -155,11 +197,6 @@ if ((Have ast-grep) -and $NoUpdate) { Say "ast-grep present" }
 elseif (Have winget) { Say "Installing ast-grep (winget)"; Run "winget install --id ast-grep.ast-grep -e --accept-source-agreements --accept-package-agreements" }
 elseif (Have npm) { Say "Installing ast-grep (npm)"; Run "npm install -g @ast-grep/cli" }
 else { Warn "need npm or winget to install ast-grep — see https://ast-grep.github.io" }
-
-# NOTE (parity gap, deliberate): the EN+FR ctx-wire filter merge lives in
-# install.sh only. ctx-wire's Windows user-tier filter path is not pinned here,
-# so rather than guess at it we leave `ctx-wire` to its own defaults on Windows.
-# Run `ctx-wire verify` after adding filters/*.toml by hand if you need them.
 
 # --- Merge config.snippet.yml into ~/.omp/agent/config.yml -------------------
 # Same contract as scripts/lib/cfg.sh on the Unix side: append ONLY the
@@ -207,7 +244,7 @@ if (Test-Path $src) {
   Say "extensions loaded into ${dest}: path-inject (always on) + context-compress (OFF unless TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full)"
 }
 
-# --- Load the always-on OMP-native rule (ctx-wire token-tool routing) ---
+# --- Load the always-on OMP-native rule (token-tool routing) ---
 # NOTE: OMP's omp-plugins rule provider only discovers rules/*.md inside
 # *configured* extension package roots (extensions:/-e/npm-linked) — a bare
 # marketplace install of this plugin is NOT one, so rules/token-tools.md would
@@ -241,9 +278,9 @@ if (-not $NoConfig -and (Test-Path $claudeMd) -and -not (Test-Path $agentsMd)) {
 # NOTE: unlike install.sh, we can't reliably probe an already-running OMP
 # process's inherited environment from here (no non-interactive-login-shell
 # equivalent) — so this warning is unconditional rather than detected.
-Warn "ctx-wire shims and ast-grep write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
+Warn "lean-ctx and ast-grep write to $BinDir / user PATH, and this script updates PATH for NEW processes only. An already-running OMP process keeps its old PATH (these tools invisible) until you RESTART OMP."
 
-Say "token-diet active: ctx-wire shims, ast-grep, provider isolation, /caveman. Restart omp."
+Say "token-diet active: lean-ctx routing, ast-grep, provider isolation, /skill:caveman. Restart omp."
 
 # Cost + prompt-cache visibility is native — v1.x forked OMP's own status-line
 # renderer to inline it; OMP ships the numbers as first-class segments

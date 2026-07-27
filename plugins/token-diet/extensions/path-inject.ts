@@ -2,7 +2,7 @@
 //
 // OMP spawns bash in non-interactive / non-login mode, so .bashrc and
 // .profile are never sourced.  Tools this plugin installs to ~/.local/bin (the
-// ctx-wire shims, ast-grep) are therefore invisible unless the user opened a
+// lean-ctx, ast-grep) are therefore invisible unless the user opened a
 // fresh login shell after install.
 //
 // This extension mutates process.env.PATH once, at load time, before any tool

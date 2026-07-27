@@ -1,119 +1,44 @@
-# token-diet config — merged into ~/.omp/agent/config.yml by install.sh
-# (per top-level key, via scripts/lib/cfg.sh — a key you already declare is
-# never re-declared, so the repo-root installer and this one cannot fight).
+# token-diet — user config for Oh-My-Pi (v3.0.0)
 #
-# v2.0.0: `tools.discoveryMode` and `tools.essentialOverride` are GONE from this
-# file. They were REMOVED in OMP 17.0.0 and are now silently deleted from your
-# config on load (omp packages/coding-agent/src/config/settings.ts does
-# `delete toolsObj.discoveryMode; delete toolsObj.essentialOverride`), so the
-# "System tools ~18K -> ~10K" claim they carried was measuring nothing. The
-# replacement needs no configuration: `tools.xdev` (default on) mounts
-# non-essential and MCP tools as `xd://` devices under a doc budget.
-#
-# What is left below are settings that DO pay off today. Every key was checked
-# against omp packages/coding-agent/src/config/settings-schema.ts; each carries
-# its verified default, because a key whose default already suits you is one you
-# should delete from your config rather than pin.
+# The plugin itself needs almost no configuration: lean-ctx is a binary plus an
+# extension, both installed by install.sh. What follows is the OMP-native
+# settings that pay off alongside it. Every key below was checked against
+# packages/coding-agent/src/config/settings-schema.ts.
 
-# --- Secret handling ---------------------------------------------------------
-# THE REAL FIX for the gap this plugin used to gesture at. ctx-wire only ever
-# scrubbed the stdout of commands it wrapped; secrets that arrive via `read .env`
-# or an MCP result never passed through it. `secrets.enabled` (default FALSE)
-# obfuscates matched values on EVERY outbound message instead, and the
-# placeholders are restored when context is rebuilt for display/resume.
-# Add your own shapes to ~/.omp/agent/secrets.yml (global) or <repo>/.omp/secrets.yml
-# (project). It is a YAML array; `type: regex` entries are the extensible half:
-#   - type: regex
-#     content: "AT(?:ATT|CTT|OAT)[A-Za-z0-9_=.\\-]{20,}"
-#     friendlyName: Atlassian Token
-secrets:
-  enabled: true
+# Provider isolation: keep other tool ecosystems out of OMP, so it loads only its
+# own plugins and project-level files. `github` is deliberately NOT disabled —
+# copilot-preset needs it.
+disabledProviders:
+  - claude-plugins
+  - codex
+  - gemini
+  - cursor
+  - windsurf
+  - opencode
+  - cline
 
-# --- Tool output -------------------------------------------------------------
-tools:
-  # Default 50 (KB). Tool output above this spills to an artifact and only the
-  # tail stays inline — LOSSLESS, the full payload stays addressable at
-  # `artifact://<id>`. 10 KB (~2.5K tokens) is the honest ceiling for a single
-  # command's output in a dev-team session.
-  artifactSpillThreshold: 10
-
-# --- Shell -------------------------------------------------------------------
-bashInterceptor:
-  # Default FALSE. Blocks shell commands that have a dedicated tool, which
-  # mechanically enforces what rules/token-tools.md can only ask for in prose
-  # (`read`/`grep`/`glob`/`astEdit` instead of cat/grep/sed via bash).
-  enabled: true
-
-shellMinimizer:
-  # Default "default". `aggressive` outlines cat/read of source files harder.
-  # OMP's minimizer is the Rust filter set in crates/pi-shell/src/minimizer —
-  # it already covers git and `dotnet build|test|restore|format`, which is why
-  # this plugin's ctx-wire pack now ships only publish/pack/run/tool.
-  sourceOutlineLevel: aggressive
-
-# --- Context -----------------------------------------------------------------
-compaction:
-  # Default FALSE. Compacts while the session is IDLE rather than mid-turn, so
-  # the cost lands on wall-clock you were not using. Leave the rest of
-  # compaction alone: `supersedeReads` and `dropUseless` are already true by
-  # default and are what replaced this plugin's read-dedup/context-dedup.
-  idleEnabled: true
-
-read:
-  summarize:
-    # Default FALSE (`read.summarize.enabled` is already true for code).
-    # Returns structural summaries for Markdown/plain-text reads too — the
-    # docs-heavy half of a repo, which is otherwise read whole.
-    prose: true
-
-# --- Skills / commands: don't inherit other agents' registries ---------------
 skills:
   enabled: true
   enableSkillCommands: true
-  enableClaudeUser: false    # don't load ~/.claude skills into OMP
-  enableClaudeProject: false # don't load .claude/ project skills into OMP
-  enableCodexUser: false     # don't load ~/.codex skills into OMP
+  enableClaudeUser: false
+  enableClaudeProject: false
+  enableCodexUser: false
+
 commands:
-  enableClaudeUser: false    # don't load ~/.claude commands into OMP
-  enableClaudeProject: false # don't load .claude/ project commands into OMP
-  enableOpencodeUser: false  # don't load ~/.config/opencode commands into OMP
+  enableClaudeUser: false
+  enableClaudeProject: false
+  enableOpencodeUser: false
   enableOpencodeProject: false
 
-# Provider isolation — keep OMP out of every foreign tool's user config.
-# NOTE: the `github` provider (~/.copilot / .github) is intentionally NOT
-# disabled, to stay consistent with the repo-root installer and keep
-# copilot-preset's Copilot integration intact.
-disabledProviders:
-  - claude-plugins  # ~/.claude/plugins/cache/ — marketplace agents, MCP servers
-  - codex           # ~/.codex/ and .codex/ — Codex/OpenAI Codex config
-  - gemini          # ~/.gemini/ and .gemini/ — Gemini CLI MCP + extensions
-  - cursor          # ~/.cursor/ and .cursor/ — Cursor MCP + rules
-  - windsurf        # ~/.codeium/windsurf/ and .windsurf/ — Windsurf rules
-  - opencode        # ~/.config/opencode/ and .opencode/ — OpenCode MCP
-  - cline           # .clinerules — Cline project rules
+# Real secret redaction. This is the one the plugin used to OVERCLAIM: the old
+# in-process "scrub" preserved high-entropy spans rather than removing them.
+# OMP's is the genuine article — add your own patterns to ~/.omp/agent/secrets.yml.
+secrets:
+  enabled: true
 
-# --- Extensions (files, not config.yml keys) ---------------------------------
-# install.sh mirrors extensions/ into ~/.omp/agent/extensions/token-diet,
-# because OMP does not load extension entry points from a marketplace install.
-#   path-inject      ALWAYS ON, no config. Prepends ~/.local/bin to PATH inside
-#                    the OMP process so the ctx-wire shims are visible without
-#                    restarting your terminal.
-#   context-compress OFF by default — OPT IN with
-#                    TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full.
-#                    Why off: at `safe` its whole job (strip ANSI, collapse
-#                    whitespace) is already done at the source, and `keepRecent`
-#                    is a SLIDING window — every turn one more message flips
-#                    from pristine to compressed, i.e. a recurring byte change
-#                    inside the already-sent prefix, which is exactly what busts
-#                    the provider prompt cache. Cached input is ~10x cheaper
-#                    than fresh input, so a bust costs more than the bytes saved.
-#                    Turn it on only after measuring your cache-read ratio.
-#                    Tuning: TOKEN_DIET_COMPRESS_MIN_CHARS (600),
-#                    TOKEN_DIET_COMPRESS_KEEP_RECENT (6).
-
-# --- Seeing where the tokens go (native, no plugin code) ---------------------
-# Cost and prompt-cache health are first-class statusline segments — `cost`,
-# `cache_read`, `cache_write`, `cache_hit`, `context_pct`, `usage`. Uncomment:
-# statusLine:
-#   preset: custom
-#   rightSegments: [cost, cache_hit, cache_write, context_pct, usage]
+# lean-ctx's own knobs live in ~/.pi/agent/extensions/pi-lean-ctx/config.json
+# (that extension resolves its config against ~/.pi, not ~/.omp — install.sh
+# writes it to the path it actually reads):
+#   mode         additive | replace   — `replace` swaps the native tools outright
+#   enableMcp    true | false         — the session cache lives behind this
+#   toolProfile  lean | standard | power

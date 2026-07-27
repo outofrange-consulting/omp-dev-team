@@ -10,7 +10,7 @@ met en place OMP et vous guide à travers chacun d'eux.
 |---|---|
 | **[`dev-team`](plugins/dev-team/)** | **Équipe de dev agentique** — portage *verbatim* de [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) v10.20.0 (Bryan Finster) : orchestrateur + 45 agents spécialistes/critiques, 93 skills dont **`/ship`** (spec → plan → build → review → PR en une commande idempotente), un corpus de 58 fichiers knowledge, et les 38 invocations de hooks Python de l'amont exécutées **sans modification**. 456 des 567 fichiers amont arrivent byte-identical ; le reste ne porte que la conversion de format Claude Code → OMP, appliquée par [`scripts/port-upstream-dev-team.mjs`](scripts/port-upstream-dev-team.mjs) — la prochaine montée de version amont tient en une commande. Ouvert sur les modèles : les agents passent par les rôles OMP (`@smol`/`@plan`/`@slow`), jamais par un id de fournisseur. **Requiert `python3`.** |
 | **[`copilot-preset`](plugins/copilot-preset/)** | **Préréglage modèles GitHub Copilot** — route OMP (et les tiers de dev-team) via `github-copilot` pour tourner sur une licence Copilot. Config seulement : mapping tier→modèle, comparatif tarifaire (crédits IA post-juin 2026), et MAI-Code-1-Flash câblé. |
-| **[`token-diet`](plugins/token-diet/)** | **Ce que l'outillage de contexte d'OMP ne couvre pas** — des filtres ctx-wire qui condensent *sémantiquement* la sortie de `dotnet publish/pack/run/tool` (OMP tronque mécaniquement : 50 Ko de queue, colonnes coupées à 768 octets), y compris en locale française, plus le skill `caveman` pour une **sortie** d'agent laconique. Volontairement petit : OMP 17 a absorbé la déduplication read/contexte, les segments coût + cache de la statusline et la redaction des secrets — ils ont donc été supprimés plutôt que dupliqués. |
+| **[`token-diet`](plugins/token-diet/)** | **Compression de contexte via [lean-ctx](https://github.com/yvgude/lean-ctx)** (MIT) — `bash`, `read`, `grep`, `find` et `ls` passent par un binaire Rust local qui compresse la sortie des commandes **et** les lectures de fichiers, résultats de recherche et contexte projet, reconnaît 75+ outils, et met en cache par session : une relecture inchangée devient quasi gratuite. Plus le skill `caveman` pour une **sortie** d'agent laconique, le seul axe que rien d'autre ne traite. Remplace le pack de filtres ctx-wire retiré. |
 | **[`azure-devops-fs`](plugins/azure-devops-fs/)** | **Azure DevOps comme un système de fichiers** — lecture repos/fichiers/PR/diffs via URIs `ado://` (paginé), **gates/policies** de PR + CI (builds/logs/run), création/checkout/push/complete de PR, commentaires/votes. Propulsé par l'**Azure CLI** (`az` + extension azure-devops), auth PAT, cache SQLite ; fonctionne derrière les proxys TLS d'entreprise. |
 | **[`openai-compatible`](plugins/openai-compatible/)** | **N'importe quel fournisseur compatible OpenAI** — pointez-le vers un endpoint LiteLLM, Ollama, vLLM ou LocalAI (nom + URL + clé API) ; l'installeur liste les modèles et écrit le fournisseur dans `~/.omp/agent/models.yml` avec découverte à l'exécution, utilisable comme `<nom>/<id-modèle>`. Clé API en chmod 600, jamais dans l'env. |
 | **[`datadog`](plugins/datadog/)** | **Observabilité Datadog depuis le terminal** — via la CLI Datadog [`pup`](https://github.com/DataDog/pup) (logs, métriques, traces/APM, monitors, incidents, dashboards, SLO, RUM, sécurité/audit, visibilité tests CI, observabilité LLM). Un seul skill large `datadog` pilote pup ; l'installeur configure pup + auth. |
@@ -37,7 +37,7 @@ Copilot : `smol`/`task` → **Haiku**, `default`/`plan` → **Sonnet 5** (qui pi
 l'orchestrateur dev-team + le design archi/domaine — une tâche non triviale passe
 par research → plan → implement → review), `slow` → **Opus** (verdicts de sécurité
 à fort enjeu) ; sans lui, les mêmes tiers en ids Anthropic.
-ctx-wire de token-diet et les skills sont aussi activés. `--no-config`
+Le routage lean-ctx de token-diet et les skills sont aussi activés. `--no-config`
 laisse votre config + mcp.json intacts.
 
 Trois **serveurs MCP officiels distants** sont fusionnés dans `~/.omp/agent/mcp.json`,
@@ -129,7 +129,7 @@ du plugin dans leur dernière version) — voir son README :
 
 - **dev-team** → `bash plugins/dev-team/install.sh --apply-config` (vérif prérequis + config). 100 % cloud ; pas de backend modèle local. La navigation C# passe par l'outil `lsp` natif d'OMP, qui détecte `omnisharp` tout seul.
 - **copilot-preset** → `bash plugins/copilot-preset/install.sh --apply-config`, puis `omp` → `/login` → GitHub Copilot.
-- **token-diet** → `bash plugins/token-diet/install.sh` (installe ctx-wire).
+- **token-diet** → `bash plugins/token-diet/install.sh` (installe lean-ctx + son extension OMP).
 - **azure-devops-fs** → `bash plugins/azure-devops-fs/install.sh` (installe l'Azure CLI + l'extension azure-devops, demande org/projet/**PAT**, lance `az devops login`), puis redémarrez `omp` pour charger l'outil `ado`.
 - **openai-compatible** → `bash plugins/openai-compatible/install.sh --name=litellm --url=http://localhost:4000 --api-key=…` (liste les modèles de l'endpoint, écrit le fournisseur dans `~/.omp/agent/models.yml`), puis redémarrez `omp`.
 - **datadog** → `bash plugins/datadog/install.sh` (installe la CLI Datadog `pup` + configure l'auth ; `--with-skills` pour aussi ajouter les skills par domaine de pup).
@@ -183,11 +183,11 @@ voir [`.github/workflows/installers.yml`](.github/workflows/installers.yml)) : t
 les `install.sh` passent `bash -n` ; tous les `install.ps1` se parsent sous
 PowerShell 7 (plus `shellcheck` sur les scripts shell) ; tous les manifestes sont du
 JSON valide ; les 2 extensions de dev-team et celles de tous les autres plugins
-compilent sous `bun` **et** passent `tsc --noEmit` contre les types publiés d'OMP ; ctx-wire et OMP s'installent via les commandes
+compilent sous `bun` **et** passent `tsc --noEmit` contre les types publiés d'OMP ; lean-ctx et OMP s'installent via les commandes
 exactes des scripts ; et les six plugins s'installent via le vrai OMP sur chaque OS.
 
 ## Crédits
 
 - `dev-team` porte [bdfinst/agentic-dev-team](https://github.com/bdfinst/agentic-dev-team) (MIT, Bryan Finster).
-- `token-diet` regroupe [pivanov/ctx-wire](https://github.com/pivanov/ctx-wire) et [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman).
+- `token-diet` câble [yvgude/lean-ctx](https://github.com/yvgude/lean-ctx) (MIT) et son extension `pi-lean-ctx`, et regroupe [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman).
 - `azure-devops-fs` reprend l'idée « GitHub comme système de fichiers » de [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (MIT).

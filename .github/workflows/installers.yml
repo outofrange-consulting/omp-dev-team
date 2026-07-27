@@ -52,16 +52,6 @@ jobs:
           }
           if ($bad) { exit 1 }
 
-  # 1b) Validate the token-diet ctx-wire EN/FR filter pack against its inline
-  #     tests (offline simulation of ctx-wire's filter pipeline).
-  filters:
-    name: ctx-wire filters (EN/FR)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify multilingual ctx-wire filters
-        run: python3 plugins/token-diet/ctx-wire/scripts/verify-filters.py plugins/token-diet/ctx-wire/filters.d
-
   # 1c) Compile the plugin extension modules under bun (catches TS/syntax errors
   #     in the guard/provider/context-transform extensions).
   extensions:
@@ -91,14 +81,6 @@ jobs:
         run: |
           bun install --frozen-lockfile
           bunx tsc --noEmit -p tsconfig.json
-      - name: bun unit tests (pure extension logic)
-        run: |
-          rc=0
-          for t in plugins/token-diet/scripts/extensions.test.ts; do
-            echo "== $t =="
-            if bun "$t"; then echo "ok $t"; else echo "FAIL $t"; rc=1; fi
-          done
-          exit $rc
 
   # 1d) Repo self-consistency (skill:// resolution, dead paths, manifest parity,
   #     OMP builtin collisions, agent frontmatter) plus the port invariant.

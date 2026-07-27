@@ -1,75 +1,62 @@
 ---
 name: token-diet
 description: >-
-  What this workspace still does to cut LLM token spend, and what OMP already
-  does natively. Use when the user asks how to reduce tokens/cost, what ctx-wire
-  or caveman are, or whether OMP already covers X.
+  How this workspace minimises LLM token spend. Use when the user asks how to
+  reduce tokens or cost, what lean-ctx or caveman are, how to set them up, or
+  whether OMP already does X natively.
 ---
 
-# token-diet — what is left after OMP 17.x
+# token-diet
 
-This plugin used to be a runtime layer: it deduped reads, collapsed repeated
-blocks, metered the prompt cache, and hid tool schemas. **OMP absorbed all of
-that.** What remains is the narrow set of things the harness does not do.
+Two layers, and a short list of things NOT to rebuild.
 
-## What OMP already does — do not reinvent it
+## What OMP already does — do not reinvent any of it
 
-| Native | Default | What it covers |
-|---|---|---|
-| `compaction.supersedeReads` | **on** | Re-reading a file prunes the OLDER result (`[Superseded by a newer read of this file]`), cache-aware, every turn. Note the direction: the **newest** bytes are the ones kept. |
-| `compaction.dropUseless` | **on** | Elides tool results flagged contextually useless (no matches, timed-out waits) once consumed. |
-| `pruneToolOutputs` | built in | Age-based blanking of old tool results to `[Output truncated - N tokens]`. |
-| `shellMinimizer` (Rust filters) | **on** | Per-command output filters, incl. `git` (status/diff/log/…) and `dotnet build\|test\|restore\|format`. |
-| bash output limits | built in | 50 KB tail window, per-line column cap, and artifact spill — the full payload stays at `artifact://<id>`. |
-| `secrets.enabled` + `secrets.yml` | off (turn it on) | Obfuscates matched secrets on **every** outbound message — including ones that arrived via `read .env` or an MCP result, which no command-output filter can see. |
-| statusline `cost` / `cache_read` / `cache_write` / `cache_hit` / `context_pct` / `usage` | segments | Live cost and prompt-cache health. No plugin, no meter, no `/cache-health`. |
-| `tools.xdev` | **on** | Rarely-used and MCP tools mount as `xd://` devices instead of shipping their schemas every request. Nothing to configure. |
-| `astGrep` / `astEdit` / `summarizeCode` / `blockRangeAt` | built in | Structural search and edit without dumping whole files. |
-| `/compact`, `/handoff`, auto-compaction | built in | History summarization. |
+- **Compaction.** `compaction.supersedeReads` (default **on**) prunes an older
+  read when the same file is read again. `dropUseless` and `pruneToolOutputs`
+  trim the rest. Long sessions summarise automatically.
+- **Shell output.** `shellMinimizer` ships Rust filters for common tools, on by
+  default, plus a hard truncation ceiling.
+- **Structural tools.** `ast_grep`, `ast_edit`, `summarizeCode` — search and edit
+  without dumping whole files. `read` returns structural summaries by default.
+- **Cost and cache visibility.** Native statusline segments: `cost`,
+  `cache_read`, `cache_write`, `cache_hit`, `context_pct`, `usage`.
+- **Secret redaction.** `secrets.enabled` plus `~/.omp/agent/secrets.yml`.
+- **MCP tool schemas.** `tools.xdev` (default on) mounts them as `xd://` devices
+  behind a doc budget, so a server costs a mount, not a schema dump.
 
-Corollary: **do not build a plugin-side context transform.** Anything that
-rewrites *old* messages mutates the prefix the provider KV-caches, and cached
-input is ~10x cheaper than fresh input — a cache bust costs more than the bytes
-it saves.
+This plugin used to duplicate the first four. It no longer does.
 
-## What is genuinely left (and is what this plugin ships)
+## Layer 1 — lean-ctx (input tokens)
 
-1. **Semantic command-output filters.** OMP truncates *mechanically*: a tail
-   window and a column cap. It does not know that a 20 KB all-green
-   `dotnet publish` collapses to one artifact-path line. ctx-wire filters do,
-   and they know it **in French too**. We ship only the four `dotnet`
-   subcommands OMP's own `dotnet` filter does not claim — `publish`, `pack`,
-   `run`, `tool` — because duplicating `build`/`test`/`restore` would be two
-   passes over the same bytes. See `plugins/token-diet/ctx-wire/README.md`,
-   including the **locale trap**: OMP's `LANG=C.UTF-8` hardening is
-   Windows-only, so on Linux/macOS a French locale reaches git/dotnet and the
-   native English filters silently miss.
-2. **Output brevity.** Everything above shrinks *input*. Nothing in OMP (or in
-   upstream agentic-dev-team) targets the tokens the model *writes*. That is
-   `/caveman` — `skill://caveman`.
+[lean-ctx](https://github.com/yvgude/lean-ctx) (MIT) is a local Rust binary that
+sits between the agent and its tools. `install.sh` installs it and registers
+upstream's `pi-lean-ctx` extension, which routes `bash`, `read`, `grep`, `find`
+and `ls` through it.
 
-## Decision guide
+Beyond what OMP does natively, it adds: compression of **file reads, search
+results and project context** (not just command output), recognition of 75+ tools
+out of the box, and a **persistent session cache** so an unchanged re-read costs
+a fraction of a fresh one.
 
-- Running shell commands? Just run them. Output is filtered and secret-scrubbed
-  on the way in; `ctx-wire gain` shows the savings.
-- Reading or editing a known file? `read` + `astEdit`. Not `cat`/`sed` via bash.
-- Want terser replies to cut **output** tokens? `/caveman` (`skill://caveman`).
-- Want to see live cost / cache health? Native statusline segments:
-  `statusLine.preset: custom` with
-  `rightSegments: [cost, cache_hit, cache_write, context_pct, usage]`.
-- Worried about secrets reaching the provider? `secrets.enabled: true` plus
-  regex entries in `~/.omp/agent/secrets.yml`. Not a command-output filter.
-- Long, prose-heavy session and you have **measured** a healthy cache-read
-  ratio? Then, and only then, `TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full` opts
-  into the compressor. It is off by default on purpose.
+Knobs live in `~/.pi/agent/extensions/pi-lean-ctx/config.json` — that extension
+resolves its config against `~/.pi`, not `~/.omp`, so the installer writes it
+where the extension actually looks. `mode: replace` swaps the native tools
+outright; `additive` (the default here) leaves both available.
 
-## Setup (once per machine)
+**This replaced ctx-wire.** ctx-wire compressed command output only, which meant
+hand-maintaining a filter per command — this plugin shipped four of them for
+`dotnet` alone. That does not scale, and it is the same duplicate-the-tool
+mistake listed above.
 
-```sh
-bash plugins/token-diet/install.sh   # then restart omp
-```
+## Layer 2 — caveman (output tokens)
 
-Installs ctx-wire + its PATH shims, merges the four filters, mirrors the
-extensions and this rule into `~/.omp/agent`, and merges `config.snippet.yml`.
-`--no-config` skips the config merge; `--insecure-tls` / `--ca-file=…` are for
-corporate TLS-intercepting proxies.
+`/skill:caveman` makes the agent answer tersely. This is the one axis nothing
+else here addresses: OMP and lean-ctx both work on what goes INTO the model.
+caveman works on what comes out. It preserves the user's language.
+
+## Measuring
+
+Do not claim a saving you have not measured. `omp usage --history` and `omp stats`
+report real token and cost figures; the `cache_hit` statusline segment shows
+whether the prompt cache is actually being hit.

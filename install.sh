@@ -256,7 +256,8 @@ plug() {  # plug <name> <dir>
 # Idempotent, existence-guarded, fail-open; only touches these exact obsolete
 # names. Skip with --no-cleanup.
 #   MCP servers : codebase-memory, codebase-memory-mcp, codegraph, code-graph
-#   binaries    : codebase-memory-mcp, codegraph, rtk (ctx-wire's predecessor)
+#   binaries    : codebase-memory-mcp, codegraph, rtk and ctx-wire (both
+#                 superseded by lean-ctx)
 #   plugins     : cliproxy, local-llm (both folded into openai-compatible)
 cleanup_obsolete() {
   [ "${NO_CLEANUP:-0}" = 1 ] && return 0
@@ -283,7 +284,9 @@ PY
   fi
 
   # 2) Remove obsolete tool binaries (exact names only).
-  for b in codebase-memory-mcp codegraph rtk; do
+  # ctx-wire joins this list at v3.0.0: token-diet now routes through lean-ctx,
+  # so a leftover ctx-wire binary + its PATH shims would shadow real commands.
+  for b in codebase-memory-mcp codegraph rtk ctx-wire; do
     for d in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/.bun/bin"; do
       if [ -e "$d/$b" ] || [ -L "$d/$b" ]; then rm -f "$d/$b" 2>/dev/null || true; ok "removed $d/$b"; removed=1; fi
     done
@@ -491,7 +494,7 @@ if ask "Install copilot-preset (route models through GitHub Copilot)?"; then
   plug copilot-preset "$ROOT/plugins/copilot-preset"; SEL_COPILOT=1
 fi
 
-if ask "Install token-diet (ctx-wire output filters + caveman)?"; then
+if ask "Install token-diet (lean-ctx context compression + caveman)?"; then
   plug token-diet "$ROOT/plugins/token-diet"; SEL_TOKENDIET=1
 fi
 
