@@ -114,14 +114,33 @@ function Cleanup-Obsolete {
 Cleanup-Obsolete
 
 # --- ctx-wire (transparent command-output compression + secret scrubbing) ----
+# NON-FATAL, matching the `|| true` the Unix installer already had. ctx-wire is
+# an accelerator, not a dependency: the plugin's skills and extensions work
+# without it, so a transient fetch failure must not abort the whole install.
+#
+# It fails for a mundane reason surprisingly often: ctx-wire's own installer
+# resolves its latest release through the UNAUTHENTICATED GitHub API, whose
+# anonymous limit is 60 requests/hour PER IP. Any shared egress IP — a CI runner
+# pool, a corporate NAT — burns that between them. Forwarding a token when one
+# is present raises the limit; failing softly covers the rest.
 if ((Have ctx-wire) -and $NoUpdate) {
   Say "ctx-wire present"
-} elseif (Have ctx-wire) {
-  Say "Updating ctx-wire"; Run "ctx-wire update"
 } else {
-  Say "Installing latest ctx-wire"; Run "irm https://ctx-wire.dev/install.ps1 | iex"
+  $tok = if ($env:GITHUB_TOKEN) { $env:GITHUB_TOKEN } elseif ($env:GH_TOKEN) { $env:GH_TOKEN } else { $null }
+  if ($tok) { $env:GITHUB_TOKEN = $tok; $env:GH_TOKEN = $tok }
+  try {
+    if (Have ctx-wire) { Say "Updating ctx-wire"; Run "ctx-wire update" }
+    else { Say "Installing latest ctx-wire"; Run "irm https://ctx-wire.dev/install.ps1 | iex" }
+  } catch {
+    Warn "ctx-wire install/update failed: $($_.Exception.Message -split "`n" | Select-Object -First 1)"
+    Warn "Continuing without it — the skills and extensions do not depend on ctx-wire."
+    Warn "Retry later with: irm https://ctx-wire.dev/install.ps1 | iex"
+  }
 }
-if (Have ctx-wire) { Say "Installing ctx-wire PATH shims"; Run "ctx-wire shims install" }
+if (Have ctx-wire) {
+  Say "Installing ctx-wire PATH shims"
+  try { Run "ctx-wire shims install" } catch { Warn "ctx-wire shims install failed: $($_.Exception.Message)" }
+}
 
 # Ensure ~/.local/bin is on PATH (user scope)
 if (";$env:Path;" -notlike "*;$BinDir;*") {

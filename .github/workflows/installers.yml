@@ -156,6 +156,8 @@ jobs:
       - name: Run global installer (Unix)
         if: runner.os != 'Windows'
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash install.sh -y
       - name: Verify OMP launches with all plugins (Unix)
         if: runner.os != 'Windows'
@@ -193,9 +195,15 @@ jobs:
           python3 -c "import yaml,sys; yaml.safe_load(open('$cfg')); print('config.yml parses as valid YAML')" \
             || echo "(PyYAML unavailable — duplicate-key check still passed)"
 
+      # GITHUB_TOKEN raises the GitHub API limit from the anonymous 60/hour-per-IP
+      # (which a shared runner pool exhausts between jobs) to 1000/hour. The
+      # installers treat a fetch failure as non-fatal either way; this just stops
+      # a third party's rate limit from being the thing that reddens our build.
       - name: Run global installer (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: ./install.ps1 -Yes
       - name: Verify OMP launches with all plugins (Windows)
         if: runner.os == 'Windows'
