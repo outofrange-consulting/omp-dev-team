@@ -1,0 +1,15 @@
+# The exact upstream commit this port was generated from.
+#
+# CI checks out THIS ref before re-running the converter. Pinning is deliberate:
+# comparing against a moving HEAD would turn the build red every time a third
+# party commits to upstream — a signal we cannot act on and would learn to
+# ignore. Bumping this file is how an upstream update enters the repo, as one
+# reviewable change:
+#
+#   git -C <adt-clone> fetch && git -C <adt-clone> checkout <new-sha>
+#   node scripts/port-upstream-dev-team.mjs --from <adt-clone>/plugins/dev-team
+#   # update the two lines below, commit the resulting diff
+#
+repo=https://github.com/bdfinst/agentic-dev-team
+ref=37aa6a5e31231ecf42e2c595c61f3c08de5260ac
+version=10.20.0

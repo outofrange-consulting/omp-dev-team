@@ -185,7 +185,7 @@ if (Test-Path $src) {
   New-Item -ItemType Directory -Force -Path $dest | Out-Null
   Copy-Item -Recurse -Force $src (Join-Path $dest 'extensions')
   $pkg = Join-Path $Here 'package.json'; if (Test-Path $pkg) { Copy-Item -Force $pkg $dest }
-  Say "extensions loaded into $dest: path-inject (always on) + context-compress (OFF unless TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full)"
+  Say "extensions loaded into ${dest}: path-inject (always on) + context-compress (OFF unless TOKEN_DIET_CONTEXT_COMPRESS=safe|lite|full)"
 }
 
 # --- Load the always-on OMP-native rule (ctx-wire token-tool routing) ---

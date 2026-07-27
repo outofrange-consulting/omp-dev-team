@@ -98,6 +98,7 @@ const LOCAL_ONLY = [
   ".claude-plugin/plugin.json",       // marketplace manifest
   ".mcp.json",                        // OMP MCP config
   "extensions",                       // the hook bridge + plugin-root exporter
+  "UPSTREAM_REF",                     // the upstream commit this port is pinned to
 ];
 
 // --- 1. model / effort -----------------------------------------------------
@@ -267,7 +268,26 @@ function destFor(rel) {
   return rel;
 }
 
+/** Warn when the clone is not at the pinned ref — the port is defined against a
+ *  specific upstream commit, not against whatever HEAD happens to be. */
+function checkPinnedRef() {
+  const pin = join(DEST_REAL, "UPSTREAM_REF");
+  if (!existsSync(pin)) return;
+  const want = /^ref=([0-9a-f]{7,40})$/m.exec(readFileSync(pin, "utf8"))?.[1];
+  if (!want) return;
+  let head = "";
+  try {
+    head = execFileSync("git", ["-C", join(FROM, "..", ".."), "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  } catch { return; }
+  if (head && !head.startsWith(want) && !want.startsWith(head)) {
+    console.warn(
+      `\nWARNING: the clone is at ${head.slice(0, 12)} but UPSTREAM_REF pins ${want.slice(0, 12)}.\n` +
+      `Check out the pinned ref, or bump UPSTREAM_REF deliberately as part of an upstream update.\n`);
+  }
+}
+
 function main() {
+  checkPinnedRef();
   if (!existsSync(join(FROM, "agents"))) {
     console.error(`not an agentic-dev-team plugin dir: ${FROM}`);
     process.exit(2);
@@ -381,19 +401,34 @@ function main() {
       mkdirSync(dirname(dst), { recursive: true });
       cpSync(src, dst, { recursive: true });
     }
-    // `git diff --no-index` exits 1 when the trees differ, which is the case we
-    // exist to report — so a throw here is the SUCCESS path of the comparison,
-    // not an error. Read stdout off the exception.
-    let diff = "";
-    try {
-      diff = execFileSync("git", ["diff", "--no-index", "--stat", DEST_REAL, DEST], { encoding: "utf8" }).trim();
-    } catch (e) {
-      diff = String(e.stdout ?? "").trim() || String(e.message ?? "").trim();
+    // Compare the two trees directly rather than shelling out to git. `git diff
+    // --no-index` renders deletions as "/dev/null" and elides long paths under
+    // --stat, so the file that differs becomes unnameable — which is useless in a
+    // CI failure. Walking both sides is shorter and says exactly what drifted.
+    const rel = (root) =>
+      new Set(
+        walk(root)
+          .map((f) => relative(root, f).replaceAll("\\", "/"))
+          // Python bytecode is a build artifact (a stray `compileall`, ours in CI
+          // or a developer's), never port output.
+          .filter((f) => !f.includes("__pycache__") && !f.endsWith(".pyc")),
+      );
+    const mine = rel(DEST_REAL);
+    const fresh = rel(DEST);
+    const problems = [];
+    for (const f of mine) if (!fresh.has(f)) problems.push(`extra (not produced by the port): ${f}`);
+    for (const f of fresh) if (!mine.has(f)) problems.push(`missing (the port produces it): ${f}`);
+    for (const f of mine) {
+      if (!fresh.has(f)) continue;
+      const A = readFileSync(join(DEST_REAL, f));
+      const B = readFileSync(join(DEST, f));
+      if (!A.equals(B)) problems.push(`differs from the conversion: ${f}`);
     }
     rmSync(DEST, { recursive: true, force: true });
-    if (diff) {
-      console.error("\nFAIL plugins/dev-team differs from a fresh conversion of upstream:");
-      console.error(diff);
+    if (problems.length) {
+      console.error(`\nFAIL plugins/dev-team differs from a fresh conversion of upstream (${problems.length}):`);
+      for (const p of problems.slice(0, 40)) console.error(`  ${p}`);
+      if (problems.length > 40) console.error(`  ... and ${problems.length - 40} more`);
       console.error("\nEdit the converter or add the file to LOCAL_ONLY — do not hand-edit a ported file.");
       process.exit(1);
     }

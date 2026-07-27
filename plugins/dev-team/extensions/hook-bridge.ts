@@ -74,14 +74,43 @@ function loadManifest(): Manifest {
 	}
 }
 
+/** How to launch a hook: upstream's py.sh when a POSIX shell exists, else a
+ *  direct interpreter. Windows without Git-for-Windows has no `sh`, and py.sh is
+ *  a shell script by necessity (it runs before any Python is guaranteed), so the
+ *  bridge would otherwise be dead on that platform. Resolved once. */
+function resolveLauncher(): { cmd: string; pre: string[] } | null {
+	try {
+		execFileSync("sh", ["-c", "exit 0"], { timeout: TIMEOUT_MS, stdio: "ignore" });
+		return { cmd: "sh", pre: [PY_SH] };
+	} catch {
+		/* no POSIX shell — fall through to a direct interpreter */
+	}
+	const explicit = process.env.DEV_TEAM_PYTHON?.trim();
+	const candidates = explicit ? [explicit.split(/\s+/)] : [["python3"], ["py", "-3"], ["python"]];
+	for (const c of candidates) {
+		try {
+			// Execute, don't just locate: Windows' WindowsApps `python3` resolves on
+			// PATH but refuses to run non-interactively.
+			execFileSync(c[0], [...c.slice(1), "-c", "import sys; raise SystemExit(0 if sys.version_info[0] >= 3 else 1)"], {
+				timeout: TIMEOUT_MS,
+				stdio: "ignore",
+			});
+			return { cmd: c[0], pre: c.slice(1) };
+		} catch {
+			/* try the next candidate */
+		}
+	}
+	return null;
+}
+
+const LAUNCHER = resolveLauncher();
+
 /** Run one Python hook against the upstream stdin/stdout/exit-code contract. */
 function runHook(script: string, payload: unknown): HookOutcome {
 	const path = join(HOOKS_DIR, script);
-	if (!existsSync(path)) return { block: false, message: "" };
+	if (!existsSync(path) || !LAUNCHER) return { block: false, message: "" };
 	try {
-		// py.sh resolves a working Python 3 across python3 / py -3 / python, which
-		// is why it ships as .sh — it runs before an interpreter is guaranteed.
-		const stdout = execFileSync("sh", [PY_SH, path], {
+		const stdout = execFileSync(LAUNCHER.cmd, [...LAUNCHER.pre, path], {
 			input: JSON.stringify(payload),
 			encoding: "utf8",
 			timeout: TIMEOUT_MS,
@@ -135,15 +164,10 @@ export default function hookBridge(pi: ExtensionAPI): void {
 	const manifest = loadManifest();
 	if (Object.keys(manifest).length === 0) return;
 
-	// One probe at load time: without a Python 3 the whole layer is inert, and a
-	// silently inert guard layer is precisely the failure upstream hit for months
-	// (ADR 0011's amendment). Say so once, loudly, instead of per tool call.
-	let pythonOk = true;
-	try {
-		execFileSync("sh", [PY_SH, "-c", ""], { timeout: TIMEOUT_MS, stdio: "ignore" });
-	} catch (e) {
-		if ((e as { status?: number }).status === 2) pythonOk = false;
-	}
+	// Without a usable interpreter the whole layer is inert, and a silently inert
+	// guard layer is precisely the failure upstream hit for months (ADR 0011's
+	// amendment). Say so once, loudly, instead of per tool call.
+	const pythonOk = LAUNCHER !== null;
 
 	pi.on("session_start", async (_event, ctx) => {
 		if (!pythonOk) {

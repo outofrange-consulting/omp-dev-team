@@ -115,7 +115,16 @@ jobs:
       # (The registry/index generators were retired — upstream ships those files.)
       - name: dev-team matches a fresh conversion of upstream
         run: |
-          git clone --depth 1 https://github.com/bdfinst/agentic-dev-team.git /tmp/adt
+          # Pinned, NOT --depth 1 of a moving HEAD: upstream commits constantly,
+          # and diffing against whatever landed there this morning would turn the
+          # build red for reasons nobody here can act on. plugins/dev-team/UPSTREAM_REF
+          # names the commit this port is defined against; bumping it is how an
+          # upstream update enters the repo, as one reviewable change.
+          ref="$(sed -n 's/^ref=//p' plugins/dev-team/UPSTREAM_REF)"
+          repo="$(sed -n 's/^repo=//p' plugins/dev-team/UPSTREAM_REF)"
+          echo "pinned upstream: $repo @ $ref"
+          git clone --filter=blob:none --no-checkout "$repo" /tmp/adt
+          git -C /tmp/adt checkout --quiet "$ref"
           node scripts/port-upstream-dev-team.mjs --from /tmp/adt/plugins/dev-team --check
 
   # 1e) The ported plugin's substance is Python. Compile-check every file so a bad
