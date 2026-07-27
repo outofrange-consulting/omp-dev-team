@@ -58,7 +58,7 @@ except ImportError:  # pragma: no cover
 _REMEDIATION = """knowledge/index.json is stale; the auto-rebuild ran but you must stage the result.
 
   1. python3 plugins/dev-team/hooks/lib/build_knowledge_index.py
-  2. git add plugins/dev-team/knowledge/index.json
+  2. git add plugins/dev-team/skills/dev-team-knowledge/index.json
 
 Diff (expected vs working tree):
 """

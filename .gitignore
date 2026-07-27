@@ -14,3 +14,7 @@ models.yml
 .DS_Store
 *.swp
 node_modules/
+
+# Python bytecode from the ported dev-team hooks/scripts
+__pycache__/
+*.pyc

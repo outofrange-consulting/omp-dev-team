@@ -3,7 +3,7 @@
 
 Byte-compatible port of the Claude Code PreToolUse hook. Blocks Write/Edit
 operations that change the body of
-`plugins/dev-team/knowledge/security-primitives-contract.md` without also
+`plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md` without also
 bumping the `version:` field in its YAML frontmatter.
 
 Semver policy (see the contract file for details):
@@ -52,7 +52,7 @@ def emit_boundary_event(*args, **kwargs) -> None:
 # Matches the .sh's SCRIPT_DIR / REPO_ROOT resolution.
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPT_DIR.parents[2]
-_CONTRACT_PATH = "plugins/dev-team/knowledge/security-primitives-contract.md"
+_CONTRACT_PATH = "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md"
 _AUDIT_LOG = _REPO_ROOT / "metrics" / "contract-version-guard-audit.jsonl"
 
 

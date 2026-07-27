@@ -84,6 +84,11 @@ const note = (file, msg) => NEEDS_REVIEW.push(`${file}: ${msg}`);
 // --- Files we own outright: never overwritten by, nor removed for, the port ---
 // Each entry is a deliberate local addition with a reason. Keep this list short;
 // it is the total surface of our divergence from upstream.
+// NOTE: upstream ships knowledge/agent-registry.md and knowledge/skills-registry.md
+// as hand-authored files, and its own knowledge/index.json. This port therefore
+// does NOT generate them — scripts/build-registries.mjs and
+// scripts/build-knowledge-index.mjs were retired with the hand-maintained port.
+// Their drift-protection job is now done far better by this script's --check.
 const LOCAL_ONLY = [
   "README.fr.md",                     // this marketplace ships EN+FR
   "config.snippet.yml",               // OMP config; upstream has no equivalent
@@ -146,6 +151,14 @@ function mapTools(value, file) {
   }
   if (dropped.size) note(file, `dropped MCP grants for servers this marketplace does not ship: ${[...dropped].join(", ")}`);
   return out.join(", ");
+}
+
+// --- 5b. knowledge path rewrite --------------------------------------------
+// Upstream keeps knowledge/ at the plugin root and references it by repo-relative
+// path in index.json (149 keys) and in prose. Rule 5 moves the directory, so the
+// paths have to move with it or every key dangles.
+function convertKnowledgePath(text) {
+  return text.replaceAll("plugins/dev-team/knowledge/", "plugins/dev-team/skills/dev-team-knowledge/");
 }
 
 // --- 4. ${CLAUDE_PLUGIN_ROOT} ----------------------------------------------
@@ -284,7 +297,7 @@ function main() {
 
     let text = readFileSync(abs, "utf8");
     const before = text;
-    text = convertPluginRoot(text);
+    text = convertKnowledgePath(convertPluginRoot(text));
     // Prose rewrites apply to the BODY only. Running them over frontmatter
     // rewrote `allowed-tools: AskUserQuestion` into prose before the tool mapper
     // ever saw it, producing an "unknown tool" entry in the manifest.
@@ -358,7 +371,25 @@ function main() {
   }
 
   if (CHECK) {
-    const diff = execFileSync("git", ["diff", "--no-index", "--stat", DEST_REAL, DEST], { encoding: "utf8" }).trim();
+    // LOCAL_ONLY files are ours by definition and are never produced by a
+    // conversion. Mirror them into the temp tree so the diff compares only what
+    // the converter actually owns — otherwise every local file reads as deleted.
+    for (const rel of LOCAL_ONLY) {
+      const src = join(DEST_REAL, rel);
+      if (!existsSync(src)) continue;
+      const dst = join(DEST, rel);
+      mkdirSync(dirname(dst), { recursive: true });
+      cpSync(src, dst, { recursive: true });
+    }
+    // `git diff --no-index` exits 1 when the trees differ, which is the case we
+    // exist to report — so a throw here is the SUCCESS path of the comparison,
+    // not an error. Read stdout off the exception.
+    let diff = "";
+    try {
+      diff = execFileSync("git", ["diff", "--no-index", "--stat", DEST_REAL, DEST], { encoding: "utf8" }).trim();
+    } catch (e) {
+      diff = String(e.stdout ?? "").trim() || String(e.message ?? "").trim();
+    }
     rmSync(DEST, { recursive: true, force: true });
     if (diff) {
       console.error("\nFAIL plugins/dev-team differs from a fresh conversion of upstream:");

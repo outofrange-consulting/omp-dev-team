@@ -231,7 +231,7 @@ def main(argv: list[str]) -> int:
     if not slug:
         slug = _slugify(root_abs.name)
 
-    # `plugins/dev-team/knowledge/recon-inventory-excludes.txt` — same
+    # `plugins/dev-team/skills/dev-team-knowledge/recon-inventory-excludes.txt` — same
     # location as the .sh (`dirname/../knowledge/...`).
     excludes_file = (
         Path(__file__).resolve().parent.parent

@@ -39,13 +39,13 @@ def test_corpus_regex_is_valid_python_regex() -> None:
 @pytest.mark.parametrize(
     "path",
     [
-        "plugins/dev-team/knowledge/owasp-detection.md",
-        "plugins/dev-team/knowledge/agent-registry.md",
+        "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md",
+        "plugins/dev-team/skills/dev-team-knowledge/agent-registry.md",
         "plugins/dev-team/skills/specs/SKILL.md",
         "plugins/dev-team/skills/mutation-testing/SKILL.md",
         # Absolute / repo-parent-prefixed paths must still match — the .sh
         # regex allows an optional leading "(^|/)" segment.
-        "/abs/root/plugins/dev-team/knowledge/owasp-detection.md",
+        "/abs/root/plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md",
         "/abs/root/plugins/dev-team/skills/plan/SKILL.md",
     ],
 )
@@ -60,14 +60,14 @@ def test_is_corpus_path_matches_corpus_files(path: str) -> None:
     "path",
     [
         # schemas/ subtree is out of scope
-        "plugins/dev-team/knowledge/schemas/foo.json",
-        "plugins/dev-team/knowledge/schemas/notes.md",
+        "plugins/dev-team/skills/dev-team-knowledge/schemas/foo.json",
+        "plugins/dev-team/skills/dev-team-knowledge/schemas/notes.md",
         # neighboring plugin dirs
         "plugins/dev-team/agents/security-review.md",
         "plugins/dev-team/commands/code-review.md",
         "plugins/dev-team/docs/agent-architecture.md",
         # non-markdown corpus paths
-        "plugins/dev-team/knowledge/index.json",
+        "plugins/dev-team/skills/dev-team-knowledge/index.json",
         # unrelated repo paths
         "README.md",
         "plans/foo.md",
@@ -87,9 +87,9 @@ def test_is_corpus_path_rejects_non_corpus(path: str) -> None:
 @pytest.mark.parametrize(
     "path,expect_match",
     [
-        ("plugins/dev-team/knowledge/owasp-detection.md", True),
+        ("plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md", True),
         ("plugins/dev-team/skills/specs/SKILL.md", True),
-        ("plugins/dev-team/knowledge/schemas/foo.md", False),
+        ("plugins/dev-team/skills/dev-team-knowledge/schemas/foo.md", False),
         ("plugins/dev-team/agents/security-review.md", False),
     ],
 )
@@ -113,7 +113,7 @@ def test_corpus_regex_agrees_with_is_corpus_path(path: str, expect_match: bool) 
         "C:\\repo\\plugins\\dev-team\\knowledge\\owasp-detection.md",
         # Git Bash surfaces forward-slash paths even on Windows, so this must
         # still match:
-        "C:/repo/plugins/dev-team/knowledge/owasp-detection.md",
+        "C:/repo/plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md",
     ],
 )
 def test_is_corpus_path_windows_inputs(path: str) -> None:
@@ -128,18 +128,18 @@ def test_is_corpus_path_windows_inputs(path: str) -> None:
 
 def test_filter_corpus_paths_returns_only_corpus_items_in_order() -> None:
     inputs = [
-        "plugins/dev-team/knowledge/owasp-detection.md",
+        "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md",
         "README.md",
         "plugins/dev-team/skills/specs/SKILL.md",
         "plugins/dev-team/agents/security-review.md",
-        "plugins/dev-team/knowledge/schemas/foo.md",
-        "plugins/dev-team/knowledge/agent-registry.md",
+        "plugins/dev-team/skills/dev-team-knowledge/schemas/foo.md",
+        "plugins/dev-team/skills/dev-team-knowledge/agent-registry.md",
     ]
     got = paths.filter_corpus_paths(inputs)
     assert got == [
-        "plugins/dev-team/knowledge/owasp-detection.md",
+        "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md",
         "plugins/dev-team/skills/specs/SKILL.md",
-        "plugins/dev-team/knowledge/agent-registry.md",
+        "plugins/dev-team/skills/dev-team-knowledge/agent-registry.md",
     ]
 
 

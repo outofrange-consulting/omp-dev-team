@@ -1,5 +1,10 @@
 # Extraction from upstream agentic-dev-team (v7.x)
 
+> **SUPERSEDED.** This records the hand-maintained port. `dev-team` is now a
+> mechanical re-port of upstream v10.20.0 produced by
+> `scripts/port-upstream-dev-team.mjs`; see `docs/upstream-v8-v10.md` and
+> `docs/port-contract.md`. Kept for the decision history only.
+
 Survey of `bdfinst/agentic-dev-team` recent releases (we ported an earlier
 version and have since evolved heavily), and what we pulled into our OMP port.
 

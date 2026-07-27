@@ -21,11 +21,11 @@ invariant are specified in full below.
 python security-review-adapter.py \
   --input agent-output.json \
   --output unified-findings.jsonl \
-  [--mapping plugins/dev-team/knowledge/security-review-rule-map.yaml]
+  [--mapping plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml]
 ```
 
 Default `--mapping` resolves to the canonical YAML at
-`plugins/dev-team/knowledge/security-review-rule-map.yaml`
+`plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml`
 (same path `--help` prints).
 
 ## Input contract
@@ -56,7 +56,7 @@ Agent JSON shape (see `plugins/dev-team/agents/security-review.md`):
 ## Output contract
 
 One line per issue. Each line validates against
-`plugins/dev-team/knowledge/schemas/unified-finding-v1.json`.
+`plugins/dev-team/skills/dev-team-knowledge/schemas/unified-finding-v1.json`.
 
 ```json
 {

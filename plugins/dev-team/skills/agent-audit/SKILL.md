@@ -281,7 +281,7 @@ It hard-gates three invariants on every `knowledge/X.md` reference in an
 agent body: it cites a valid `index.json` anchor or carries `Whole-file
 load:`; the file is packaged on disk; and it is prefixed with
 `$DEV_TEAM_ROOT/` (the only runtime-resolvable form — a prose "lives
-in `plugins/dev-team/knowledge/...`" pointer is tolerated). Runs on every PR.
+in `plugins/dev-team/skills/dev-team-knowledge/...`" pointer is tolerated). Runs on every PR.
 
 ### 2f. CLAUDE.md and token-efficiency structural checks
 

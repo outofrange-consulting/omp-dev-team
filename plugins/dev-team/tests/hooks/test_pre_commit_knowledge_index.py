@@ -107,7 +107,7 @@ def repo(tmp_path: Path) -> Path:
         capture_output=True,
     )
     subprocess.run(
-        ["git", "add", "plugins/dev-team/knowledge/index.json"],
+        ["git", "add", "plugins/dev-team/skills/dev-team-knowledge/index.json"],
         cwd=tmp_path,
         env=env,
         check=True,
@@ -129,7 +129,7 @@ def test_no_verify_bypass(repo: Path) -> None:
     )
     env = hermetic_git_env(home=repo)
     subprocess.run(
-        ["git", "add", "plugins/dev-team/knowledge/foo.md"],
+        ["git", "add", "plugins/dev-team/skills/dev-team-knowledge/foo.md"],
         cwd=repo,
         env=env,
         check=True,
@@ -177,8 +177,8 @@ def test_commit_with_corpus_and_matching_index_passes(repo: Path) -> None:
         [
             "git",
             "add",
-            "plugins/dev-team/knowledge/foo.md",
-            "plugins/dev-team/knowledge/index.json",
+            "plugins/dev-team/skills/dev-team-knowledge/foo.md",
+            "plugins/dev-team/skills/dev-team-knowledge/index.json",
         ],
         cwd=repo,
         env=env,
@@ -197,7 +197,7 @@ def test_commit_with_stale_index_blocks_with_remediation(repo: Path) -> None:
         "# Foo\n## Section A\nFirst sentence of A.\n## New Section\nBody of new section.\n"
     )
     subprocess.run(
-        ["git", "add", "plugins/dev-team/knowledge/foo.md"],
+        ["git", "add", "plugins/dev-team/skills/dev-team-knowledge/foo.md"],
         cwd=repo,
         env=env,
         check=True,
@@ -209,7 +209,7 @@ def test_commit_with_stale_index_blocks_with_remediation(repo: Path) -> None:
     assert r.returncode == 2
     assert "knowledge/index.json is stale" in r.stderr
     assert "python3 plugins/dev-team/hooks/lib/build_knowledge_index.py" in r.stderr
-    assert "git add plugins/dev-team/knowledge/index.json" in r.stderr
+    assert "git add plugins/dev-team/skills/dev-team-knowledge/index.json" in r.stderr
 
 
 def test_commit_blocks_when_working_tree_drifts_past_staged_pair(repo: Path) -> None:
@@ -228,8 +228,8 @@ def test_commit_blocks_when_working_tree_drifts_past_staged_pair(repo: Path) -> 
         [
             "git",
             "add",
-            "plugins/dev-team/knowledge/foo.md",
-            "plugins/dev-team/knowledge/index.json",
+            "plugins/dev-team/skills/dev-team-knowledge/foo.md",
+            "plugins/dev-team/skills/dev-team-knowledge/index.json",
         ],
         cwd=repo,
         env=env,

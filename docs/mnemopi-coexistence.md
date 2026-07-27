@@ -87,4 +87,4 @@ log) — that is the double-write + re-inflation footgun this note exists to fla
 
 - `docs/upstream-omp-runtime.md` — the OMP 17.x runtime capabilities the repo
   didn't track (Mnemopi is one of them).
-- `plugins/dev-team/skills/handoff-policy/SKILL.md` — the deflation gate.
+- `plugins/dev-team/skills/handoff/SKILL.md` — the deflation gate.

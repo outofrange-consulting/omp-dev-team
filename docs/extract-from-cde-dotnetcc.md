@@ -1,5 +1,10 @@
 # Plan — Extraire de `cde-dotnetcc` pour omp-dev-team
 
+> **SUPERSEDED.** This records the hand-maintained port. `dev-team` is now a
+> mechanical re-port of upstream v10.20.0 produced by
+> `scripts/port-upstream-dev-team.mjs`; see `docs/upstream-v8-v10.md` and
+> `docs/port-contract.md`. Kept for the decision history only.
+
 > Statut : **IMPLÉMENTÉ** (W1+W2+W3+W4 ; vérifié — voir §Livré). En attente de revue/CI.
 > Branche : `claude/repo-comparison-integration-y178js`
 > Source comparée : https://github.com/atherio-danp/cde-dotnetcc (harness Claude Code .NET)
@@ -52,7 +57,7 @@ faiblesse du matching et (b) l'état agent-writable.
 
 **Hors scope W1** : réécriture AST complète des guards destructive (gros chantier ; le plan se limite à retirer le court-circuit + casse-insensible + état déplacé + étiquetage honnête).
 
-**Fichiers** : `plugins/dev-team/extensions/lib/shared.ts`,
+**Fichiers** : `the dev-team guard extensions (since replaced by upstream's Python hooks)`,
 `extensions/{path-guard,destructive-guard,freeze-guard,review-gate}.ts`,
 `rules/dev-team-operating-manual.md`, `README.md` / `README.fr.md`.
 
@@ -131,7 +136,7 @@ l'agent. W2 et W3 se renforcent.
 l'extension ; l'orchestrateur garde les gates humains et le three-stage review
 sémantique (qui, eux, ont besoin d'un agent).
 
-**Fichiers** : `plugins/dev-team/extensions/impl-verify.ts`,
+**Fichiers** : `the impl-verify extension (since replaced by upstream's verify_guard.py)`,
 `extensions/lib/shared.ts` (helper d'exécution/parse si besoin),
 `package.json` (`omp.extensions`), `config.snippet.yml`, `commands/build.md`,
 `skills/build/SKILL.md` (référencer la boucle).

@@ -121,49 +121,18 @@ eval:
 # workspace instead of an installed plugin.)
 
 # ---------------------------------------------------------------------------
-# IMPL-VERIFY (deterministic build+test gate — /impl-verify)
+# UPSTREAM'S PYTHON HOOK LAYER
 # ---------------------------------------------------------------------------
-# The /impl-verify command (extension, auto-loaded) detects the stack and runs
-# the STRICT build + tests with a bounded fix counter. It is configured NOT here
-# but per-project in `.omp/dev-team.json` (so build/test commands travel with the
-# repo, not your global config):
+# This plugin is a verbatim port of agentic-dev-team v10.20.0. Its guards, gates,
+# telemetry and build verification are upstream's Python hooks, run unmodified by
+# extensions/hook-bridge.ts — there is nothing to configure here, but there IS a
+# hard requirement: python3 must be on PATH (or DEV_TEAM_PYTHON set). Without it
+# the whole layer is inert and OMP says so at session start.
 #
-#   {
-#     "implVerify": {
-#       "maxFixes": 3,
-#       "stacks": {
-#         "dotnet": { "build": "dotnet build -warnaserror", "test": "dotnet test" },
-#         "node":   { "build": "bun run build", "test": "bun test" }
-#       }
-#     }
-#   }
+#   DEV_TEAM_PYTHON           explicit interpreter, e.g. "py -3"
+#   DEV_TEAM_HOOK_TIMEOUT_MS  per-hook wall clock (default 15000)
 #
-# Defaults (strict) ship per stack; override only what differs. Detection:
-# .csproj/.sln -> dotnet, Cargo.toml -> rust, go.mod -> go, pyproject.toml ->
-# python, package.json -> node (dotnet wins a mixed repo).
-
-# ---------------------------------------------------------------------------
-# EFFORT (phase-aware) — NOTHING TO CONFIGURE HERE
-# ---------------------------------------------------------------------------
-# The plugin-side effort-band resolver is retired. OMP's own `task` tool takes a
-# per-call `effort: "lo" | "med" | "hi"`, which outranks both the agent's
-# frontmatter and any `:level` model suffix, and maps onto whatever ladder the
-# ACTUALLY RESOLVED model supports — so it degrades gracefully on Copilot and
-# open-weight models that have no Anthropic-style effort ladder.
-#
-# The rule the orchestrator applies: frontmatter declares the FLOOR; /scope's
-# task size maps to the per-call effort (trivial -> lo, standard -> med,
-# complex -> hi) and is passed ONLY during spec/plan. Build and review pass
-# nothing, so they run at the floor — a solid plan makes the build routine.
-#
-# Caveat worth knowing: every Copilot model served over `openai-completions` is
-# built with compat.supportsReasoningEffort=false, so effort is a NO-OP on the
-# wire for Gemini/Kimi via Copilot. It does take effect on Copilot's Claude
-# (anthropic-messages) and GPT-5.x (openai-responses) models.
-#
-# Per-agent model overrides and enable/disable are native too — see
-# `task.agentModelOverrides`, `task.disabledAgents` and the `/agents` command.
-# Do not add a plugin-side equivalent.
+# Upstream's own knobs still apply, e.g. DEV_TEAM_MAX_PARALLEL_BUILDS.
 
 # ---------------------------------------------------------------------------
 # TASK / SUBAGENT GRAPH

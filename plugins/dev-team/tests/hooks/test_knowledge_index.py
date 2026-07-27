@@ -67,7 +67,7 @@ def test_edit_on_knowledge_md_triggers_builder(sentinel_builder) -> None:
         {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/owasp-detection.md"
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md"
             },
         },
         builder,
@@ -96,7 +96,7 @@ def test_write_on_corpus_file_triggers_builder(sentinel_builder) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/owasp-detection.md"
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md"
             },
         },
         builder,
@@ -121,7 +121,7 @@ def test_edit_on_schemas_subdir_does_not_trigger(sentinel_builder) -> None:
     r = _run(
         {
             "tool_name": "Edit",
-            "tool_input": {"file_path": "plugins/dev-team/knowledge/schemas/foo.md"},
+            "tool_input": {"file_path": "plugins/dev-team/skills/dev-team-knowledge/schemas/foo.md"},
         },
         builder,
     )
@@ -149,7 +149,7 @@ def test_non_edit_write_tools_silent(sentinel_builder) -> None:
             {
                 "tool_name": tool,
                 "tool_input": {
-                    "file_path": "plugins/dev-team/knowledge/owasp-detection.md"
+                    "file_path": "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md"
                 },
             },
             builder,
@@ -164,7 +164,7 @@ def test_builder_failure_still_exits_zero(sentinel_builder) -> None:
         {
             "tool_name": "Edit",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/owasp-detection.md"
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/owasp-detection.md"
             },
         },
         builder,

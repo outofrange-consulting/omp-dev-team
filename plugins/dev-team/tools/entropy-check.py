@@ -26,7 +26,7 @@ Exit codes:
     0   always zero on successful scan (findings reported via SARIF, not exit).
     2   argument or IO error.
 
-See plugins/dev-team/knowledge/semgrep-rules/ml-patterns.yaml for
+See plugins/dev-team/skills/dev-team-knowledge/semgrep-rules/ml-patterns.yaml for
 analogous detection patterns shipped as semgrep rules in Step 3b's ruleset
 work.
 """

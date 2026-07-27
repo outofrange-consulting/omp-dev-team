@@ -5,9 +5,6 @@
 //
 //   A. `skill://dev-team-knowledge/<file>.md#<anchor>` refs resolve.
 //   B. Every file keyed in index.json exists.
-//   C. Finding-emitting review agents reference the output-discipline contract.
-//   D. Deliberately-removed TDD identifiers don't creep back in.
-//   E. The canary sentinel stays byte-identical in the rule and the extension.
 //   F. Bare `skill://<name>` refs resolve to a real SKILL (not to an agent).
 //   G. Every `plugins/...` path mentioned in markdown exists.
 //   H. plugin.json / package.json version parity; marketplace <-> plugin dirs;
@@ -17,12 +14,21 @@
 //      never runs).
 //   J. No `${CLAUDE_PLUGIN_ROOT}` in skill/agent/prompt/rule bodies. OMP
 //      substitutes it only in discovery configs, never in prose.
-//   K. No references to the retired Claude Code hook era (`.../hooks/`, `.claude/`).
 //   L. No settings that OMP has removed (they are deleted from config on load,
 //      so writing them only litters the user's config).
 //   M. Agent frontmatter matches OMP's parser: `@role` aliases, real roles, and
 //      none of the Claude-Code-only keys that OMP ignores silently.
 //   N. Count claims in the READMEs match the filesystem.
+//
+// RETIRED IN THE v10.20.0 RE-PORT (they asserted OUR divergences, not invariants):
+//   C. review-output-discipline wiring — our convention; upstream has none.
+//   D. no TDD identifiers — upstream SHIPS a test-driven-development skill.
+//   E. the canary sentinel — our extension; no upstream equivalent.
+//   K. no `.claude/` references — upstream uses .claude/memory and .claude/metrics
+//      as its artifact directories, and hooks/ now genuinely exists.
+// Their drift-protection job is done far better by
+// `node scripts/port-upstream-dev-team.mjs --check`, which asserts the WHOLE
+// plugin still matches a fresh conversion of upstream.
 //
 // Pure Node, no dependencies. Exit non-zero on any violation.
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -96,54 +102,6 @@ for (const r of [...refs].sort()) {
 for (const rel of Object.keys(index))
   if (!exists(rel)) fail("index", `${rel} — keyed in index.json but missing`);
 
-// ---- C. Review-agent output-discipline wiring ----
-const CONTRACT = '"status": "pass|warn|fail|skip"';
-const ALLOW_NO_DISCIPLINE = new Set(["progress-guardian.md"]); // not a lexical finding agent
-for (const a of mdFiles(join(ROOT, "agents"))) {
-  const t = read(join(ROOT, "agents", a));
-  if (t.includes(CONTRACT) && !t.includes("review-output-discipline.md") && !ALLOW_NO_DISCIPLINE.has(a))
-    fail("wiring", `${a} — emits the findings contract but doesn't reference review-output-discipline.md`);
-}
-
-// ---- D. No deliberately-removed TDD identifiers ----
-const FORBIDDEN = [/tdd-first/i, /tdd-guard/i, /test-driven-development/i, /RED→GREEN/, /RED-GREEN/];
-const ALLOW_TDD = new Set([
-  "plugins/dev-team/skills/testing-discipline/SKILL.md", // explains why ordering is dropped
-  "plugins/dev-team/extensions/spec-guard.ts",           // comment: formerly tdd-guard
-  "plugins/dev-team/README.md",                          // rationale: test-first not enforced
-  "plugins/dev-team/README.fr.md",
-  "docs/plan-gate-over-tdd.md",                          // the rationale document itself
-  "docs/extract-from-cde-dotnetcc.md",                   // historical extraction records:
-  "docs/upstream-v7.7-7.9-extraction.md",                // they name what was retired
-  "docs/upstream-v7-extraction.md",
-  "docs/upstream-v8-v10.md",
-]);
-for (const f of walk(ROOT, [".md", ".ts"]).concat(walk("docs", [".md"]))) {
-  if (ALLOW_TDD.has(norm(f))) continue;
-  const t = read(f);
-  for (const re of FORBIDDEN) {
-    const m = re.exec(t);
-    if (m) { fail("test-after", `${f} — forbidden TDD identifier "${m[0]}" (test-after is the framework choice)`); break; }
-  }
-}
-
-// ---- E. Canary sentinel: byte-identical in the alwaysApply rule + extension ----
-const CANARY_TOKEN = "DT-CANARY-7Q2F";
-const canaryRule = join(ROOT, "rules/dev-team-operating-manual.md");
-const canaryExt = join(ROOT, "extensions/canary.ts");
-if (!exists(canaryRule)) {
-  fail("canary", "rules/dev-team-operating-manual.md missing");
-} else {
-  const rt = read(canaryRule);
-  if (!rt.includes(CANARY_TOKEN)) fail("canary", `operating-manual missing sentinel ${CANARY_TOKEN}`);
-  const fm = /^---\n([\s\S]*?)\n---/.exec(rt);
-  if (!fm || !/^\s*alwaysApply:\s*true\s*$/m.test(fm[1]))
-    fail("canary", "operating-manual is not `alwaysApply: true` (canary rule would not load)");
-}
-if (!exists(canaryExt)) fail("canary", "extensions/canary.ts missing");
-else if (!read(canaryExt).includes(CANARY_TOKEN))
-  fail("canary", `canary.ts sentinel != ${CANARY_TOKEN} (drift between rule and extension)`);
-
 // ---- F. Bare `skill://<name>` refs resolve to a real SKILL ----
 // A skill:// URI pointing at an AGENT silently resolves to nothing. The anchored
 // dev-team-knowledge form is covered by check A and skipped here.
@@ -164,6 +122,12 @@ for (const f of ALL_MD) {
 // ---- G. Every `plugins/...` path mentioned in markdown exists ----
 const pathRe = /(?<![\w/.-])(plugins\/[A-Za-z0-9._/-]*[A-Za-z0-9._-])/g;
 const IGNORE_PATH = [/\*/, /\.\.\./, /<[^>]+>/, /\$\{/];
+// dev-team is a VERBATIM port of one plugin out of upstream's three. Its content
+// legitimately cross-references the siblings we do not ship. Those references are
+// counted and reported, not failed — the capability gap stays visible without
+// forcing us to edit ported files (which --check would then flag as drift).
+const UPSTREAM_SIBLINGS = /^plugins\/(security-assessment|marketplace-dev|agentic-dev-team)\b/;
+const siblingRefs = new Map();
 for (const f of ALL_MD) {
   const t = read(f); let m;
   const seen = new Set();
@@ -171,6 +135,10 @@ for (const f of ALL_MD) {
     let p = m[1].replace(/[.,;:)]+$/, "");
     if (seen.has(p) || IGNORE_PATH.some((re) => re.test(p))) continue;
     seen.add(p);
+    if (UPSTREAM_SIBLINGS.test(p)) {
+      siblingRefs.set(p, (siblingRefs.get(p) ?? 0) + 1);
+      continue;
+    }
     // A trailing path segment with no extension may be a directory or prose.
     if (!exists(p)) fail("dead-path", `${f} — references ${p}, which does not exist`);
   }
@@ -229,30 +197,6 @@ for (const p of PLUGINS)
 for (const f of ALL_MD)
   if (read(f).includes("${CLAUDE_PLUGIN_ROOT}"))
     fail("plugin-root", `${f} — uses \${CLAUDE_PLUGIN_ROOT}, which OMP does not substitute in markdown bodies`);
-
-// ---- K. No leftovers from the Claude Code hook era ----
-// This plugin's hooks were reimplemented as TypeScript extensions; there is no
-// hooks/ directory and no .claude/ runtime here.
-// Only plugin-owned Claude Code RUNTIME state counts. OMP genuinely does
-// discover `.claude/` as a cross-harness provider, so a doc explaining that
-// is correct — what must not survive is this plugin writing or reading its
-// own state there, or under a hooks/ dir that no longer exists.
-const HOOK_ERA = [
-  /plugins\/dev-team\/hooks\//,
-  /\.claude\/(rules|settings\.json|review-summaries|project-stack|memory|metrics|state|CLAUDE\.md)/,
-];
-const ALLOW_HOOK_ERA = new Set([
-  "docs/extract-from-cde-dotnetcc.md",   // historical extraction record
-  "docs/upstream-v7-extraction.md",
-  "docs/upstream-v7.7-7.9-extraction.md",
-  "REVIEW.md",
-]);
-for (const f of ALL_MD) {
-  if (ALLOW_HOOK_ERA.has(norm(f))) continue;
-  const t = read(f);
-  for (const re of HOOK_ERA)
-    if (re.test(t)) { fail("hook-era", `${f} — references the retired Claude Code hook layer (${re})`); break; }
-}
 
 // ---- L. No settings OMP has removed ----
 // tools.discoveryMode / tools.essentialOverride / mcp.discoveryMode were removed
@@ -327,6 +271,16 @@ for (const f of ["README.md", "README.fr.md", join(ROOT, "README.md"), join(ROOT
         fail("counts", `${f} — claims ${claimed} ${key}, filesystem has ${expected} ("${m[0].trim()}")`);
     }
   }
+}
+
+if (siblingRefs.size) {
+  const total = [...siblingRefs.values()].reduce((a, b) => a + b, 0);
+  console.log(
+    `\nNote: ${total} verbatim reference(s) to ${siblingRefs.size} upstream sibling path(s) this ` +
+    `marketplace does not ship (security-assessment / marketplace-dev). Not a defect — the port is ` +
+    `verbatim — but the capability is absent:`);
+  for (const [p, n] of [...siblingRefs].sort()) console.log(`  ${String(n).padStart(3)}x  ${p}`);
+  console.log("");
 }
 
 console.log(

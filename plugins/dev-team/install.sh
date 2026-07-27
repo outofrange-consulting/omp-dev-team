@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # dev-team installer (Linux/macOS) — prerequisite checker + optional config apply.
 # The agentic dev team is all-cloud: no local model backend to install. It needs
-# OMP + git; a few skills optionally use gh / semgrep / docker / python3. The
-# bundled serena-forge integration additionally needs .NET 10+ (installed below
-# if missing) and uvx (checked only, never auto-installed) for its C# backend.
+# OMP + git + PYTHON 3 (hard requirement: the plugin is a verbatim port of
+# upstream agentic-dev-team, whose entire hook and script layer is Python, run
+# unmodified through extensions/hook-bridge.ts). A few skills optionally use
+# gh / semgrep / docker.
 # Flags: --apply-config (append config.snippet.yml), --no-update (no-op), -y.
 set -euo pipefail
 
@@ -50,45 +51,19 @@ say "Checking prerequisites"
 if have git; then ok "git ($(git --version | awk '{print $3}'))"; else warn "git missing — required for branch-workflow / /pr"; fi
 
 # --- Optional tools used by some skills -------------------------------------
-for t in gh semgrep docker python3; do
+# python3 is NOT optional here — without it every guard, gate and telemetry hook
+# is inert. Fail loudly at install time rather than silently at runtime.
+if sh "$HERE/hooks/py.sh" -c '' >/dev/null 2>&1; then
+  ok "python3 ($(sh "$HERE/hooks/py.sh" -c 'import sys;print(sys.version.split()[0])' 2>/dev/null))"
+else
+  warn "NO PYTHON 3 FOUND. dev-team's hook layer (guards, gates, telemetry) will be INERT."
+  warn "Install Python 3.8+, or set DEV_TEAM_PYTHON to a working interpreter."
+  MISSING_PY=1
+fi
+
+for t in gh semgrep docker; do
   if have "$t"; then ok "$t (optional)"; else warn "$t not found (optional — used by some skills)"; fi
 done
-
-# --- .NET SDK (bundled serena-forge integration's C# backend needs .NET 10+) -
-# serena-forge (Serena's Roslyn-based Microsoft.CodeAnalysis.LanguageServer)
-# requires .NET 10+ on the host; Serena itself launches via uvx (checked below,
-# never auto-installed here) and downloads the Roslyn LS from NuGet on first
-# C# use. Skip harmlessly if you never touch .cs files.
-dotnet_major() {
-  if have dotnet; then dotnet --version 2>/dev/null | cut -d. -f1; else echo 0; fi
-}
-if [ "$(dotnet_major)" -lt 10 ]; then
-  if have brew; then
-    say "Installing .NET SDK (serena-forge's C# backend needs .NET 10+)"
-    run "brew install --cask dotnet-sdk || brew install dotnet || true"
-  elif have curl; then
-    say "Installing .NET SDK (LTS) via the official Microsoft script (serena-forge needs .NET 10+)"
-    run "curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && bash /tmp/dotnet-install.sh --channel LTS --install-dir \"$HOME/.dotnet\" || true"
-    rm -f /tmp/dotnet-install.sh 2>/dev/null || true
-  else
-    warn "need curl or brew to install the .NET SDK — see https://dot.net (needed for serena-forge's C# backend; harmless to skip if you never work in C#)"
-  fi
-  export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"
-  for p in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
-    [ -e "$p" ] || continue
-    grep -qsF 'DOTNET_ROOT' "$p" || printf '\n# omp-dev-team .NET (serena-forge)\nexport DOTNET_ROOT="$HOME/.dotnet"\nexport PATH="$HOME/.dotnet:$HOME/.dotnet/tools:$PATH"\n' >> "$p"
-  done
-  hash -r 2>/dev/null || true
-fi
-if [ "$(dotnet_major)" -ge 10 ]; then ok "dotnet $(dotnet --version) (serena-forge C# backend)"
-elif have dotnet; then warn "dotnet $(dotnet --version) found but serena-forge's C# backend needs .NET 10+ (see https://dot.net)"
-else warn "dotnet not found — serena-forge's C# backend needs .NET 10+ (see https://dot.net; harmless to skip if you never work in C#)"; fi
-
-# --- uvx (from uv) — launches the bundled Serena MCP server -----------------
-# Never auto-installed here (a package manager should own it, and Serena's
-# setup skills explicitly tell users to install uv themselves, not the agent).
-if have uvx; then ok "uvx ($(uvx --version 2>/dev/null))"
-else warn "uvx not found — serena-forge's Serena MCP server can't launch (install uv: https://github.com/astral-sh/uv)"; fi
 
 # --- Optionally apply the config snippet ------------------------------------
 CFG="$HOME/.omp/agent/config.yml"
@@ -98,15 +73,31 @@ if [ "$APPLY" = 1 ]; then
   cfg_add_snippet "$HERE/config.snippet.yml" dev-team
 fi
 
-# --- Load the guard extensions ----------------------------------------------
-# OMP does NOT load extension modules (package.json `omp.extensions`) from
-# marketplace cache installs, so the blocking guards would
-# otherwise never run. Mirror them into OMP's native user-extension dir.
+# --- Load the extensions + the runtime they drive ----------------------------
+# OMP does NOT load extension modules (package.json `omp.extensions`) from a
+# marketplace cache install, so they are mirrored into OMP's native user
+# extension dir.
+#
+# hooks/ AND scripts/ MUST travel with them. extensions/hook-bridge.ts resolves
+# its plugin root from its own location (extensions/ -> ..), so after mirroring
+# that root IS this dest dir — mirroring extensions/ alone would leave the bridge
+# looking for hooks/py.sh in a directory that does not contain it, and the entire
+# guard/gate/telemetry layer would be silently inert. $DEV_TEAM_ROOT (exported by
+# plugin-root.ts) resolves the same way, which is what ported skill bodies use to
+# find scripts/.
 if [ -d "$HERE/extensions" ]; then
   DEST="$HOME/.omp/agent/extensions/dev-team"
-  rm -rf "$DEST"; mkdir -p "$DEST"; cp -R "$HERE/extensions" "$DEST/"
+  rm -rf "$DEST"; mkdir -p "$DEST"
+  cp -R "$HERE/extensions" "$DEST/"
+  cp -R "$HERE/hooks" "$DEST/"
+  cp -R "$HERE/scripts" "$DEST/"
   [ -f "$HERE/package.json" ] && cp "$HERE/package.json" "$DEST/"
-  say "guards loaded into $DEST"
+  chmod +x "$DEST/hooks/py.sh" 2>/dev/null || true
+  say "extensions + hooks + scripts loaded into $DEST"
 fi
 
-say "dev-team ready. Restart omp, then drive the workflow: /specs -> /plan -> /build -> /pr."
+if [ "${MISSING_PY:-0}" = 1 ]; then
+  warn "dev-team installed, but WITHOUT Python 3 its hook layer does nothing."
+  warn "Install Python 3.8+ (or set DEV_TEAM_PYTHON) and restart omp."
+fi
+say "dev-team ready. Restart omp, then drive the workflow: /skill:specs -> /skill:plan -> /skill:build -> /skill:pr (or /skill:ship for all of it)."

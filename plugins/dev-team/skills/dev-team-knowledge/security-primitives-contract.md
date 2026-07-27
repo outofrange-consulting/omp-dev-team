@@ -91,7 +91,7 @@ All three sub-fields are required when the object is present. Object itself is o
 - No symlink entries — symlinks resolve to real-path targets; broken symlinks are skipped and recorded in the envelope's `notes` array.
 - Plain text; not JSON; not validated by schema tooling.
 
-**Enumeration pipeline** — canonical shippable implementation at `plugins/dev-team/scripts/recon_inventory.py` (the single source of truth per the 1.2.0 plan's decision #1). Both the `codebase-recon` agent and the test harnesses invoke this script. Excluded prefixes and filenames for the non-git branch live in `plugins/dev-team/knowledge/recon-inventory-excludes.txt`.
+**Enumeration pipeline** — canonical shippable implementation at `plugins/dev-team/scripts/recon_inventory.py` (the single source of truth per the 1.2.0 plan's decision #1). Both the `codebase-recon` agent and the test harnesses invoke this script. Excluded prefixes and filenames for the non-git branch live in `plugins/dev-team/skills/dev-team-knowledge/recon-inventory-excludes.txt`.
 
 ### Consumer error contract
 
@@ -250,7 +250,7 @@ Explicitly NOT part of this contract:
 
 ## Conformance
 
-Schemas live at `plugins/dev-team/knowledge/schemas/{recon-envelope,unified-finding,disposition-register}-v1.json` and must validate using any Draft 2020-12 JSON Schema validator.
+Schemas live at `plugins/dev-team/skills/dev-team-knowledge/schemas/{recon-envelope,unified-finding,disposition-register}-v1.json` and must validate using any Draft 2020-12 JSON Schema validator.
 
 Conformance fixtures at `evals/primitives-contract/fixtures/` exercise each envelope against positive and negative cases. The `/agent-audit` command validates references to this file (agent IDs cited elsewhere in the plugin must match the registry above).
 
@@ -285,7 +285,7 @@ Additive schema release. Consumers on `^1.0.0` continue to install unmodified.
 
 - **New field:** Envelope 1 now carries an optional `file_inventory` object (`source` enum, `count` integer, `sibling_ref` string). The actual path list ships as a sibling file `memory/recon-<slug>.inventory.txt` to keep JSON diffs small on large repos.
 - **New subsection:** `### Consumer error contract` under Envelope 1 documents the three fail-open branches (field absent, sibling absent, count mismatch) with exact stderr notice templates. Reference implementation at `evals/primitives-contract/fixtures/consumer-stub-fail-open.sh`.
-- **New canonical enumeration pipeline:** `plugins/dev-team/scripts/recon_inventory.py` is the single source of truth for both the git-ls-files branch and the filesystem-walk branch; excludes for the non-git branch live in `plugins/dev-team/knowledge/recon-inventory-excludes.txt`.
+- **New canonical enumeration pipeline:** `plugins/dev-team/scripts/recon_inventory.py` is the single source of truth for both the git-ls-files branch and the filesystem-walk branch; excludes for the non-git branch live in `plugins/dev-team/skills/dev-team-knowledge/recon-inventory-excludes.txt`.
 - **Backward compatibility:** pre-1.2.0 envelopes continue to validate. Consumers that need the field (Gap 6's manifest-membership hook) follow the fail-open contract documented above.
 
 ### 1.1.0 (2026-04-21)

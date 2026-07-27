@@ -9,11 +9,11 @@ Imported (not executed) by the Python siblings of the three .sh callers:
                                                 port will import this module)
 
 The corpus is:
-  - plugins/dev-team/knowledge/*.md         (top-level .md only)
+  - plugins/dev-team/skills/dev-team-knowledge/*.md         (top-level .md only)
   - plugins/dev-team/skills/<name>/SKILL.md
 
 Excluded:
-  - plugins/dev-team/knowledge/schemas/**   (json schemas, not docs)
+  - plugins/dev-team/skills/dev-team-knowledge/schemas/**   (json schemas, not docs)
   - everything else (agents/, commands/, docs/, README.md, …)
 
 Anchor: top-level knowledge .md OR <skills-dir>/<one segment>/SKILL.md.

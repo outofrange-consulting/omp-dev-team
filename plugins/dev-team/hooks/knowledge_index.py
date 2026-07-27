@@ -5,7 +5,7 @@ Python port of hooks/knowledge-index.sh (#580 / #572 Cluster A dependent).
 
 When an Edit or Write touches a file in the indexed corpus
 (knowledge/*.md or skills/*/SKILL.md, excluding knowledge/schemas/),
-regenerate plugins/dev-team/knowledge/index.json by shelling out to the
+regenerate plugins/dev-team/skills/dev-team-knowledge/index.json by shelling out to the
 builder (default: hooks/lib/build-knowledge-index.sh, itself a thin
 wrapper over build_knowledge_index.py).
 

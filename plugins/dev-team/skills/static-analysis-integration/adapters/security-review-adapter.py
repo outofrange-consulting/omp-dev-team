@@ -6,7 +6,7 @@ plugins/dev-team/agents/security-review.md for the agent-output
 schema) and emits one unified-finding envelope v1 (JSONL) per issue.
 
 Rule_id lookup is driven by the canonical mapping at
-plugins/dev-team/knowledge/security-review-rule-map.yaml. This
+plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml. This
 adapter contains NO inline rule_id literals beyond the
 ``security-review.`` namespace prefix constant used for the
 fallback path; the single-source-of-truth invariant is enforced by an
@@ -54,7 +54,7 @@ _PLUGIN_ROOT = os.path.abspath(os.path.join(_ADAPTER_DIR, "..", "..", ".."))
 _DEFAULT_MAPPING_ABS = os.path.join(
     _PLUGIN_ROOT, "knowledge", "security-review-rule-map.yaml"
 )
-_DEFAULT_MAPPING_REL = "plugins/dev-team/knowledge/security-review-rule-map.yaml"
+_DEFAULT_MAPPING_REL = "plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml"
 
 # Stdlib-only YAML subset parser (ADR 0014/0015 — no third-party imports in
 # shipped plugins/dev-team/ code); lives at plugins/dev-team/hooks/lib/.

@@ -94,17 +94,14 @@ jobs:
       - name: bun unit tests (pure extension logic)
         run: |
           rc=0
-          for t in \
-            plugins/token-diet/scripts/extensions.test.ts \
-            plugins/dev-team/scripts/extensions.test.ts; do
+          for t in plugins/token-diet/scripts/extensions.test.ts; do
             echo "== $t =="
             if bun "$t"; then echo "ok $t"; else echo "FAIL $t"; rc=1; fi
           done
           exit $rc
 
-  # 1d) Framework-compliance checks for the dev-team plugin: skill:// anchor
-  #     resolution, index.json file integrity, review-agent output-discipline
-  #     wiring, and the test-after stance (no removed TDD identifiers).
+  # 1d) Repo self-consistency (skill:// resolution, dead paths, manifest parity,
+  #     OMP builtin collisions, agent frontmatter) plus the port invariant.
   compliance:
     name: dev-team framework compliance
     runs-on: ubuntu-latest
@@ -112,18 +109,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate framework compliance
         run: node scripts/ci-framework-compliance.mjs
-      # The knowledge index and both registries are GENERATED from the filesystem.
-      # Without this step the generators are advisory and the files drift back to
-      # hand-maintained — which is how agent-registry.md ended up listing 36 of 64
-      # skills and pointing at a directory layout that does not exist here.
-      # ORDER MATTERS: build-registries.mjs WRITES skills-registry.md into the
-      # knowledge dir, which build-knowledge-index.mjs then has to index. Checking
-      # the index first passes on a stale index and fails after a registry
-      # regeneration. Registries first, then the index.
-      - name: Registries and knowledge index are up to date
+      # THE strong invariant: plugins/dev-team must still equal a fresh mechanical
+      # conversion of upstream. A hand edit to a ported file fails here instead of
+      # silently becoming the drift that made the previous port unmaintainable.
+      # (The registry/index generators were retired — upstream ships those files.)
+      - name: dev-team matches a fresh conversion of upstream
         run: |
-          node scripts/build-registries.mjs --check
-          node scripts/build-knowledge-index.mjs --check
+          git clone --depth 1 https://github.com/bdfinst/agentic-dev-team.git /tmp/adt
+          node scripts/port-upstream-dev-team.mjs --from /tmp/adt/plugins/dev-team --check
+
+  # 1e) The ported plugin's substance is Python. Compile-check every file so a bad
+  #     port (or a bad upstream bump) fails here rather than at a tool call.
+  python:
+    name: dev-team python (compile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Byte-compile every ported hook and script
+        run: python -m compileall -q plugins/dev-team/hooks plugins/dev-team/scripts plugins/dev-team/skills
+      - name: py.sh resolves an interpreter
+        run: sh plugins/dev-team/hooks/py.sh -c 'import sys; print(sys.version)'
 
   # 2) Real end-to-end install on every OS (bootstraps bun/omp/plugins, then
   #    verifies OMP launches and lists all plugins).

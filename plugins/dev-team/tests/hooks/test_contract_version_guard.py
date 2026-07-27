@@ -128,7 +128,7 @@ def _init_hermetic_repo(root: Path, contract_content: str) -> None:
     """Create a git repo at `root` and commit the contract file at HEAD.
 
     This mirrors the .sh's assumption that the contract lives at
-    plugins/dev-team/knowledge/security-primitives-contract.md relative to
+    plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md relative to
     repo root.
     """
     env = hermetic_git_env(home=root)
@@ -229,7 +229,7 @@ def test_block_write_removing_version(tmp_path: Path) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "---\nno-version: yep\n---\n# Contract body\n",
             },
         }
@@ -245,7 +245,7 @@ def test_block_body_change_without_version_bump(tmp_path: Path) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "---\nversion: 1.0.0\n---\n# Changed body\n",
             },
         }
@@ -261,7 +261,7 @@ def test_allow_body_change_with_version_bump(tmp_path: Path) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "---\nversion: 1.1.0\n---\n# Changed body\n",
             },
         }
@@ -277,7 +277,7 @@ def test_allow_frontmatter_only_change(tmp_path: Path) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "---\nversion: 1.0.0\nnew-key: v\n---\n# Unchanged body\n",
             },
         }
@@ -294,7 +294,7 @@ def test_release_please_bypass_lets_missing_version_through(
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "no version at all",
             },
         }
@@ -364,7 +364,7 @@ def test_initial_add_without_version_blocks(tmp_path: Path) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "no version anywhere",
             },
         }
@@ -412,7 +412,7 @@ def test_initial_add_with_version_passes(tmp_path: Path) -> None:
         {
             "tool_name": "Write",
             "tool_input": {
-                "file_path": "plugins/dev-team/knowledge/security-primitives-contract.md",
+                "file_path": "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md",
                 "content": "---\nversion: 0.1.0\n---\nnew contract",
             },
         }
@@ -444,7 +444,7 @@ def test_malformed_stdin_pass(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-_CONTRACT = "plugins/dev-team/knowledge/security-primitives-contract.md"
+_CONTRACT = "plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md"
 
 
 def test_msg_initial_add_is_exact() -> None:

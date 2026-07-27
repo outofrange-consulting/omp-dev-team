@@ -45,7 +45,7 @@ Shipped in P2 Step 3b. Not part of the baseline.
 
 ### Tier 3 — bespoke JSON adapters
 
-Shipped in P2 Step 3b for tools without upstream SARIF. Each adapter ≤ 40 LOC. A thin adapter normalizes `security-review` agent output into the unified envelope (see `adapters/security-review-adapter.py`). Rule_id lookup is driven by `plugins/dev-team/knowledge/security-review-rule-map.yaml`; malformed categories hard-fail, well-formed-but-unmapped categories fall back to `security-review.*` with a WARN.
+Shipped in P2 Step 3b for tools without upstream SARIF. Each adapter ≤ 40 LOC. A thin adapter normalizes `security-review` agent output into the unified envelope (see `adapters/security-review-adapter.py`). Rule_id lookup is driven by `plugins/dev-team/skills/dev-team-knowledge/security-review-rule-map.yaml`; malformed categories hard-fail, well-formed-but-unmapped categories fall back to `security-review.*` with a WARN.
 
 mypy (≥ 1.11, `mypy --output json`) normalizes via `adapters/mypy-adapter.py` — rule ids `mypy.python.<error-code>`; on older mypy (no `--output json`) the adapter degrades to a skip-with-warning. Language-conditional like ruff (see step 1). Invocation and field mapping in `references/tool-configs.md`.
 
@@ -134,7 +134,7 @@ semgrep > gitleaks > trivy > hadolint > actionlint > ruff > mypy > oxlint > (leg
 
 ### 5. Consult ACCEPTED-RISKS.md
 
-If present at repo root, apply suppression per `plugins/dev-team/knowledge/accepted-risks-schema.md`. Suppressed findings are removed from the return value but logged to the audit trail.
+If present at repo root, apply suppression per `plugins/dev-team/skills/dev-team-knowledge/accepted-risks-schema.md`. Suppressed findings are removed from the return value but logged to the audit trail.
 
 ### 6. Return structured result
 

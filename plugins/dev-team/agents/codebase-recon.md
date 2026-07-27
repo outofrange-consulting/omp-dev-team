@@ -25,7 +25,7 @@ First-pass discovery for security-review, domain-analysis, and architecture work
 
 ## Contract
 
-Output conforms to the RECON envelope schema at `evals/codebase-recon/expected-schema.json` (v0.1 placeholder). Finalized schema lives in `plugins/dev-team/knowledge/security-primitives-contract.md#envelope-1-recon` once P2 Step 4 ships.
+Output conforms to the RECON envelope schema at `evals/codebase-recon/expected-schema.json` (v0.1 placeholder). Finalized schema lives in `plugins/dev-team/skills/dev-team-knowledge/security-primitives-contract.md#envelope-1-recon` once P2 Step 4 ships.
 
 Artifacts written:
 
